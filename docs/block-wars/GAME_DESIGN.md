@@ -18,6 +18,12 @@ Inspiración de lectura visual: bloques cúbicos, capas geológicas, minerales, 
 6. Al terminar la ronda (tiempo o objetivo), declarar resultado por puntuación transparente, mostrar resumen y arrancar otra ronda sin intervención manual. Empates permitidos.
 7. Mantener un indicador de estado LIVE/DEMO verificable. La partida no debe depender de recibir regalos para continuar.
 
+## Sistema ampliado de picos y encantamientos
+
+Se incorpora como parte del diseño de Block Wars el sistema de **picos de madera, piedra, oro, diamante y netherita**, cada uno con **velocidad de excavación, durabilidad y apariencia visual distintas**, además de **Eficiencia I–V**, Irrompibilidad, Fortuna, Prisa/Turbo y un modo temporal **DESCOMUNAL**. Oro puede ser el más rápido pero muy frágil; madera es marcadamente lenta; diamante/netherita resisten minería sostenida. **TNT, meteoritos y NUKE siguen vigentes**, con explosiones masivas compatibles con el motor de minería. Todo se desbloquea/probará mediante mecánicas gratuitas en la etapa inicial.
+
+Especificación completa con tabla de velocidades, multiplicadores, comandos, interacciones y pruebas: [PICKAXES_AND_EVENTS.md](PICKAXES_AND_EVENTS.md).
+
 ## 3. Materiales y estética
 
 - **Bloques:** piedra gris, tierra rojiza, obsidiana ficticia, cristal azulado, mineral dorado, magma y nubes. Texturas y siluetas **creadas desde cero**.
