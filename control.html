@@ -19,26 +19,16 @@
     <button data-type="like"><span>👍</span> 100 likes <small>+1 manzana</small></button>
     <button data-type="follow"><span>⭐</span> Follow <small>+1 manzana</small></button>
     <button data-type="chat"><span>💬</span> !manzana <small>+1 manzana</small></button>
-    <button data-type="subscribe"><span>💎</span> Suscripción <small>+5 manzanas</small></button>
+  </div></section>
+  <section class="control-section"><h2>Suscripción de prueba (puede ser pagada)</h2><div class="button-grid">
+    <button data-type="subscribe"><span>💎</span> Suscripción <small>Prueba local: +5 manzanas</small></button>
   </div></section>
   <section class="control-section"><h2>Control de la partida</h2><div class="button-grid">
     <button data-type="pause"><span>⏯</span> Pausar / continuar</button>
     <button data-type="reset"><span>↻</span> Nueva partida</button>
     <button data-type="frenzy"><span>✨</span> Evento especial</button>
   </div></section>
-  <section class="control-section tips"><h2>Cómo conectar TikTok</h2><p>El juego intenta conectarse a <code>ws://localhost:21213/</code>, la API de eventos de <a href="https://tikfinity.com/" target="_blank" rel="noopener">TikFinity Desktop</a>. Cuando TikFinity esté abierto y vinculado al LIVE, los regalos compatibles dispararán acciones reales en el juego.</p><p>Para OBS añade una <b>fuente de navegador</b> con URL <code>http://127.0.0.1:4173/</code> y resolución <b>720 × 1280</b>. No compartas este panel durante la transmisión.</p></section>
+  <section class="control-section tips"><h2>Cómo conectar TikTok</h2><p>El juego intenta conectarse a <code>ws://127.0.0.1:21213/</code>, la API de eventos de <a href="https://tikfinity.com/" target="_blank" rel="noopener">TikFinity Desktop</a>. «RELAY CONECTADO» sólo confirma ese enlace local. Verifica por separado los eventos del LIVE y la elegibilidad de la cuenta. Los botones de este panel siempre son pruebas.</p><p>Para OBS añade una <b>fuente de navegador</b> con URL <code>http://127.0.0.1:4173/</code> y resolución <b>720 × 1280</b>. No compartas este panel durante la transmisión.</p></section>
 </main>
-<script>
-const feedback=document.getElementById('feedback');
-async function status(){try{const r=await fetch('/api/status');const d=await r.json();document.getElementById('views').textContent=d.gameWindows ? `${d.gameWindows} ventana(s) del juego conectada(s)`:'Abre el juego para activar las pruebas';}catch{document.getElementById('views').textContent='Servidor desconectado';}}
-async function send(type,giftName){
-  try{
-    const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,giftName,name:'Prueba local',text:'!manzana'})});
-    const d=await r.json();feedback.textContent=d.ok?`✓ Enviado a ${d.receivers} ventana(s)`:(d.error||'Error');
-  }catch{feedback.textContent='No se pudo enviar el evento';}
-  status();
-}
-document.querySelectorAll('button[data-type]').forEach(b=>b.addEventListener('click',()=>send(b.dataset.type,b.dataset.gift)));
-status();setInterval(status,5000);
-</script>
+<script src="/control.js"></script>
 </body></html>

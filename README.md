@@ -18,7 +18,7 @@ Juego interactivo vertical para TikTok LIVE: autopiloto de serpiente por laberin
 4. Abre `http://127.0.0.1:4173/` para ver el juego y `http://127.0.0.1:4173/control` para probar botones.
 5. En OBS, **Fuentes → Navegador**, URL `http://127.0.0.1:4173/`, ancho **720**, alto **1280**. Conviene desactivar la suspensión de la fuente cuando no está visible, si quieres que la partida permanezca activa en cambios de escena.
 6. Si tu cuenta puede transmitir, abre TikTok LIVE Studio/OBS según el flujo que tengas habilitado, y configura la escena vertical. No expongas el panel de control en el LIVE.
-7. Ejecuta TikFinity Desktop en la **misma PC**, conecta tu usuario al LIVE y verifica que el cartel cambie de «MODO DEMO» a «EVENTOS CONECTADOS». El texto indica conexión al relay, no prueba por sí solo que TikTok esté transmitiendo.
+7. Ejecuta TikFinity Desktop en la **misma PC**, conecta tu usuario al LIVE y verifica que el cartel cambie de «MODO DEMO» a «RELAY CONECTADO». El texto indica conexión al relay, no prueba por sí solo que TikTok esté transmitiendo. Los efectos disparados desde el panel llevan `PRUEBA` incluso si el relay está conectado.
 
 Detener: `Ctrl+C` en la terminal.
 
@@ -44,8 +44,23 @@ Los nombres y la disponibilidad de regalos pueden variar por región. **Antes de
 - `index.html` + `styles.css`: vista vertical limpia que captura OBS.
 - `game.js`: juego, generación de laberintos, autopiloto, Canvas, efectos e integración local TikFinity.
 - `control.html`: panel de botones para probar eventos sin gasto alguno.
+- `control.js`: lógica del panel, separada para permitir CSP sin scripts inline.
 
 La conexión a TikFinity se realiza **en el navegador que renderiza el juego**, no en el servidor Node; por ello debe ejecutarse en la misma máquina que TikFinity. El panel utiliza SSE local para accionar la instancia que aparece en OBS.
+
+## Pruebas y estabilización
+
+Sin instalar paquetes del proyecto:
+
+```powershell
+npm run check
+npm test
+npm run test:soak
+```
+
+El ensayo `test:soak` recorre dos horas virtuales por defecto. Para seis: asigna `$env:SOAK_HOURS = '6'` antes de ejecutarlo. Es una simulación acelerada con reloj/Canvas de prueba; no equivale a una emisión real. La auditoría, defectos reproducidos, límites del contrato y plan por fases están en [AUDIT_PHASE_1.md](docs/AUDIT_PHASE_1.md).
+
+La API de control exige JSON tipado, permite hasta 30 comandos/s y 4096 bytes por mensaje; admite 16 ventanas SSE. Rechaza orígenes/hosts ajenos y sanea textos. No hay autenticación entre procesos locales: usa solo una PC de confianza y no publiques el puerto. Las pruebas se rotulan como simulación y las suscripciones se distinguen de los follows gratuitos. El soporte LIVE real, OBS/CEF y monetización siguen pendientes de validación.
 
 ## Limitaciones y seguridad
 
