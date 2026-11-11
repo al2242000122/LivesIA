@@ -49,6 +49,10 @@ Fase inicial: mantener Node.js + JavaScript/Canvas 2D + HTTP localhost + SSE y W
 
 El panel no debe exponerse a Internet. Proteger peticiones de control frente a sitios externos, añadir comprobaciones de origen/CSRF o token local, y mantener `127.0.0.1` como valor predeterminado.
 
+## Especificación de herramientas de minería y grandes explosiones
+
+Los cinco picos, sus velocidades base, durabilidades, encantamientos, modo de velocidad DESCOMUNAL y eventos **TNT / NUKE** se definen en [PICKAXES_AND_EVENTS.md](PICKAXES_AND_EVENTS.md). Codex debe modelar estadísticas y modificadores por configuración, aplicar acumulación fraccional y excavación por lotes para velocidades extremas, y limitar partículas/daño por actualización durante explosiones masivas. Incluir pruebas reproducibles de diferencias de velocidad, desgaste, Eficiencia V, eventos concurrentes y reinicio seguro. El acceso inicial es gratuito por diseño; ningún regalo es requisito para los picos.
+
 ## Calidad y antispam
 
 - Cola de eventos con presupuesto por frame y máximo por tipo; agrupar likes en contadores.
