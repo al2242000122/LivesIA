@@ -58,3 +58,16 @@ Este repositorio contiene el MVP de **Serpiente Infinita LIVE**, un videojuego o
 
 ## Nota para el primer turno de Codex
 Inspecciona todos los archivos, resume la arquitectura real, identifica defectos con evidencia y propón un plan por fases. **Primero pruebas y estabilización**, luego integración LIVE y personalización. No afirmar que la monetización está lista ni cambiar `main` directamente: implementar en rama y abrir PR. No hace falta reescribir todo en un framework para el MVP.
+
+## Nuevo modo prioritario: Block Wars LIVE (planificado, no implementado)
+
+**Objetivo estratégico actualizado:** primero audiencia, likes, follows, comentarios y tiempo de visualización orgánicos; monetización con regalos y suscripciones pagadas **solo más adelante**. El término `sub` significa suscripción potencialmente pagada, no un follow gratuito.
+
+Leer en este orden antes de modificar el proyecto:
+1. `docs/block-wars/README.md`
+2. `docs/block-wars/GAME_DESIGN.md`
+3. `docs/block-wars/GROWTH_AND_MONETIZATION.md`
+4. `docs/block-wars/TECHNICAL_SPEC.md`
+5. `docs/block-wars/CODEX_BACKLOG.md`
+
+Codex debe mantener Serpiente Infinita como modo existente, implementar Block Wars en módulos independientes y usar un adaptador de eventos compartido con simulación y fuentes distinguibles. Crear un PR por fase; no eliminar funcionalidades, no mezclar efectos gratuitos con donaciones y no ejecutar la fase de regalos antes de contar con elegibilidad y validación real. Aspecto de bloques inspirado de manera general en juegos voxel, **con recursos, sonidos y texturas originales**, sin assets o marcas de Minecraft/Mojang.
