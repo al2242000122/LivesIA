@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Serpiente Infinita LIVE</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body class="live">
+<main class="stage">
+  <header class="masthead">
+    <div class="brand"><span class="brand-icon">◈</span><div><div class="eyebrow">ARCADE INTERACTIVO</div><h1>SERP<span>IENTE</span> <b>INFINITA</b></h1></div></div>
+    <div class="connection"><span class="pulse" id="signal"></span><span id="connection">MODO DEMO</span></div>
+  </header>
+  <section class="intro">
+    <div class="intro-title">¿PODRÁ SOBREVIVIR?</div>
+    <div class="intro-caption">¡Los eventos del chat transforman el laberinto!</div>
+  </section>
+  <section class="stats" aria-label="Marcadores">
+    <div class="stat"><span>NIVEL</span><strong id="level">01</strong></div>
+    <div class="stat"><span>MANZANAS</span><strong id="score">000</strong></div>
+    <div class="stat"><span>TIEMPO</span><strong id="timer">03:00</strong></div>
+    <div class="stat"><span>ESCUDOS</span><strong id="shields">00</strong></div>
+  </section>
+  <section class="board-frame">
+    <div class="board-top"><span>● PARTIDA EN CURSO</span><span id="speed">VELOCIDAD NORMAL</span></div>
+    <canvas id="game" width="600" height="744" aria-label="Juego automático de serpiente"></canvas>
+    <div class="banner" id="banner" aria-live="polite"></div>
+  </section>
+  <section class="gift-panel">
+    <div class="panel-heading"><span>🎮 EVENTOS INTERACTIVOS</span><span>PARTICIPA EN EL CHAT</span></div>
+    <div class="gift-grid">
+      <div class="gift"><span>🌹</span><b>ROSA</b><small>+ MANZANAS</small></div>
+      <div class="gift"><span>❤️</span><b>CORAZÓN</b><small>+ ESCUDO</small></div>
+      <div class="gift"><span>🍩</span><b>DONA</b><small>+ TURBO</small></div>
+      <div class="gift"><span>🌌</span><b>GALAXIA</b><small>LLUVIA FRUTAL</small></div>
+    </div>
+  </section>
+  <section class="last-event"><span class="event-dot">✦</span><div><span>ÚLTIMO EVENTO</span><strong id="last-event">Juego listo. ¡Que comience la diversión!</strong></div></section>
+  <footer>COMENTA <b>!MANZANA</b> PARA AYUDAR GRATIS <span>•</span> RONDAS DE 3 MINUTOS</footer>
+</main>
+<script src="/game.js"></script>
+</body>
+</html>
