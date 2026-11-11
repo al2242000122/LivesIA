@@ -6,8 +6,8 @@
   "engines": {"node": ">=20"},
   "scripts": {
     "start": "node server.js",
-    "test": "node --test tests/game.test.cjs tests/server.test.cjs",
+    "test": "node scripts/test.cjs",
     "test:soak": "node --expose-gc tests/soak.cjs",
-    "check": "node --check server.js && node --check game.js && node --check control.js"
+    "check": "node scripts/check.cjs"
   }
 }

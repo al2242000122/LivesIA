@@ -12,7 +12,6 @@
     shields:0, seconds:DURATION, paused:false, turboUntil:0, partyUntil:0,
     bannerUntil:0, gameOverUntil:0, nextLevelAt:12, likes:0, fxLast:0};
   const freeCooldown = new Map();
-  const seenGifts = new Map();
   const MAX_EVENT_KEYS = 2048;
   let lastChatAt = -Infinity;
   let lastFrame = performance.now(), lastMove=0, previousSec=0, socket=null;
@@ -191,73 +190,39 @@
     if(map.has(k)||map.size>=MAX_EVENT_KEYS)return false;
     map.set(k,now+ttl);return true;
   }
-  function handleTikfinity(packet){
-    if(typeof packet.data!=='string'||packet.data.length>16384)return;
-    let msg;try{msg=JSON.parse(packet.data);}catch{return;}
-    if(!msg||typeof msg!=='object'||Array.isArray(msg)||typeof msg.event!=='string')return;
-    const type=msg.event.toLowerCase(),d=msg.data;
-    if(!d||typeof d!=='object'||Array.isArray(d))return;
-    const scalar=value=>typeof value==='string'||(typeof value==='number'&&Number.isFinite(value));
-    const identity=[d.userId,d.uniqueId,d.username,d.nickname].find(scalar);
-    const userKey=String(identity??'anonymous').slice(0,128);
-    const by=safeName([d.nickname,d.uniqueId,d.username].find(scalar));
-    const now=Date.now();
-    if(type==='gift'){
-      if(d.giftType!==undefined&&!scalar(d.giftType))return;
-      if(Number(d.giftType)===1&&d.repeatEnd!==true&&d.repeatEnd!==1)return;
-      if(d.repeatCount!==undefined&&!scalar(d.repeatCount))return;
-      const count=d.repeatCount===undefined?1:Number(d.repeatCount);
-      if(!Number.isSafeInteger(count)||count<1)return;
-      const name=d.giftName??d.gift?.name??'Regalo';
-      if(typeof name!=='string')return;
-      // Events without an ID retain the MVP behavior; never invent IDs.
-      if(scalar(d.msgId)&&!claimEvent(seenGifts,`gift:${String(d.msgId).slice(0,128)}`,120000,now))return;
-      gift(name.slice(0,80),count,by);
-    }else if(type==='follow'||type==='subscribe'){
+  function receiveEvent(event){
+    const by=safeName(event.actor.displayName),data=event.data;
+    if(event.source==='simulator'){
+      command({type:event.type==='comment'?'chat':event.type==='subscribe_paid'?'subscribe':event.type,
+        name:by,giftName:data.giftName,count:data.count,text:data.text});
+      return;
+    }
+    const now=Date.now(),userKey=event.actor.stableHash;
+    if(event.type==='gift')gift(data.giftName,data.count,by);
+    else if(event.type==='follow'||event.type==='subscribe_paid'){
+      const type=event.type==='subscribe_paid'?'subscribe':'follow';
       if(claimEvent(freeCooldown,`${type}:${userKey}`,20000,now))freeEvent(type,by);
-    }else if(type==='like'){
-      if(!scalar(d.likeCount))return;
-      const value=Number(d.likeCount);
-      if(!Number.isSafeInteger(value)||value<0)return;
-      s.likes+=Math.min(1000,value);
+    }else if(event.type==='like'){
+      s.likes+=data.delta;
       const batches=Math.floor(s.likes/100);s.likes%=100;
       if(batches){spawnApples(batches);notify(`👍 ¡La comunidad acumuló ${batches*100} likes!`);}
-    }else if(type==='chat'){
-      if(typeof d.comment!=='string'||d.comment.length>500)return;
-      const message=norm(d.comment);
+    }else if(event.type==='comment'){
+      const message=norm(data.text);
       if(message.includes('!manzana')&&now-lastChatAt>=2500&&claimEvent(freeCooldown,`chat:${userKey}`,15000,now)){
         lastChatAt=now;freeEvent('chat',by,message);
       }
     }
   }
-  // TikFinity Desktop local Events API. Not an official TikTok public API.
-  let reconnectTimeout;
-  function connectTikfinity(){
-    try {
-      socket=new WebSocket('ws://127.0.0.1:21213/');
-      socket.onopen=()=>{
-        ui.signal.classList.add('on');ui.connection.textContent='RELAY CONECTADO';
-        notify('TikFinity conectado · LIVE sin verificar');
-      };
-      socket.onmessage=handleTikfinity;
-      socket.onclose=()=>{
-        ui.signal.classList.remove('on');ui.connection.textContent='MODO DEMO';
-        clearTimeout(reconnectTimeout);reconnectTimeout=setTimeout(connectTikfinity,5000);
-      };
-      socket.onerror=()=>socket.close();
-    }catch{clearTimeout(reconnectTimeout);reconnectTimeout=setTimeout(connectTikfinity,5000);}
-  }
-  let controlsRetry;
-  function connectControls(){
-    const stream=new EventSource('/api/stream');
-    stream.onmessage=e=>{try{command(JSON.parse(e.data));}catch(err){console.error('Evento local inválido',err);}};
-    stream.onerror=()=>{
-      // Native retries handle CONNECTING; HTTP failures such as a capacity 503
-      // can be terminal. Recreate only CLOSED streams, with one pending retry.
-      if(stream.readyState===EventSource.CLOSED){
-        clearTimeout(controlsRetry);controlsRetry=setTimeout(connectControls,5000);
-      }
-    };
+  function connectEvents(){
+    let previousRelay='offline';
+    const connection=LiveTransport.connect({target:'snake',onEvent:receiveEvent,onControl:command,onStatus:state=>{
+      const connected=state.relay==='connected';
+      if(connected)ui.signal.classList.add('on');else ui.signal.classList.remove('on');
+      ui.connection.textContent=connected?'RELAY CONECTADO':'MODO DEMO';
+      if(connected&&previousRelay!=='connected')notify('TikFinity conectado · LIVE sin verificar');
+      previousRelay=state.relay;
+    }});
+    globalThis.addEventListener?.('pagehide',()=>connection.stop(),{once:true});
   }
   function rounded(x,y,w,h,r){
     ctx.beginPath();ctx.roundRect(x,y,w,h,r);
@@ -335,5 +300,5 @@
     if(s.bannerUntil && Date.now()>s.bannerUntil){ui.banner.classList.remove('show');s.bannerUntil=0;}
     draw(now,delta);requestAnimationFrame(loop);
   }
-  newRound(true);connectControls();connectTikfinity();requestAnimationFrame(loop);
+  newRound(true);connectEvents();requestAnimationFrame(loop);
 })();

@@ -13,6 +13,8 @@ const files = {
   '/game.js': ['game.js', 'text/javascript; charset=utf-8'],
   '/control.js': ['control.js', 'text/javascript; charset=utf-8'],
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
+  '/integrations/events.js': ['integrations/events.js', 'text/javascript; charset=utf-8'],
+  '/integrations/transport.js': ['integrations/transport.js', 'text/javascript; charset=utf-8'],
 };
 const actions = new Set(['gift', 'like', 'follow', 'subscribe', 'chat', 'pause', 'reset', 'frenzy']);
 let commandWindow = 0, commandCount = 0;
