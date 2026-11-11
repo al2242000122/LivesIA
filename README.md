@@ -62,3 +62,17 @@ La conexión a TikFinity se realiza **en el navegador que renderiza el juego**, 
 - Ayuda TikTok Diamantes: https://support.tiktok.com/es/business-and-creator/video-gifts-on-tiktok/diamonds
 - TikTok interactive games (vía evaluación de socios): https://cp-game.tiktok.com/interactive-game-registration
 - Normas LIVE de TikTok: https://www.tiktok.com/community-guidelines/
+
+---
+
+## Próximo modo prioritario: Block Wars LIVE (en diseño)
+
+Block Wars LIVE es un **juego nuevo todavía no implementado** de minería y destrucción de bloques originales, con equipos DARK vs LIGHT, TNT comunitaria por likes y eventos gratis automáticos. La primera fase busca **likes, seguidores, comentarios, visualizaciones y retención auténticas**, no regalos pagados. Serpiente Infinita seguirá disponible como modo alternativo.
+
+- [Plan y estado de Block Wars](docs/block-wars/README.md)
+- [Diseño del juego](docs/block-wars/GAME_DESIGN.md)
+- [Crecimiento y futura monetización](docs/block-wars/GROWTH_AND_MONETIZATION.md)
+- [Arquitectura técnica](docs/block-wars/TECHNICAL_SPEC.md)
+- [Backlog para Codex](docs/block-wars/CODEX_BACKLOG.md)
+
+**Nota:** no se deben confundir follows gratuitos con subs pagadas. TikTok no remunera directamente cada like o vista; se requiere elegibilidad para LIVE y Gifts si en el futuro se habilitan regalos.
