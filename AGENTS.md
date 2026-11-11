@@ -71,3 +71,9 @@ Leer en este orden antes de modificar el proyecto:
 5. `docs/block-wars/CODEX_BACKLOG.md`
 
 Codex debe mantener Serpiente Infinita como modo existente, implementar Block Wars en módulos independientes y usar un adaptador de eventos compartido con simulación y fuentes distinguibles. Crear un PR por fase; no eliminar funcionalidades, no mezclar efectos gratuitos con donaciones y no ejecutar la fase de regalos antes de contar con elegibilidad y validación real. Aspecto de bloques inspirado de manera general en juegos voxel, **con recursos, sonidos y texturas originales**, sin assets o marcas de Minecraft/Mojang.
+
+## Verificación de la fase de estabilización
+
+Sin instalar dependencias: `npm run check`, `npm test` y `npm run test:soak` (dos horas virtuales por defecto; `SOAK_HOURS=6` para seis). `node --check` sustituye diagnósticos IDE cuando no están disponibles. Las pruebas unitarias ejecutan el script real del juego con DOM/Canvas/tiempo/transporte dobles; la integración HTTP/SSE usa procesos reales. Ninguna de ellas acredita un LIVE ni una sesión OBS prolongada. Ver `docs/AUDIT_PHASE_1.md` para contrato, evidencias y pendientes.
+
+Una demora superior a una ronda puede ocultar reinicios dobles en las pruebas de tiempo: para comprobar reinicio tras game over usar también demoras menores de 180 s (p. ej. 5 s). Los mensajes sobredimensionados de prueba deben contener JSON válido para cubrir la guarda de longitud.

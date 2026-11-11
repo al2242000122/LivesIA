@@ -1,0 +1,13 @@
+{
+  "name": "livesia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Serpiente Infinita LIVE local, sin dependencias npm",
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/game.test.cjs tests/server.test.cjs",
+    "test:soak": "node --expose-gc tests/soak.cjs",
+    "check": "node --check server.js && node --check game.js && node --check control.js"
+  }
+}
