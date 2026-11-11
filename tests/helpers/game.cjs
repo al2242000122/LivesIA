@@ -28,6 +28,7 @@ function loadGame(seed = 1) {
   class Stream {
     static CLOSED = 2;
     constructor() { this.readyState = 0; streams.push(this); }
+    close() { this.readyState = 2; }
   }
   const sandbox = {document: {getElementById: element}, Date: Clock, Math: math,
     performance: {now: () => frameTime}, WebSocket: Socket, EventSource: Stream,
@@ -37,7 +38,11 @@ function loadGame(seed = 1) {
   const source = fs.readFileSync(path.join(__dirname, '../../game.js'), 'utf8');
   // Test-only access to the IIFE; no debugging globals are shipped to OBS.
   const code = source.replace(/\}\)\(\);\s*$/, 'globalThis.inspect = {s, freeCooldown, newRound, levelUp, step, findStep, crash, spawnApples, spawnBurst, draw};\n})();');
-  vm.runInNewContext(code, sandbox, {filename: 'game.js'});
+  const context = vm.createContext(sandbox);
+  for (const filename of ['integrations/events.js','integrations/transport.js']) {
+    vm.runInContext(fs.readFileSync(path.join(__dirname,'../..',filename),'utf8'), context, {filename});
+  }
+  vm.runInContext(code, context, {filename: 'game.js'});
   return { ...sandbox.inspect, elements, sockets, streams, timers, drawing,
     live(event, data) { sockets.at(-1).onmessage({data: JSON.stringify({event, data})}); },
     command(data) { streams.at(-1).onmessage({data: JSON.stringify(data)}); },
