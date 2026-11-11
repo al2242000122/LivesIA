@@ -26,6 +26,7 @@ El objetivo inicial NO es cobrar: **atraer audiencia real, conseguir seguidores,
 2. [GROWTH_AND_MONETIZATION.md](GROWTH_AND_MONETIZATION.md) — estrategia gratuita, indicadores y posterior monetización.
 3. [TECHNICAL_SPEC.md](TECHNICAL_SPEC.md) — arquitectura evolutiva, contratos de eventos, pruebas, OBS y seguridad.
 4. [CODEX_BACKLOG.md](CODEX_BACKLOG.md) — tareas ordenadas y criterios para aprobar PRs.
+5. [PICKAXES_AND_EVENTS.md](PICKAXES_AND_EVENTS.md) — picos y velocidades diferentes; encantamientos, TNT, NUKE y velocidad DESCOMUNAL.
 
 ## Prioridades irrevocables
 
