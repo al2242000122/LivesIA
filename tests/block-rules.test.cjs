@@ -98,4 +98,3 @@ test('a round turnover inside one vote window allows a fresh vote',()=>{
   const f=fixture({pickVoteThreshold:1});f.event('comment',{text:'!dark'});f.event('comment',{text:'!oro'});
   f.engine.state.round=2;assert.equal(f.event('comment',{text:'!piedra'}),true);
 });
-

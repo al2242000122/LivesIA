@@ -184,10 +184,11 @@
       metrics.rejected=0;state.membershipCounts.dark=0;state.membershipCounts.light=0;state.teams.dark.votes=voteCounts();state.teams.light.votes=voteCounts();
       state.teams.dark.pickWinner=null;state.teams.light.pickWinner=null;state.rainVotes=0;state.boomCharge=0;state.notifications.length=0;state.lastMessage='';refresh();
     }
-    return {handle,flush,reset,configure,metrics,state};
+    function clearPending(){
+      for(const source of SOURCES){buckets[source].pending=0;buckets[source].progress=0;}
+      state.boomCharge=0;refresh();
+    }
+    return {handle,flush,reset,configure,clearPending,metrics,state};
   }
   return {createRules,DEFAULTS:Object.freeze(DEFAULTS)};
 });
-
-
-

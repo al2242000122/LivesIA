@@ -1,0 +1,74 @@
+(function () {
+  'use strict';
+  const element = id => document.getElementById(id);
+  const engine=BlockWarsEngine.createEngine({seed:20261110,width:20,height:25,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
+  const rules=BlockWarsRules.createRules(engine,{likeThreshold:25});
+  const renderer=BlockWarsRender.createRenderer(element('mine'));
+  let reducedMotion=Boolean(engine.state.config && engine.state.config.reducedMotion);
+  let relay='offline',last=0,accumulator=0,hudAt=0,fpsAt=0,frames=0,fps=0,frameMs=0,telemetryAt=0,stopped=false;
+  const sources=new Set();
+  const totals={simulator:0,tikfinity:0};
+  const toolNames={wood:'MADERA',stone:'PIEDRA',gold:'ORO',diamond:'DIAMANTE',netherite:'NETHERITA'};
+  function control(command){
+    if(!command||command.target!=='block-wars')return;
+    sources.add('simulator');
+    element('notice').textContent='PRUEBA DE OPERADOR · '+command.type+' · Verifica el resultado y los enfriamientos.';
+    switch(command.type){
+      case 'bw_action':
+        {const action={type:command.action,team:command.team};for(const key of ['count','pickaxe','efficiency','unbreaking','fortune'])if(Object.prototype.hasOwnProperty.call(command,key))action[key]=command[key];
+          if(!engine.action(action))element('notice').textContent='PRUEBA · Acción rechazada: pausa, resumen, cola o enfriamiento activo.';}break;
+      case 'bw_settings':
+        if(!command.settings)return;
+        {const settings={};for(const key of ['duration','eventInterval','reducedMotion'])if(Object.prototype.hasOwnProperty.call(command.settings,key))settings[key]=command.settings[key];engine.configure(settings);}
+        if(Object.prototype.hasOwnProperty.call(command.settings,'likeThreshold'))rules.configure({likeThreshold:command.settings.likeThreshold});
+        if(typeof command.settings.reducedMotion==='boolean')reducedMotion=command.settings.reducedMotion;
+        break;
+      case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);break;
+      case 'bw_reset':engine.reset(command.seed);rules.reset();break;
+      case 'bw_emergency':engine.clearEffects();rules.clearPending();engine.pause(true);element('notice').textContent='EMERGENCIA · Arena pausada, efectos y cargas pendientes canceladas.';break;
+    }
+  }
+  const transport=LiveTransport.connect({target:'block-wars',onEvent(event){
+    if(event.source in totals){totals[event.source]++;sources.add(event.source);}rules.handle(event);
+  },onControl:control,onStatus(status){relay=status.relay||'offline';}});
+  function updateHud(){
+    const state=engine.state;
+    element('round').textContent=String(state.round).padStart(2,'0');
+    const remaining=Math.ceil(Math.max(0,state.remaining));element('clock').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+    for(const key of ['dark','light']){
+      const team=state.teams[key],config=BlockWarsConfig.PICKAXES[team.pickaxe];
+      element(key+'-score').textContent=Math.floor(team.score).toLocaleString('es-MX');
+      element(key+'-tool').textContent='PICO '+(toolNames[team.pickaxe]||team.pickaxe)+(team.efficiency?' · E'+team.efficiency:'');
+      element(key+'-speed').textContent=Number(team.effectiveSpeed).toFixed(1)+' b/s';
+      element(key+'-durability').style.width=Math.max(0,Math.min(100,100*team.durability/config.durability))+'%';
+      const buffs=team.buffs||{};
+      element(key+'-buff').textContent=buffs.descomunal>0?'DESCOMUNAL · '+Math.ceil(buffs.descomunal)+'s':buffs.turbo>0?'TURBO · '+Math.ceil(buffs.turbo)+'s':team.blocks+' BLOQUES · I'+team.unbreaking+' F'+team.fortune;
+    }
+    const progress=rules.state.likeProgressBySource||{simulator:0,tikfinity:0},threshold=rules.state.likeThreshold||25;
+    element('like-progress').textContent='DEMO '+progress.simulator+' · RELAY '+progress.tikfinity+' / '+threshold;
+    element('like-fill').style.width=Math.min(100,100*progress.simulator/threshold)+'%';element('relay-fill').style.width=Math.min(100,100*progress.tikfinity/threshold)+'%';
+    element('next-event').textContent=state.paused?'ARENA PAUSADA':'EVENTO GRATIS EN '+Math.ceil(Math.max(0,state.nextEventIn))+'s';
+    element('source').textContent=sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
+    element('relay').textContent=relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY':'RELAY DESCONECTADO';
+    element('fps').textContent=fps+' FPS';
+    const counts=rules.metrics.bySource;
+    element('participation').textContent='LIKES D'+counts.simulator.likes+' / R'+counts.tikfinity.likes+' · FOLLOWS D'+counts.simulator.follows+' / R'+counts.tikfinity.follows;
+  }
+  function telemetry(){
+    const state=engine.state;
+    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion})}).then(response=>{if(!response.ok)element('notice').textContent='Diagnóstico local no disponible · El juego continúa.';}).catch(()=>{element('notice').textContent='Diagnóstico local sin conexión · El juego continúa.';});
+  }
+  function frame(now){
+    if(stopped)return;
+    const elapsed=last?Math.max(0,Math.min(.25,(now-last)/1000)):0;last=now;accumulator+=elapsed;
+    let steps=0;while(accumulator>=.05&&steps<5){engine.update(.05);if(rules.flush)rules.flush();accumulator-=.05;steps++;}if(steps===5)accumulator=0;
+    renderer.draw(engine.state,{time:now/1000,reducedMotion});frames++;
+    if(now-fpsAt>=1000){fps=Math.round(frames*1000/(now-fpsAt));frameMs=frames?(now-fpsAt)/frames:0;fpsAt=now;frames=0;}
+    if(now-hudAt>=150){updateHud();hudAt=now;}
+    if(now-telemetryAt>=5000){telemetry();telemetryAt=now;}
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange',()=>{last=0;accumulator=0;fpsAt=performance.now();frames=0;});
+  addEventListener('pagehide',()=>{stopped=true;transport.stop();},{once:true});
+  updateHud();requestAnimationFrame(frame);
+})();

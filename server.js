@@ -3,6 +3,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const {validateCommand,validateTelemetry}=require('./lib/contracts.js');
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 4173;
 const MAX_BODY_BYTES = 4096, MAX_CLIENTS = 16, COMMANDS_PER_SECOND = 30;
@@ -15,37 +16,31 @@ const files = {
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
   '/integrations/events.js': ['integrations/events.js', 'text/javascript; charset=utf-8'],
   '/integrations/transport.js': ['integrations/transport.js', 'text/javascript; charset=utf-8'],
+  '/block-wars': ['games/block-wars/index.html', 'text/html; charset=utf-8'],
+  '/block-wars/control': ['games/block-wars/control.html', 'text/html; charset=utf-8'],
+  '/block-wars/style.css': ['games/block-wars/style.css', 'text/css; charset=utf-8'],
 };
-const actions = new Set(['gift', 'like', 'follow', 'subscribe', 'chat', 'pause', 'reset', 'frenzy']);
+for(const filename of ['config','engine','rules','render','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
 let commandWindow = 0, commandCount = 0;
+let telemetry=null;
 function send(res, status, payload) {
   res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'});
   res.end(JSON.stringify(payload));
 }
 function writeEvent(client, output) {
   // A suspended browser must not retain an unbounded queue in the relay.
-  try { if (!client.destroyed && client.write(output)) return; } catch { /* close below */ }
+  try { if (!client.destroyed && client.write(output)) return true; } catch { /* close below */ }
   clients.delete(client);
   client.destroy();
+  return false;
 }
 function broadcast(message) {
   const output = `data: ${JSON.stringify(message)}\n\n`;
-  for (const client of clients) writeEvent(client, output);
+  let receivers=0;
+  for (const client of clients) if(client.gameTarget===message.target&&writeEvent(client, output))receivers++;
+  return receivers;
 }
-function cleanText(value, fallback, length) {
-  return (value ?? fallback).replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '').slice(0, length);
-}
-function validateCommand(event) {
-  if (!event || typeof event !== 'object' || Array.isArray(event) || !actions.has(event.type)) return null;
-  for (const field of ['name', 'giftName', 'text']) {
-    if (event[field] !== undefined && typeof event[field] !== 'string') return null;
-  }
-  if (event.count !== undefined && (!Number.isSafeInteger(event.count) || event.count < 1)) return null;
-  return {type: event.type, source: 'simulation',
-    name: cleanText(event.name, 'Prueba', 44), giftName: cleanText(event.giftName, 'Rosa', 44),
-    count: Math.min(20, event.count ?? 1), text: cleanText(event.text, '!manzana', 100)};
-}
-function receiveCommand(req, res) {
+function receiveJson(req, res, validator, accept) {
   if ((req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
     req.resume(); return send(res, 415, {error: 'Se requiere application/json'});
   }
@@ -76,15 +71,14 @@ function receiveCommand(req, res) {
     let event;
     try { event = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
     catch { return send(res, 400, {error: 'JSON inválido'}); }
-    const valid = validateCommand(event);
+    const valid = validator(event);
     if (!valid) return send(res, 400, {error: 'Comando inválido: revisa type, textos y count entero positivo'});
-    broadcast(valid);
-    send(res, 200, {ok: true, receivers: clients.size});
+    send(res, 200, accept(valid));
   });
 }
 const server = http.createServer((req, res) => {
-  let route;
-  try { route = new URL(req.url, `http://${HOST}:${PORT}`).pathname; }
+  let route,location;
+  try { location = new URL(req.url, `http://${HOST}:${PORT}`);route=location.pathname; }
   catch { return send(res, 400, {error: 'URL inválida'}); }
   const allowedHosts = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`]);
   const origin = req.headers.origin;
@@ -99,19 +93,26 @@ const server = http.createServer((req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws://127.0.0.1:21213; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
   if (req.method === 'GET' && route === '/api/stream') {
+    const target=location.searchParams.get('target')||'snake';
+    if(!['snake','block-wars'].includes(target))return send(res,400,{error:'Destino inválido'});
     if (clients.size >= MAX_CLIENTS) return send(res, 503, {error: 'Demasiadas ventanas del juego'});
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no'
     });
     clients.add(res);
+    res.gameTarget=target;
     res.on('close', () => clients.delete(res));
     res.on('error', () => clients.delete(res));
     writeEvent(res, ': connected\n\n');
     return;
   }
   if (req.method === 'GET' && route === '/api/status') return send(res, 200, {gameWindows: clients.size});
-  if (req.method === 'POST' && route === '/api/command') return receiveCommand(req, res);
+  if (req.method === 'POST' && route === '/api/command') return receiveJson(req,res,validateCommand,event=>({ok:true,receivers:broadcast(event)}));
+  if(route==='/api/block-wars/telemetry'){
+    if(req.method==='POST')return receiveJson(req,res,validateTelemetry,snapshot=>{telemetry={...snapshot,receivedAt:Date.now()};return {ok:true};});
+    if(req.method==='GET')return send(res,200,telemetry?{available:Date.now()-telemetry.receivedAt<=15000,...telemetry,ageMs:Date.now()-telemetry.receivedAt}:{available:false});
+  }
   if (req.method === 'GET' && Object.hasOwn(files, route)) {
     const [filename, mime] = files[route];
     fs.readFile(path.join(__dirname, filename), (error, content) => {
@@ -132,5 +133,5 @@ const heartbeat = setInterval(() => {
 server.on('close', () => clearInterval(heartbeat));
 server.on('error', error => { clearInterval(heartbeat); console.error(`No se pudo iniciar el servidor (${error.code}).`); process.exitCode = 1; });
 server.listen(PORT, HOST, () => {
-  console.log(`\n🐍 Serpiente Infinita LIVE\nJuego:   http://${HOST}:${PORT}/\nControl: http://${HOST}:${PORT}/control\nDetener: Ctrl+C\n`);
+  console.log(`\nLivesIA · Ensayo local\nJuego:   http://${HOST}:${PORT}/\nControl: http://${HOST}:${PORT}/control\nBlock Wars: http://${HOST}:${PORT}/block-wars\nPanel Block Wars: http://${HOST}:${PORT}/block-wars/control\nDetener: Ctrl+C\n`);
 });

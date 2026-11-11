@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es-MX">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Block Wars · Excavación en curso</title><link rel="stylesheet" href="/block-wars/style.css"></head>
+<body class="bw-game">
+<main class="bw-stage" aria-label="Block Wars, competencia autónoma de excavación">
+  <header class="bw-masthead"><div><span class="bw-eyebrow">LIVESIA / ARENA DE EXCAVACIÓN</span><h1>BLOCK<span>WARS</span><i>✦</i></h1></div><div class="bw-round"><span>RONDA</span><b id="round">01</b><strong id="clock">03:00</strong></div></header>
+  <div class="bw-status"><span id="source" class="bw-source">DEMO · AUTÓNOMO</span><span id="relay">RELAY DESCONECTADO</span><span id="fps">— FPS</span></div>
+  <section class="bw-scoreboard" aria-label="Marcador por equipos">
+    <article class="bw-team bw-dark"><div class="bw-team-heading"><span>◆ DARK</span><strong id="dark-score">0</strong></div><div class="bw-tool"><span id="dark-tool">PICO MADERA</span><span id="dark-speed">0.6 b/s</span></div><div class="bw-durability"><i id="dark-durability"></i></div><div id="dark-buff" class="bw-buff">MINERÍA AUTOMÁTICA</div></article>
+    <div class="bw-versus">VS</div>
+    <article class="bw-team bw-light"><div class="bw-team-heading"><span>✦ LIGHT</span><strong id="light-score">0</strong></div><div class="bw-tool"><span id="light-tool">PICO MADERA</span><span id="light-speed">0.6 b/s</span></div><div class="bw-durability"><i id="light-durability"></i></div><div id="light-buff" class="bw-buff">MINERÍA AUTOMÁTICA</div></article>
+  </section>
+  <div class="bw-map-heading"><span><i></i> EXCAVACIÓN EN CURSO</span><span id="next-event">EVENTO GRATIS EN 60s</span></div>
+  <div class="bw-map"><canvas id="mine" width="640" height="800" aria-label="Mapa original de bloques. Los dos equipos excavan automáticamente."></canvas><div class="bw-map-corner bw-map-corner-a"></div><div class="bw-map-corner bw-map-corner-b"></div></div>
+  <footer class="bw-footer">
+    <div class="bw-community"><div><span>TNT GRATIS · LIKES</span><strong id="like-progress">DEMO 0 · RELAY 0 / 25</strong></div><div class="bw-like-track"><span><i id="like-fill"></i></span><span><i id="relay-fill"></i></span></div></div>
+    <div class="bw-join"><span>ELIGE TU EQUIPO <small>GRATIS</small></span><strong><em>!dark</em><b>o</b><em>!light</em></strong><p>También: !mine · !boom · !rain · !pico</p></div>
+    <div class="bw-facts"><span id="participation">DEMO 0 · RELAY 0 eventos</span><span>ESPECTADORES: NO DISPONIBLE</span></div>
+    <p id="notice" class="bw-notice">Simulación local · Sin LIVE verificado · Sin regalos de pago</p>
+  </footer>
+</main>
+<script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/app.js"></script>
+</body></html>

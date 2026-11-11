@@ -10,7 +10,7 @@ function collect(directory){
     if(entry.isDirectory())collect(name);else if(/\.c?js$/.test(name))files.push(name);
   }
 }
-for(const folder of ['integrations','games','scripts','tests'])collect(folder);
+for(const folder of ['lib','integrations','games','scripts','tests'])collect(folder);
 for(const file of files){
   const result=spawnSync(process.execPath,['--check',file],{stdio:'inherit'});
   if(result.error||result.status!==0)process.exit(1);
