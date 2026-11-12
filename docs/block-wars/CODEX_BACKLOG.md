@@ -4,6 +4,14 @@
 
 ## Orden de PRs recomendado
 
+### Encargo actual — Experiencia LIVE (PLANNED)
+
+Los PRs de estabilización, modos y excavación infinita ya contienen código para ensayo local; la secuencia histórica de abajo no refleja su estado individual de merge. La siguiente fase está en [LIVE_EXPERIENCE_GOALS.md](LIVE_EXPERIENCE_GOALS.md).
+
+Primer incremento: confirmaciones de acción/rechazo, narración ElevenLabs y sonidos/efectos diferenciados para TNT, NUKE y recompensa de comentario. Sin cámara. Nombres moderados, cola acotada, silencio/emergencia y presupuesto de voz; mantener minería infinita, 18 comandos y Snake. Luego ampliar al catálogo y follows reales. Suscripciones pagadas/regalos requieren sus eventos y elegibilidad verificados.
+
+Aceptación: objetivos O1–O4 y ensayo OBS real de 120 minutos; métricas de audiencia sólo de sesiones reales, sin equiparar el soak acelerado a una transmisión ni declarar integración de voz antes de escucharla en OBS.
+
 ### PR 1 — Auditoría de arquitectura y tests del MVP
 - Leer y ejecutar el proyecto en modo local.
 - Añadir pruebas mínimas a la serpiente y servidor para no romper funcionalidades.

@@ -4,6 +4,8 @@
 
 ## Visión
 
+**Siguiente fase definida:** [Objetivos de experiencia del LIVE](LIVE_EXPERIENCE_GOALS.md): sin cámara, voz reactiva de ElevenLabs, señales distintas por evento y recompensas por comentar. Estado PLANNED, con [registro de pruebas](LIVE_SESSION_TEMPLATE.md); no implica integración de voz o LIVE ya verificada.
+
 Crear un juego original de destrucción de bloques estilo **pixel art / voxel 2D** para TikTok LIVE. En vertical (720 × 1280) se muestra un mundo que se mina y destruye **en tiempo real**. Dos equipos —**DARK** y **LIGHT**— compiten mediante participaciones gratuitas. El mundo se regenera en rondas y tiene eventos periódicos para que el LIVE sea atractivo incluso sin regalos.
 
 El objetivo inicial NO es cobrar: **atraer audiencia real, conseguir seguidores, acumular likes, lograr participación en el chat y mejorar la retención**. Los regalos y suscripciones de pago son una fase posterior opcional.
