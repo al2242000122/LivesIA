@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const element = id => document.getElementById(id);
-  const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'shaft',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
+  const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'endless',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const rules=BlockWarsRules.createRules(engine,{likeThreshold:25});
   const renderer=BlockWarsRender.createRenderer(element('mine'));
   let reducedMotion=Boolean(engine.state.config && engine.state.config.reducedMotion);
@@ -33,12 +33,13 @@
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
   function updateHud(){
     const state=engine.state,active=state.activeEvent&&state.activeEvent.remaining>0?state.activeEvent:null;
-    element('round').textContent=String(state.round).padStart(2,'0');
-    const remaining=Math.ceil(Math.max(0,state.remaining));
-    element('clock').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+    const depth=Math.floor((state.rowOffset||0)+(state.body?.y||0));
+    element('round').textContent=String(depth).padStart(4,'0');
+    const elapsed=Math.floor(state.elapsed||0);
+    element('clock').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
     element('scoreline').textContent='◆ DARK '+state.teams.dark.score+' · ✦ LIGHT '+state.teams.light.score;
     const team=state.teams[state.focus?.team||'dark'];
-    element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · '+team.effectiveSpeed.toFixed(1)+' b/s';
+    element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · FUERZA '+team.effectiveSpeed.toFixed(1);
     const threshold=rules.state.likeThreshold,progress=rules.state.likeProgressBySource;
     element('like-progress').textContent=threshold+' likes por TNT · DEMO '+progress.simulator+' / RELAY '+progress.tikfinity;
     element('source').textContent=sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
@@ -69,7 +70,7 @@
   });
   function telemetry(){
     const state=engine.state;
-    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion})}).then(response=>{if(!response.ok)element('notice').textContent='Señal local no disponible · El juego continúa.';}).catch(()=>{element('notice').textContent='Señal local desconectada · El juego continúa.';});
+    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion,mode:state.layout,depth:Math.min(1000000000,Math.floor((state.rowOffset||0)+(state.body?.y||0))),elapsed:state.elapsed||0})}).then(response=>{if(!response.ok)element('notice').textContent='Señal local no disponible · El juego continúa.';}).catch(()=>{element('notice').textContent='Señal local desconectada · El juego continúa.';});
   }
   function frame(now){
     if(stopped)return;

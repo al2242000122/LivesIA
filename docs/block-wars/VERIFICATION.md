@@ -1,5 +1,7 @@
 # Evidencia de la presentación vertical y texturas locales
 
+> Registro del PR7. La corrección posterior de excavación infinita, pico físico y34PNG se verifica en [ENDLESS_VERIFICATION.md](ENDLESS_VERIFICATION.md).
+
 Fecha: 2026-11-11. Rama `codex/block-wars-reference`, dependiente de las fases anteriores. Estado: ensayo local; no lanzamiento comercial. Cambios en motor shaft, presentación, controles, importador y pruebas; Snake sigue disponible.
 
 ## Baseline y pruebas

@@ -2,6 +2,8 @@
 
 **Versión:** 0.1 / diseño. **Implementación:** ensayo local; ver REFERENCE_IMPLEMENTED.md. **Plataforma:** navegador + OBS en vertical.
 
+**Actualización del propietario:** la app visible es una excavación infinita, sin final ni reinicio automático de puntajes. El pico cae y rebota con colisiones físicas; el terreno se renueva con memoria acotada. Las rondas finitas descritas abajo se conservan sólo en los modos anteriores. La app usa las diez etapas originales de grietas de Minecraft importadas localmente. Ver [motor vigente](ENGINE.md).
+
 ## 1. Fantasía de juego
 
 Un enorme mapa de roca y minerales se excava en directo. Un **equipo oscuro (DARK)** y un **equipo luminoso (LIGHT)** compiten por destruir zonas, encontrar objetivos y dominar rondas. Los espectadores eligen bando gratuitamente y provocan acontecimientos visuales mediante participación en el chat, likes y follows.

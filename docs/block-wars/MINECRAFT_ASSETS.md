@@ -9,13 +9,13 @@ El importador usa exclusivamente las dos URLs HTTPS fijadas en [la configuració
 - Versión **26.3**; [manifiesto oficial](https://piston-meta.mojang.com/v1/packages/9f67e10ed013deeaad20ac3c800652765d493408/26.3.json), SHA1 `9f67e10ed013deeaad20ac3c800652765d493408`.
 - [Archivo cliente oficial](https://piston-data.mojang.com/v1/objects/e877b6a07acd633fb3bb475002175cec036e7b87/client.jar), SHA1 `e877b6a07acd633fb3bb475002175cec036e7b87`, **41 483 720 bytes**.
 
-Se ejecutó la descarga y extracción local: **24 PNG**, 5 060 bytes en total, bajo `assets-local/minecraft/`, junto con `provenance.json`. Son 23 imágenes de 16×16; `magma.png` es una tira de 16×48 con tres cuadros de 16×16. El render puede tomar el primer cuadro; no debe deformar la tira completa para representar un bloque cuadrado. El JAR se eliminó al cerrar el directorio temporal y **nunca se ejecutó**.
+Se ejecutó la descarga y extracción local: **34 PNG**, 6 472 bytes en total, bajo `assets-local/minecraft/`, junto con `provenance.json`. Son 23 imágenes de 16×16; `magma.png` es una tira de 16×48 con tres cuadros de 16×16. El render puede tomar el primer cuadro; no debe deformar la tira completa para representar un bloque cuadrado. El JAR se eliminó al cerrar el directorio temporal y **nunca se ejecutó**.
 
 El identificador local `diamond` contiene `diamond_ore.png`; `crystal` es un alias del frontend a esa misma imagen, no una descarga adicional. Los PNG y el manifiesto local están excluidos de Git; el repositorio conserva sólo el importador, la configuración y las pruebas.
 
 ## Whitelist exacta
 
-`stone`, `soil` (dirt), `coal`, `iron`, `gold`, `redstone`, `lapis`, `emerald`, `diamond`, `copper`, `granite`, `diorite`, `andesite`, `moss` (mossy cobblestone), `obsidian`, `magma`, `bedrock`, `tnt` (lado), `tnt_top`, `wood_pickaxe`, `stone_pickaxe`, `gold_pickaxe`, `diamond_pickaxe`, `netherite_pickaxe`.
+`stone`, `soil` (dirt), `coal`, `iron`, `gold`, `redstone`, `lapis`, `emerald`, `diamond`, `copper`, `granite`, `diorite`, `andesite`, `moss` (mossy cobblestone), `obsidian`, `magma`, `bedrock`, `tnt` (lado), `tnt_top`, `wood_pickaxe`, `stone_pickaxe`, `gold_pickaxe`, `diamond_pickaxe`, `netherite_pickaxe` y `destroy_stage_0` a `destroy_stage_9` (diez etapas originales de grietas).
 
 Las rutas internas exactas están en `configs/minecraft-assets.json` y se comparan contra la whitelist incluida en el importador. No se extraen clases Java, sonidos, fuentes, otros recursos, enlaces simbólicos ni archivos fuera de esa lista. No se utiliza `extractall()`.
 
@@ -33,6 +33,12 @@ Primero escribe en un directorio temporal propio y sólo renombra el directorio 
 `provenance.json` tiene `schemaVersion:1`, los seis campos de fuente de la configuración, `importedAt` UTC y `textures`. Cada entrada incluye `archivePath`, `file`, `sha256`, `size`, `width` y `height`. No contiene cookies, cuentas, tokens ni rutas personales. Los hashes locales detectan discrepancias con ese inventario; este JSON local **no es una firma de Mojang** ni demuestra por sí solo autenticidad frente a una alteración conjunta de imágenes y manifiesto.
 
 Las pruebas offline crean su propio ZIP sintético, sin descargar recursos: verifican pines y whitelist, instalación completa, procedencia/hash por imagen, rechazo por tamaño/SHA1, CRC ZIP, cabeceras/dimensiones PNG y preservación del destino ante errores. No ejecutan el JAR.
+
+## Grietas y composici�n
+
+Las diez etapas se extrajeron sin redibujarlas ni modificarlas. Son de 16�16. La inspecci�n de los p�xeles originales encontr� los pares gris/alfa `(255,1)` para el fondo casi transparente, `(61,255)` para grietas oscuras y `(155,255)` para grietas claras. La etapa 0 usa gris+alfa de 8 bits; la 9 usa paleta de 2 bits y `tRNS`. Se comprob� el mismo conjunto de colores/alfa en las diez.
+
+Un overlay Canvas `multiply`, recortado al bloque y restaurando despu�s el estado de Canvas, conserva el color de la textura subyacente y oscurece las grietas; `source-over` reemplaza los p�xeles opacos de grieta por gris. Esto documenta datos y una composici�n local elegida: importar los mismos PNG no demuestra que el renderer Canvas reproduzca exactamente el shader, la iluminaci�n ni la temporizaci�n de Minecraft.
 
 ## Derechos y alcance
 

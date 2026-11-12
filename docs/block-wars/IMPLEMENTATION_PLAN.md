@@ -68,4 +68,8 @@ La suite completa final114/114 y sintaxis32archivos pasaron también en una copi
 
 ## Límites de la entrega
 
+### Corrección de la dinámica solicitada por el propietario
+
+La app visible ahora usa `layout:'endless'`, con pico físico y terreno continuo. `arena`/`shaft` permanecen como compatibilidad; sus rondas finitas no describen el comportamiento visible. La física usa gravedad y círculo-AABB, daño por contacto y recambio de12filas en un buffer280celdas. No hay resumen ni reinicio automático. El ciclo180s renueva votos sin tocar el mundo. Se importaron34PNG, incluidas las diez etapas originales de grietas. [Evidencias vigentes](ENDLESS_VERIFICATION.md):127pruebas,36archivos de sintaxis y seis horas virtuales; no acreditan seis horas reales de OBS.
+
 Lista para ensayo local reproducible. La validación de versión instalada de TikFinity, una sesión prolongada real de OBS y acceso de la cuenta requieren el equipo/cuenta del creador. No activar regalos pagados en Block Wars, no instalar software de emisión ni conectar una cuenta sin instrucción. Sin audio externo; sonido opcional original puede ser sintetizado localmente solo con activación explícita del operador.

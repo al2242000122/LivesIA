@@ -39,12 +39,12 @@
   function compare(){
     const level=Number(element('efficiency').value);
     const multiplier=BlockWarsConfig.EFFICIENCY[level];
-    element('speed-caption').textContent='Bloques por segundo sobre dureza 1, sin Turbo ni DESCOMUNAL. Eficiencia seleccionada: '+level+' (×'+multiplier+').';
+    element('speed-caption').textContent='Fuerza acumulada para el próximo contacto, sin Turbo ni DESCOMUNAL. Eficiencia: '+level+' (×'+multiplier+'). No equivale a bloques rotos por segundo.';
     const table=element('speed-table');table.replaceChildren();
     const max=Math.max(...Object.values(BlockWarsConfig.PICKAXES).map(tool=>tool.baseSpeed*multiplier));
     for(const [key,tool] of Object.entries(BlockWarsConfig.PICKAXES)){
       const row=document.createElement('tr');
-      for(const value of [names[key]||key,tool.baseSpeed.toFixed(2)+' b/s',(tool.baseSpeed*multiplier).toFixed(2)+' b/s',tool.durability]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}
+      for(const value of [names[key]||key,tool.baseSpeed.toFixed(2),(tool.baseSpeed*multiplier).toFixed(2),tool.durability]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}
       const cell=document.createElement('td'),bar=document.createElement('div');bar.className='bw-speed-bar';bar.style.width=(100*tool.baseSpeed*multiplier/max)+'%';cell.append(bar);row.append(cell);table.append(row);
     }
   }
@@ -56,7 +56,9 @@
       const data=await response.json();
       if(!data.available || data.ageMs>15000){for(const id of ['read-fps','read-round','read-queue','read-source'])element(id).textContent='Sin dato';element('telemetry-status').textContent='Sin telemetría reciente. Abre o vuelve a enfocar la pestaña de la arena. Espectadores: no disponible.';}
       else{
-        element('read-fps').textContent=data.fps+' FPS';element('read-round').textContent=String(data.round)+' / '+Math.ceil(data.remaining)+'s';element('read-queue').textContent=data.queue+' / '+data.particles;
+        element('read-fps').textContent=data.fps+' FPS';
+        element('read-round').textContent=data.mode==='endless'?Math.floor(data.depth)+' bloques / '+Math.floor(data.elapsed/60)+' min':String(data.round)+' / '+Math.ceil(data.remaining)+'s';
+        element('read-queue').textContent=data.queue+' / '+data.particles;
         element('read-source').textContent=({simulator:'DEMO',tikfinity:'RELAY',mixed:'DEMO + RELAY',none:'AUTÓNOMO'})[data.source]||'Sin dato';
         element('telemetry-status').textContent=(data.paused?'PAUSADO':'EN EJECUCIÓN')+' · '+(data.reducedMotion?'Movimiento reducido':'Movimiento normal')+' · Último dato hace '+Math.ceil(data.ageMs/1000)+'s · LIVE sin verificar · Espectadores: no disponible.';
       }

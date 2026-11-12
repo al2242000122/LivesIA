@@ -21,7 +21,8 @@ function harness(){
 }
 test('Block Wars app executes real engine/render, bounds suspended-frame catch-up and processes controls',()=>{
   const app=harness();app.tick(10);app.tick(100000);assert.equal(app.updates,5);
-  assert.equal(app.nodes.get('round').textContent,'01');
+  assert.equal(app.engine.state.layout,'endless');assert.equal(app.engine.state.phase,'playing');
+  assert.equal(app.nodes.get('clock').textContent,'00:00','counts active session time instead of counting down to a finish');
   app.transport.onControl({type:'bw_settings',target:'block-wars',settings:{duration:90,eventInterval:30,likeThreshold:50,reducedMotion:true}});
   assert.equal(app.engine.state.config.duration,90);assert.equal(app.engine.state.config.reducedMotion,true);
   app.transport.onControl({type:'bw_action',target:'block-wars',action:'pickaxe',team:'dark',pickaxe:'gold'});assert.equal(app.engine.state.teams.dark.pickaxe,'gold');
@@ -37,7 +38,8 @@ test('Block Wars app identifies simulator/relay separately and never claims veri
   assert.match(app.nodes.get('source').textContent,/DEMO \+ RELAY/);
   assert.match(app.nodes.get('relay').textContent,/NO VERIFICADO/);
   const telemetry=JSON.parse(app.requests.find(request=>request.url==='/api/block-wars/telemetry').options.body);
-  assert.equal(telemetry.source,'mixed');assert.equal(telemetry.fps>=0,true);assert.deepEqual(Object.keys(telemetry).sort(),['fps','frameMs','particles','paused','queue','reducedMotion','remaining','round','source'].sort());
+  assert.equal(telemetry.source,'mixed');assert.equal(telemetry.fps>=0,true);assert.equal(telemetry.mode,'endless');
+  assert.deepEqual(Object.keys(telemetry).sort(),['fps','frameMs','particles','paused','queue','reducedMotion','remaining','round','source','mode','depth','elapsed'].sort());
 });
 test('Block Wars renderer handles mined, damaged, paused, summary and destructive effects',()=>{
   const canvas={width:720,height:1280,getContext(){return new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){return object[key]||(object[key]=()=>{});}});}};

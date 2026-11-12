@@ -29,6 +29,16 @@
     "stone_pickaxe": "assets/minecraft/textures/item/stone_pickaxe.png",
     "gold_pickaxe": "assets/minecraft/textures/item/golden_pickaxe.png",
     "diamond_pickaxe": "assets/minecraft/textures/item/diamond_pickaxe.png",
-    "netherite_pickaxe": "assets/minecraft/textures/item/netherite_pickaxe.png"
+    "netherite_pickaxe": "assets/minecraft/textures/item/netherite_pickaxe.png",
+    "destroy_stage_0": "assets/minecraft/textures/block/destroy_stage_0.png",
+    "destroy_stage_1": "assets/minecraft/textures/block/destroy_stage_1.png",
+    "destroy_stage_2": "assets/minecraft/textures/block/destroy_stage_2.png",
+    "destroy_stage_3": "assets/minecraft/textures/block/destroy_stage_3.png",
+    "destroy_stage_4": "assets/minecraft/textures/block/destroy_stage_4.png",
+    "destroy_stage_5": "assets/minecraft/textures/block/destroy_stage_5.png",
+    "destroy_stage_6": "assets/minecraft/textures/block/destroy_stage_6.png",
+    "destroy_stage_7": "assets/minecraft/textures/block/destroy_stage_7.png",
+    "destroy_stage_8": "assets/minecraft/textures/block/destroy_stage_8.png",
+    "destroy_stage_9": "assets/minecraft/textures/block/destroy_stage_9.png"
   }
 }

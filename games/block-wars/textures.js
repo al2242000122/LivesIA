@@ -4,9 +4,10 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
   'use strict';
   const SOURCE_VERSION='26.3';
-  const ORIGINAL_NAMES=Object.freeze(['stone','soil','coal','iron','gold','redstone','lapis','emerald','diamond','copper','granite','diorite','andesite','moss','obsidian','magma','bedrock','wood_pickaxe','stone_pickaxe','gold_pickaxe','diamond_pickaxe','netherite_pickaxe','tnt','tnt_top']);
+  const ORIGINAL_NAMES=Object.freeze(['stone','soil','coal','iron','gold','redstone','lapis','emerald','diamond','copper','granite','diorite','andesite','moss','obsidian','magma','bedrock','wood_pickaxe','stone_pickaxe','gold_pickaxe','diamond_pickaxe','netherite_pickaxe','tnt','tnt_top',...Array.from({length:10},(_,i)=>'destroy_stage_'+i)]);
   let originals=new Map();
   function source(kind,id){
+    if(kind==='crack')return Number.isInteger(id)&&id>=0&&id<=9?originals.get('destroy_stage_'+id)||null:null;
     const name=kind==='tool'?`${id}_pickaxe`:kind==='tnt'?'tnt':id==='crystal'?'diamond':id;
     return originals.get(name)||null;
   }
