@@ -6,8 +6,8 @@ Fecha de comprobación: 2026-11-11. Por petición explícita del propietario se 
 
 El importador usa exclusivamente las dos URLs HTTPS fijadas en [la configuración](../../configs/minecraft-assets.json):
 
-- Versión **26.3**; [manifiesto oficial](https://piston-meta.mojang.com/v1/packages/9 f67 e10 ed013 deeaad20 ac3 c800652765 d493408/26.3.json), SHA1 `9 f67 e10 ed013 deeaad20 ac3 c800652765 d493408`.
-- [Archivo cliente oficial](https://piston-data.mojang.com/v1/objects/e877 b6 a07 acd633 fb3 bb475002175 cec036 e7 b87/client.jar), SHA1 `e877 b6 a07 acd633 fb3 bb475002175 cec036 e7 b87`, **41 483 720 bytes**.
+- Versión **26.3**; [manifiesto oficial](https://piston-meta.mojang.com/v1/packages/9f67e10ed013deeaad20ac3c800652765d493408/26.3.json), SHA1 `9f67e10ed013deeaad20ac3c800652765d493408`.
+- [Archivo cliente oficial](https://piston-data.mojang.com/v1/objects/e877b6a07acd633fb3bb475002175cec036e7b87/client.jar), SHA1 `e877b6a07acd633fb3bb475002175cec036e7b87`, **41 483 720 bytes**.
 
 Se ejecutó la descarga y extracción local: **34 PNG**, 6 472 bytes en total, bajo `assets-local/minecraft/`, junto con `provenance.json`. Son 23 imágenes de 16×16; `magma.png` es una tira de 16×48 con tres cuadros de 16×16. El render puede tomar el primer cuadro; no debe deformar la tira completa para representar un bloque cuadrado. El JAR se eliminó al cerrar el directorio temporal y **nunca se ejecutó**.
 

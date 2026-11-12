@@ -8,7 +8,7 @@
 
 Un enorme mapa de roca y minerales se excava en directo. Un **equipo oscuro (DARK)** y un **equipo luminoso (LIGHT)** compiten por destruir zonas, encontrar objetivos y dominar rondas. Los espectadores eligen bando gratuitamente y provocan acontecimientos visuales mediante participación en el chat, likes y follows.
 
-Inspiración de lectura visual: bloques cúbicos, capas geológicas, minerales, pico y TNT; implementación **original en 2 D con acabado pixel art**, profundidad simulada y animaciones propias. El producto y las miniaturas NO deben usar la denominación o el logotipo Minecraft.
+Inspiración de lectura visual: bloques cúbicos, capas geológicas, minerales, pico y TNT; implementación **original en 2D con acabado pixel art**, profundidad simulada y animaciones propias. El producto y las miniaturas NO deben usar la denominación o el logotipo Minecraft.
 
 ## 2. Bucle de la partida
 
