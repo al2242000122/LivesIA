@@ -5,12 +5,12 @@
   <canvas id="mine" width="720" height="1280" aria-label="Mina infinita con pico que rebota, colisiones y bloques que se rompen por contacto"></canvas>
   <div id="event-banner" class="bw-event-banner" hidden aria-live="polite"></div>
   <section class="bw-interactions" aria-label="Cómo participar gratis">
-    <div><canvas data-icon="tnt" width="16" height="16" aria-hidden="true"></canvas><strong class="bw-cyan">LIKES</strong><em>=</em><strong class="bw-red">TNT</strong></div>
-    <div><span class="bw-chat-icon" aria-hidden="true">✦</span><strong class="bw-red">CHAT</strong><em>=</em><strong class="bw-cyan">EVENTOS</strong></div>
+    <div><canvas data-icon="tnt" width="16" height="16" aria-hidden="true"></canvas><strong id="interaction-trigger" class="bw-cyan">LIKES</strong><em>=</em><strong class="bw-red">TNT</strong></div>
+    <div><span class="bw-chat-icon" aria-hidden="true">✦</span><strong id="interaction-chat-label" class="bw-red">CHAT</strong><em>=</em><strong id="interaction-events-label" class="bw-cyan">EVENTOS</strong></div>
     <small id="like-progress">25 likes por TNT · participación gratis</small>
   </section>
   <header class="bw-match"><h1>DARK <i>VS</i> <span>LIGHT</span></h1><p id="scoreline">◆ DARK 0 · ✦ LIGHT 0</p></header>
-  <aside class="bw-command-menu" aria-label="Comandos gratuitos del chat"><h2>COMANDOS</h2><ol>
+  <aside class="bw-command-menu" aria-label="Comandos gratuitos del chat"><h2 id="command-heading">COMANDOS</h2><ol>
       <li id="menu-tnt" class="event-tnt"><span aria-hidden="true">▣</span><b>TNT</b></li>
       <li id="menu-rainbow" class="event-rainbow"><span aria-hidden="true">▰</span><b>RAINBOW</b></li>
       <li id="menu-mega" class="event-mega"><span aria-hidden="true">▣</span><b>MEGA</b></li>
@@ -29,7 +29,7 @@
       <li id="menu-spin" class="event-spin"><span aria-hidden="true">⟳</span><b>SPIN</b></li>
       <li id="menu-fast" class="event-fast"><span aria-hidden="true">»</span><b>FAST</b></li>
       <li id="menu-big" class="event-big"><span aria-hidden="true">↗</span><b>BIG</b></li>
-    </ol><small>ESCRIBE EL NOMBRE EN EL CHAT</small></aside>
+    </ol><small id="command-instruction">ESCRIBE EL NOMBRE EN EL CHAT</small></aside>
   <section id="timer-card" class="bw-timer" aria-label="Cuenta regresiva de eventos"><strong id="timer-caption">PRÓXIMO EVENTO GRATIS</strong><b id="next-event">60.0s</b><div class="bw-time-track"><i id="time-fill"></i></div></section>
   <div class="bw-tool-readout" id="tool-readout">PICO MADERA · 0.6 b/s</div>
   <section class="bw-audio-gate" aria-label="Audio del ensayo"><button id="audio-enable" type="button">ACTIVAR SONIDO</button><small id="audio-status" role="status">AUDIO: ACTIVAR EN OBS → INTERACTUAR</small></section>

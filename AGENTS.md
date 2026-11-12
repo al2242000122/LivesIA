@@ -84,6 +84,10 @@ El propietario confirmó **sin cámara**, con ElevenLabs narrando eventos y nomb
 
 Controles de audio `bw_audio` deben estar también en la lista de controles de `integrations/transport.js`: comprobar sólo `app.onControl` no cubre SSE. Las acciones comunitarias diferidas de reglas pasan su fuente como segundo argumento interno a `engine.action`; no incorporarlo al JSON del motor ni atribuir likes agregados a una persona. La fuente debe conservarse al drenar la cola para mantener «Prueba» en simulaciones.
 
+## Preparación YouTube LIVE
+
+`docs/block-wars/YOUTUBE_LIVE_SETUP.md` describe la variante local YouTube. La URL `?platform=youtube` desactiva TikFinity y muestra chat real pendiente; sólo admite eventos simulados. No reutilizar TikFinity ni anunciar likes/suscriptores de YouTube como acciones integradas. `scripts/prepare-obs.cjs CONFIG RECORDINGS youtube` crea archivos separados **LivesIA YouTube** sin sobrescribir el ensayo anterior; `start-first-live.ps1 -Platform youtube -CheckOnly` comprueba preparación sin abrir aplicaciones. Canal, verificación, subida, chat oficial y monetización siguen pendientes. Los tests de UI deben exigir que cada ID solicitado exista en el HTML real; no crear nodos de prueba automáticamente para IDs inexistentes.
+
 ## Verificación de la fase de estabilización
 
 Sin instalar dependencias: `npm run check`, `npm test` y `npm run test:soak` (dos horas virtuales por defecto; `SOAK_HOURS=6` para seis). `node --check` sustituye diagnósticos IDE cuando no están disponibles. Las pruebas unitarias ejecutan el script real del juego con DOM/Canvas/tiempo/transporte dobles; la integración HTTP/SSE usa procesos reales. Ninguna de ellas acredita un LIVE ni una sesión OBS prolongada. Ver `docs/AUDIT_PHASE_1.md` para contrato, evidencias y pendientes.

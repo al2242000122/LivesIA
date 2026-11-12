@@ -1,10 +1,13 @@
-param([switch]$CheckOnly)
+param([switch]$CheckOnly,[ValidateSet('local','youtube')][string]$Platform='local')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $obsRoot = Join-Path $env:LOCALAPPDATA 'LivesIA/obs-studio/33.0.1'
 $obsExecutable = Join-Path $obsRoot 'bin/64bit/obs64.exe'
-$scene = Join-Path $obsRoot 'config/obs-studio/basic/scenes/LivesIA_Ensayo.json'
-$profile = Join-Path $obsRoot 'config/obs-studio/basic/profiles/LivesIA_Ensayo/basic.ini'
+$obsName = if ($Platform -eq 'youtube') { 'LivesIA YouTube' } else { 'LivesIA Ensayo' }
+$fileName = if ($Platform -eq 'youtube') { 'LivesIA_YouTube' } else { 'LivesIA_Ensayo' }
+$sceneName = if ($Platform -eq 'youtube') { 'Mina YouTube' } else { 'Mina LIVE' }
+$scene = Join-Path $obsRoot "config/obs-studio/basic/scenes/$fileName.json"
+$profile = Join-Path $obsRoot "config/obs-studio/basic/profiles/$fileName/basic.ini"
 foreach ($requiredPath in @($obsExecutable, $scene, $profile)) {
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
         throw "Falta preparar OBS. Consulta docs/block-wars/FIRST_LIVE_SETUP.md. Archivo: $requiredPath"
@@ -37,9 +40,10 @@ for ($attempt = 0; $attempt -lt 20; $attempt++) {
 if (-not $healthy) { throw 'No responde LivesIA en loopback. Revisa el servidor o el puerto 4173.' }
 $runningObs = @(Get-Process obs64 -ErrorAction SilentlyContinue)
 if ($runningObs.Count -eq 0) {
-    Start-Process -FilePath $obsExecutable -ArgumentList '--portable','--disable-updater','--collection','"LivesIA Ensayo"','--profile','"LivesIA Ensayo"','--scene','"Mina LIVE"' -WorkingDirectory (Join-Path $obsRoot 'bin/64bit') | Out-Null
+    Start-Process -FilePath $obsExecutable -ArgumentList '--portable','--disable-updater','--collection',('"'+$obsName+'"'),'--profile',('"'+$obsName+'"'),'--scene',('"'+$sceneName+'"') -WorkingDirectory (Join-Path $obsRoot 'bin/64bit') | Out-Null
 } else {
-    Write-Output 'OBS ya está abierto. Comprueba perfil/colección LivesIA Ensayo; no se altera la sesión activa.'
+    Write-Output "OBS ya está abierto. Comprueba perfil/colección $obsName; no se altera la sesión activa."
 }
-Start-Process 'http://127.0.0.1:4173/block-wars/control'
+$controlUrl = if ($Platform -eq 'youtube') { 'http://127.0.0.1:4173/block-wars/control?platform=youtube' } else { 'http://127.0.0.1:4173/block-wars/control' }
+Start-Process $controlUrl
 Write-Output 'Ensayo local preparado. No se inicia transmisión, grabación, cámara ni micrófono.'

@@ -84,6 +84,8 @@ La API de control exige JSON tipado, permite hasta 30 comandos/s y 4096 bytes po
 
 El [montaje del primer ensayo LIVE](docs/block-wars/FIRST_LIVE_SETUP.md) incluye sonidos propios, narración opcional de ElevenLabs por acciones aceptadas y un generador de escena OBS vertical sin cámara/micrófono. [Configurar voz](docs/block-wars/SPEECH_SETUP.md). La voz real, el acceso a TikTok y los eventos reales todavía requieren credenciales y verificación. Los [objetivos de experiencia](docs/block-wars/LIVE_EXPERIENCE_GOALS.md) y la [plantilla de prueba](docs/block-wars/LIVE_SESSION_TEMPLATE.md) conservan sus criterios de aceptación pendientes.
 
+También hay [preparación independiente para YouTube LIVE](docs/block-wars/YOUTUBE_LIVE_SETUP.md): perfil **LivesIA YouTube** y vista `/block-wars?platform=youtube`, con TikFinity desactivado y simulaciones identificadas. El canal y el chat real de YouTube siguen pendientes; sus likes y suscriptores todavía no disparan efectos.
+
 Block Wars LIVE ya funciona localmente: **excavación infinita**, con un pico que cae, rebota y choca contra los bloques. El daño ocurre por contacto; el terreno nuevo aparece sin detener la partida ni reiniciar el puntaje al llegar al fondo. Incluye cámara, cinco picos y encantamientos, equipos DARK vs LIGHT,25likes por TNT y18eventos gratuitos con enfriamientos. Los regalos pagados están deshabilitados. Serpiente Infinita conserva sus rutas y funciones.
 
 ```powershell

@@ -10,12 +10,13 @@ const config=require('../games/block-wars/config.js');
 const render=require('../games/block-wars/render.js');
 const experience=require('../games/block-wars/experience.js');
 const root=path.join(__dirname,'..');
-function harness(){
+const gameIds=new Set([...fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8').matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
+function harness(platform='local'){
   const nodes=new Map(),listeners={},requests=[];
   const context2d=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
-  function node(id){if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
+  function node(id){if(!gameIds.has(id))throw new Error('Missing game markup ID: '+id);if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
   let callbacks,frame,instance,updateCalls=0;
-  const sandbox={console,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
+  const sandbox={console,location:{search:platform==='youtube'?'?platform=youtube':''},URLSearchParams,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
     BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(){},setVolume(){},setNarration(){},stop(){}};}},
     LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true,json:async()=>({enabled:false})});}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'games/block-wars/app.js'),'utf8'),sandbox,{filename:'app.js'});
@@ -59,4 +60,15 @@ test('operator emergency cancels the deferred community backlog before resuming'
   app.transport.onControl({type:'bw_pause',target:'block-wars',paused:false});
   app.tick(10);app.tick(100);
   assert.equal(app.engine.state.queue.length,0);
+});
+test('YouTube scene blocks TikFinity events and labels all interaction as local rehearsal',()=>{
+  const app=harness('youtube');
+  assert.equal(app.transport.relayEnabled,false);
+  app.transport.onEvent({type:'like',source:'tikfinity',id:'yt-no-tikfinity',receivedAt:1,data:{delta:25}});
+  assert.equal(app.engine.state.entities.length,0);
+  app.transport.onEvent({type:'like',source:'simulator',id:'yt-simulator',receivedAt:2,data:{delta:25}});
+  assert.ok(app.engine.state.entities.length>0);app.tick(6000);
+  assert.match(app.nodes.get('source').textContent,/YOUTUBE.*ENSAYO/);
+  assert.match(app.nodes.get('relay').textContent,/CHAT.*SIN CONECTAR/);
+  assert.match(app.nodes.get('like-progress').textContent,/NO CONTROLAN/);
 });
