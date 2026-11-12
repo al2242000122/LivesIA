@@ -1,6 +1,6 @@
 # YouTube LIVE: preparación del primer ensayo
 
-Fecha: 2026-11-12. Estado: **preparación local implementada; canal, ingestión y chat real pendientes**. El propietario tiene Google y todavía necesita crear el canal. No se creó una cuenta, no se conectó OAuth y no se emitió.
+Fecha: 2026-11-12. Estado: **preparación local implementada y canal creado; verificación de teléfono, ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
 
 ## Qué está preparado
 
@@ -12,9 +12,9 @@ Los picos, colisiones, minería infinita,18eventos, efectos, voz opcional y Snak
 
 ## Crear el canal y habilitar LIVE
 
-1. Entrar personalmente a [YouTube](https://www.youtube.com/channel_switcher) con la cuenta Google destinada al proyecto. Se dejó abierta esa página; requiere inicio de sesión. No compartir contraseña, códigos o claves en el chat.
-2. Crear el canal y elegir nombre/identificador públicos. Propuesta editable: **Mina Infinita LIVE**; su disponibilidad no está comprobada. No asumir la identidad de Mojang/Microsoft.
-3. En YouTube Studio, **Crear → Emitir en directo**, completar personalmente la verificación solicitada y comprobar el acceso. La primera habilitación puede tardar **hasta24horas**. Tener Google o crear canal no verifica por sí solo LIVE.
+1. Entrar personalmente a [YouTube](https://www.youtube.com/channel_switcher) con la cuenta Google destinada al proyecto. El propietario ya inició sesión. No compartir contraseña, códigos o claves en el chat.
+2. Canal comprobado en pantalla: **Mina Infinita LIVE**, identificador **@MinaInfinitaLIVE**. No asumir la identidad de Mojang/Microsoft.
+3. En YouTube Studio se abrió **Crear → Transmitir en vivo → Solicitar**. YouTube exigió verificar un teléfono antes de emitir desde computadoras; se dejó abierto ese formulario al propietario, sin introducir teléfono/código. La primera habilitación puede tardar **hasta24horas** después de completar lo requerido. No se observó aún una cuenta regresiva ni acceso habilitado.
 4. Preparar una emisión **no listada**, con chat habilitado si la audiencia real y la configuración del contenido lo permiten. Clasificar el público según el contenido; no cambiar esa clasificación para eludir restricciones de chat.
 5. Conectar OBS con YouTube mediante el flujo autorizado de la cuenta o introducir personalmente la clave en OBS. Nunca guardar claves en el repositorio, capturas o navegador del juego. Mantener desactivado el inicio automático de la emisión para revisar la vista previa y el audio antes de salir.
 
@@ -58,4 +58,4 @@ Pendiente de implementar y probar: acceso de lectura autorizado, selección del 
 
 `npm test`, `npm run check`, parserPowerShell y `start-first-live.ps1 -Platform youtube -CheckOnly`. Regresiones: variantes OBS coexisten sin sobrescritura; la vista YouTube bloquea TikFinity y permite controles simulados; variante local/Snake conservan su transporte.
 
-Pendientes para aceptar un LIVE real: canal creado y habilitado, prueba no listada con vista previa/sonido/subida confirmados, chat real conectado, ensayoOBS120min y revisión de recursos. Reversión: detener emisión/grabación, seleccionar el perfil/colección anterior y volver a la URL sin `platform=youtube`; no borrar grabaciones o perfiles del usuario.
+Pendientes para aceptar un LIVE real: teléfono y acceso LIVE habilitados, prueba no listada con vista previa/sonido/subida confirmados, chat real conectado, ensayoOBS120min y revisión de recursos. Reversión: detener emisión/grabación, seleccionar el perfil/colección anterior y volver a la URL sin `platform=youtube`; no borrar grabaciones o perfiles del usuario.
