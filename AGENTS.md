@@ -80,7 +80,9 @@ Juego `/block-wars`, panel `/block-wars/control`; Snake conserva `/` y `/control
 
 ## Siguiente encargo: experiencia del LIVE
 
-El propietario confirmó **sin cámara**, con ElevenLabs narrando eventos y nombres de usuario moderados, sonidos/efectos diferenciados y recompensas por comentar. La definición está en `docs/block-wars/LIVE_EXPERIENCE_GOALS.md` y la plantilla en `docs/block-wars/LIVE_SESSION_TEMPLATE.md`. Estado PLANNED: no generar audio ni declarar conexión, sincronía OBS o monetización listas por existir este plan. Empezar por confirmación de acciones y voz/sonido/efectos de TNT, NUKE y comentario recompensado, conservando el juego infinito y Snake. Los follows y suscripciones pagadas son eventos distintos; deben validarse y habilitarse correctamente antes de anunciarse como reales.
+El propietario confirmó **sin cámara**, con ElevenLabs narrando eventos y nombres de usuario moderados, sonidos/efectos diferenciados y recompensas por comentar. La definición está en `docs/block-wars/LIVE_EXPERIENCE_GOALS.md` y la plantilla en `docs/block-wars/LIVE_SESSION_TEMPLATE.md`. Implementación local parcial: `audio.js` sintetiza FX propios y acota voz/cola/caducidad; `experience.js` anuncia sólo acciones aceptadas; `lib/speech.js` usa plantillas y credenciales del servidor, con presupuesto. `FIRST_LIVE_SETUP.md` y `SPEECH_SETUP.md` describen preparación y pendientes. No declarar voz real, sincronía OBS, eventos reales o monetización verificadas por pruebas offline. Follows y suscripciones pagadas son distintos; Block Wars conserva los eventos pagados deshabilitados.
+
+Controles de audio `bw_audio` deben estar también en la lista de controles de `integrations/transport.js`: comprobar sólo `app.onControl` no cubre SSE. Las acciones comunitarias diferidas de reglas pasan su fuente como segundo argumento interno a `engine.action`; no incorporarlo al JSON del motor ni atribuir likes agregados a una persona. La fuente debe conservarse al drenar la cola para mantener «Prueba» en simulaciones.
 
 ## Verificación de la fase de estabilización
 

@@ -46,7 +46,7 @@
         if(stopped||sse!==stream||typeof packet.data!=='string'||packet.data.length>16384)return;
         let raw;try{raw=JSON.parse(packet.data);}catch{return;}
         if(!raw||typeof raw!=='object'||Array.isArray(raw)||(raw.target||'snake')!==target)return;
-        if(['pause','reset','frenzy','bw_action','bw_settings','bw_pause','bw_reset','bw_emergency'].includes(raw.type)){
+        if(['pause','reset','frenzy','bw_action','bw_settings','bw_pause','bw_reset','bw_emergency','bw_audio'].includes(raw.type)){
           try{options.onControl?.(raw);}catch{state.callbackErrors=(state.callbackErrors||0)+1;}
         }else deliver(adapter.normalize(raw,'simulator'));
       };

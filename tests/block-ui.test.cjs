@@ -8,14 +8,16 @@ const engineModule=require('../games/block-wars/engine.js');
 const rulesModule=require('../games/block-wars/rules.js');
 const config=require('../games/block-wars/config.js');
 const render=require('../games/block-wars/render.js');
+const experience=require('../games/block-wars/experience.js');
 const root=path.join(__dirname,'..');
 function harness(){
   const nodes=new Map(),listeners={},requests=[];
   const context2d=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
-  function node(id){if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
+  function node(id){if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
   let callbacks,frame,instance,updateCalls=0;
   const sandbox={console,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
-    LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true});}};
+    BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(){},setVolume(){},setNarration(){},stop(){}};}},
+    LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true,json:async()=>({enabled:false})});}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'games/block-wars/app.js'),'utf8'),sandbox,{filename:'app.js'});
   return {nodes,requests,listeners,get engine(){return instance;},get updates(){return updateCalls;},get transport(){return callbacks;},tick(now){frame(now);}};
 }

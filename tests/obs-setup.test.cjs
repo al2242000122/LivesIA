@@ -1,0 +1,31 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const os=require('node:os');
+const path=require('node:path');
+const setup=require('../scripts/prepare-obs.cjs');
+test('OBS rehearsal includes only the local vertical game and its own audio',()=>{
+  const scene=setup.buildScene();
+  assert.equal(scene.DesktopAudioDevice1,undefined);
+  assert.equal(scene.AuxAudioDevice1,undefined);
+  assert.deepEqual(scene.sources.map(source=>source.id).sort(),['browser_source','scene']);
+  const browser=scene.sources.find(source=>source.id==='browser_source');
+  assert.equal(browser.settings.url,'http://127.0.0.1:4173/block-wars');
+  assert.equal(browser.settings.width,720);assert.equal(browser.settings.height,1280);
+  assert.equal(browser.settings.reroute_audio,true);
+  assert.equal(browser.settings.shutdown,false);assert.equal(browser.settings.restart_when_active,false);
+  assert.equal(browser.settings.fps,30);assert.equal(browser.settings.webpage_control_level,0);
+  assert.equal(browser.mixers,1);assert.equal(browser.monitoring_type,0);
+  const profile=setup.buildProfile(path.resolve('artifacts'));
+  for(const line of ['BaseCX=720','BaseCY=1280','OutputCX=720','OutputCY=1280','FPSCommon=30','RecFormat2=mkv'])assert.ok(profile.includes(line));
+  assert.doesNotMatch(profile,/key=|server=|StartStream/i);
+});
+test('OBS preparation refuses to overwrite any existing named profile or scene',t=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'livesia-obs-'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+  const output=setup.prepare(directory,path.join(directory,'recordings'));
+  assert.ok(fs.existsSync(output.scene));assert.ok(fs.existsSync(output.profile));
+  const original=fs.readFileSync(output.scene,'utf8');
+  assert.throws(()=>setup.prepare(directory,path.join(directory,'recordings')),/exist/i);
+  assert.equal(fs.readFileSync(output.scene,'utf8'),original);
+});

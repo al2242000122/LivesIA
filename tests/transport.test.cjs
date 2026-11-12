@@ -23,6 +23,13 @@ test('transport isolates game targets and accepts only normalized relay data',()
   f.sockets[0].onopen();assert.equal(states.at(-1).relay,'connected');assert.equal(states.at(-1).verified,false);
   connection.stop();
 });
+test('SSE audio settings reach the control handler without being discarded as viewer events',()=>{
+  const f=environment(),controls=[],events=[];
+  const connection=connect({target:'block-wars',env:f.env,onControl:value=>controls.push(value),onEvent:value=>events.push(value)});
+  const command={type:'bw_audio',target:'block-wars',settings:{muted:true,volume:.25,narration:false}};
+  f.streams[0].onmessage({data:JSON.stringify(command)});
+  assert.deepEqual(controls,[command]);assert.equal(events.length,0);connection.stop();
+});
 test('WebSocket reconnect backoff is bounded and stop releases all resources',()=>{
   const f=environment(),connection=connect({env:f.env}); const delays=[];
   for(let i=0;i<9;i++){f.sockets.at(-1).onclose();delays.push(f.tick());}

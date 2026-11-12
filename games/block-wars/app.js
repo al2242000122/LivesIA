@@ -4,6 +4,21 @@
   const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'endless',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const rules=BlockWarsRules.createRules(engine,{likeThreshold:25});
   const renderer=BlockWarsRender.createRenderer(element('mine'));
+  let voiceAvailable=false,narrationRequested=true;
+  const audio=BlockWarsAudio.createAudio({narrationEnabled:false,onStatus(status){
+    element('audio-enable').hidden=Boolean(status.enabled);
+    element('audio-status').textContent=status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
+      status.paused?'AUDIO EN PAUSA':status.lastStatus==='voice_error'||status.lastStatus==='voice_timeout'?'SONIDOS ACTIVOS · VOZ NO DISPONIBLE':
+      voiceAvailable&&narrationRequested?'SONIDOS + VOZ CONFIGURADA · ENSAYAR':'SONIDOS ACTIVOS · VOZ PENDIENTE';
+  }});
+  const experience=BlockWarsExperience.createExperience(engine,rules,audio,text=>{element('notice').textContent=text;});
+  element('audio-enable').addEventListener('click',()=>audio.enable());
+  async function speechHealth(){
+    try{const response=await fetch('/api/block-wars/speech/status',{cache:'no-store'});voiceAvailable=response.ok&&Boolean((await response.json()).enabled);}
+    catch{voiceAvailable=false;}
+    audio.setNarration(voiceAvailable&&narrationRequested);
+  }
+  speechHealth();
   let reducedMotion=Boolean(engine.state.config && engine.state.config.reducedMotion);
   let relay='offline',last=0,accumulator=0,hudAt=0,fpsAt=0,frames=0,fps=0,frameMs=0,telemetryAt=0,stopped=false;
   const sources=new Set();
@@ -16,20 +31,25 @@
     switch(command.type){
       case 'bw_action':
         {const action={type:command.action,team:command.team};for(const key of ['count','pickaxe','efficiency','unbreaking','fortune'])if(Object.prototype.hasOwnProperty.call(command,key))action[key]=command[key];
-          if(!engine.action(action))element('notice').textContent='PRUEBA · Acción rechazada: pausa, resumen, cola o enfriamiento activo.';}break;
+          if(!experience.action(action))element('notice').textContent='PRUEBA · Acción rechazada: pausa, resumen, cola o enfriamiento activo.';}break;
+      case 'bw_audio':
+        if(typeof command.settings?.muted==='boolean')audio.mute(command.settings.muted);
+        if(typeof command.settings?.volume==='number')audio.setVolume(command.settings.volume);
+        if(typeof command.settings?.narration==='boolean'){narrationRequested=command.settings.narration;speechHealth();}
+        break;
       case 'bw_settings':
         if(!command.settings)return;
         {const settings={};for(const key of ['duration','eventInterval','reducedMotion'])if(Object.prototype.hasOwnProperty.call(command.settings,key))settings[key]=command.settings[key];engine.configure(settings);}
         if(Object.prototype.hasOwnProperty.call(command.settings,'likeThreshold'))rules.configure({likeThreshold:command.settings.likeThreshold});
         if(typeof command.settings.reducedMotion==='boolean')reducedMotion=command.settings.reducedMotion;
         break;
-      case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);break;
-      case 'bw_reset':engine.reset(command.seed);rules.reset();break;
-      case 'bw_emergency':engine.clearEffects();rules.clearPending();engine.pause(true);element('notice').textContent='EMERGENCIA · Arena pausada, efectos y cargas pendientes canceladas.';break;
+      case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);audio.pause(engine.state.paused);break;
+      case 'bw_reset':audio.pause(true);engine.reset(command.seed);rules.reset();audio.pause(false);break;
+      case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
     }
   }
   const transport=LiveTransport.connect({target:'block-wars',onEvent(event){
-    if(event.source in totals){totals[event.source]++;sources.add(event.source);}rules.handle(event);
+    if(event.source in totals){totals[event.source]++;sources.add(event.source);}experience.handleEvent(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
   function updateHud(){
     const state=engine.state,active=state.activeEvent&&state.activeEvent.remaining>0?state.activeEvent:null;
@@ -75,7 +95,7 @@
   function frame(now){
     if(stopped)return;
     const elapsed=last?Math.max(0,Math.min(.25,(now-last)/1000)):0;last=now;accumulator+=elapsed;
-    let steps=0;while(accumulator>=.05&&steps<5){engine.update(.05);if(rules.flush)rules.flush();accumulator-=.05;steps++;}if(steps===5)accumulator=0;
+    let steps=0;while(accumulator>=.05&&steps<5){experience.update(.05);accumulator-=.05;steps++;}if(steps===5)accumulator=0;
     renderer.draw(engine.state,{time:now/1000,reducedMotion});frames++;
     if(now-fpsAt>=1000){fps=Math.round(frames*1000/(now-fpsAt));frameMs=frames?(now-fpsAt)/frames:0;fpsAt=now;frames=0;}
     if(now-hudAt>=150){updateHud();hudAt=now;}
@@ -83,6 +103,6 @@
     requestAnimationFrame(frame);
   }
   document.addEventListener('visibilitychange',()=>{last=0;accumulator=0;fpsAt=performance.now();frames=0;});
-  addEventListener('pagehide',()=>{stopped=true;transport.stop();},{once:true});
+  addEventListener('pagehide',()=>{stopped=true;transport.stop();audio.stop();},{once:true});
   updateHud();requestAnimationFrame(frame);
 })();
