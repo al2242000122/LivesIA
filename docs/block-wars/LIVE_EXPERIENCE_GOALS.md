@@ -1,6 +1,6 @@
 # Objetivos de experiencia del LIVE
 
-Fecha: 2026-11-11. Estado: **PLANNED**. Define la siguiente fase; no acredita voz, audio en OBS, eventos reales ni monetización implementados.
+Fecha: 2026-11-11. Estado: **IMPLEMENTACIÓN LOCAL PARCIAL**. Sonidos, cola de voz y preparación de OBS implementados en la rama del [primer ensayo](FIRST_LIVE_SETUP.md). Los criterios O1–O6 siguen pendientes de medición; el código y las pruebas offline no acreditan ElevenLabs real, audio capturado en OBS, eventos reales ni monetización.
 
 ## Encargo confirmado
 

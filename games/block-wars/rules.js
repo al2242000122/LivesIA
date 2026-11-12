@@ -86,13 +86,13 @@
       value.lastSeen=clock;return value;
     }
     function ready(){return !engine.state.paused&&engine.state.phase==='playing';}
-    function act(action){return ready()&&engine.action(action)===true;}
+    function act(action,origin){return ready()&&engine.action(action,origin)===true;}
     function flush(){
       sync(clock);if(!ready())return 0;
       let budget=settings.maxEffectsPerFlush,accepted=0;
       for(let i=0;i<2&&budget;i++){
         const source=SOURCES[(drainFirst+i)%2],bucket=buckets[source],count=Math.min(budget,bucket.pending);
-        if(count&&act({type:'tnt',team:'neutral',count})){
+        if(count&&act({type:'tnt',team:'neutral',count},{source,community:true})){
           bucket.pending-=count;budget-=count;accepted+=count;metrics.bySource[source].tnt=add(metrics.bySource[source].tnt,count);
           notify('tnt','TNT comunitaria activada');
         }

@@ -4,6 +4,8 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const {validateCommand,validateTelemetry}=require('./lib/contracts.js');
+const {createSpeech,validatePayload}=require('./lib/speech.js');
+const speech=createSpeech();
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 4173;
 const MAX_BODY_BYTES = 4096, MAX_CLIENTS = 16, COMMANDS_PER_SECOND = 30;
@@ -20,12 +22,13 @@ const files = {
   '/block-wars/control': ['games/block-wars/control.html', 'text/html; charset=utf-8'],
   '/block-wars/style.css': ['games/block-wars/style.css', 'text/css; charset=utf-8'],
 };
-for(const filename of ['config','physics','engine','rules','textures','render','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
+for(const filename of ['config','physics','engine','rules','textures','render','audio','experience','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
 // Only these fixed local PNG names are served. The downloaded client and provenance remain private.
 for(const name of require('./games/block-wars/textures.js').ORIGINAL_NAMES)files[`/block-wars/assets/${name}.png`]=[`assets-local/minecraft/${name}.png`,'image/png'];
 let commandWindow = 0, commandCount = 0;
 let telemetry=null;
 function send(res, status, payload) {
+  if(res.destroyed||res.writableEnded)return;
   res.writeHead(status, {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'});
   res.end(JSON.stringify(payload));
 }
@@ -42,7 +45,7 @@ function broadcast(message) {
   for (const client of clients) if(client.gameTarget===message.target&&writeEvent(client, output))receivers++;
   return receivers;
 }
-function receiveJson(req, res, validator, accept) {
+function receiveJson(req, res, validator, accept, reply=result=>send(res,200,result)) {
   if ((req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
     req.resume(); return send(res, 415, {error: 'Se requiere application/json'});
   }
@@ -75,7 +78,9 @@ function receiveJson(req, res, validator, accept) {
     catch { return send(res, 400, {error: 'JSON inválido'}); }
     const valid = validator(event);
     if (!valid) return send(res, 400, {error: 'Comando inválido: revisa type, textos y count entero positivo'});
-    send(res, 200, accept(valid));
+    Promise.resolve().then(()=>accept(valid)).then(result=>{
+      if(!res.destroyed&&!res.writableEnded)reply(result);
+    }).catch(()=>send(res,500,{error:'Operación local no disponible'}));
   });
 }
 const server = http.createServer((req, res) => {
@@ -93,7 +98,7 @@ const server = http.createServer((req, res) => {
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws://127.0.0.1:21213; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws://127.0.0.1:21213; media-src 'self' blob:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
   if (req.method === 'GET' && route === '/api/stream') {
     const target=location.searchParams.get('target')||'snake';
     if(!['snake','block-wars'].includes(target))return send(res,400,{error:'Destino inválido'});
@@ -111,6 +116,14 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === 'GET' && route === '/api/status') return send(res, 200, {gameWindows: clients.size});
   if (req.method === 'POST' && route === '/api/command') return receiveJson(req,res,validateCommand,event=>({ok:true,receivers:broadcast(event)}));
+  if(req.method==='GET'&&route==='/api/block-wars/speech/status')return send(res,200,speech.status());
+  if(req.method==='POST'&&route==='/api/block-wars/speech'){
+    const controller=new AbortController();res.once('close',()=>controller.abort());
+    return receiveJson(req,res,validatePayload,payload=>speech.synthesize(payload,{signal:controller.signal}),result=>{
+      if(result.audio){res.writeHead(result.statusCode,{'Content-Type':result.contentType,'Cache-Control':'no-store'});res.end(result.audio);}
+      else send(res,result.statusCode,result.error);
+    });
+  }
   if(route==='/api/block-wars/telemetry'){
     if(req.method==='POST')return receiveJson(req,res,validateTelemetry,snapshot=>{telemetry={...snapshot,receivedAt:Date.now()};return {ok:true};});
     if(req.method==='GET')return send(res,200,telemetry?{available:Date.now()-telemetry.receivedAt<=15000,...telemetry,ageMs:Date.now()-telemetry.receivedAt}:{available:false});

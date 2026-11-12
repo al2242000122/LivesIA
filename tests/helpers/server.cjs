@@ -3,12 +3,12 @@ const {spawn}=require('node:child_process');
 const http=require('node:http');
 const net=require('node:net');
 const path=require('node:path');
-async function start(t) {
+async function start(t,env={}) {
   const reservation = net.createServer();
   await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
   const port = reservation.address().port;
   await new Promise(resolve => reservation.close(resolve));
-  const child = spawn(process.execPath, ['server.js'], {cwd: path.join(__dirname, '../..'), env: {...process.env, PORT: String(port)}, stdio: ['ignore', 'pipe', 'pipe']});
+  const child = spawn(process.execPath, ['server.js'], {cwd: path.join(__dirname, '../..'), env: {...process.env,...env, PORT: String(port)}, stdio: ['ignore', 'pipe', 'pipe']});
   t.after(() => new Promise(resolve => { if (child.exitCode !== null) return resolve(); child.once('exit', resolve); child.kill(); }));
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Server startup timeout')), 5000);
