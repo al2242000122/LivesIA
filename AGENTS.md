@@ -59,7 +59,7 @@ Este repositorio contiene el MVP de **Serpiente Infinita LIVE**, un videojuego o
 ## Nota para el primer turno de Codex
 Inspecciona todos los archivos, resume la arquitectura real, identifica defectos con evidencia y propón un plan por fases. **Primero pruebas y estabilización**, luego integración LIVE y personalización. No afirmar que la monetización está lista ni cambiar `main` directamente: implementar en rama y abrir PR. No hace falta reescribir todo en un framework para el MVP.
 
-## Nuevo modo prioritario: Block Wars LIVE (planificado, no implementado)
+## Nuevo modo prioritario: Block Wars LIVE (implementado para ensayo local)
 
 **Objetivo estratégico actualizado:** primero audiencia, likes, follows, comentarios y tiempo de visualización orgánicos; monetización con regalos y suscripciones pagadas **solo más adelante**. El término `sub` significa suscripción potencialmente pagada, no un follow gratuito.
 
@@ -70,7 +70,11 @@ Leer en este orden antes de modificar el proyecto:
 4. `docs/block-wars/TECHNICAL_SPEC.md`
 5. `docs/block-wars/CODEX_BACKLOG.md`
 
-Codex debe mantener Serpiente Infinita como modo existente, implementar Block Wars en módulos independientes y usar un adaptador de eventos compartido con simulación y fuentes distinguibles. Crear un PR por fase; no eliminar funcionalidades, no mezclar efectos gratuitos con donaciones y no ejecutar la fase de regalos antes de contar con elegibilidad y validación real. Aspecto de bloques inspirado de manera general en juegos voxel, **con recursos, sonidos y texturas originales**, sin assets o marcas de Minecraft/Mojang.
+Codex debe mantener Serpiente Infinita como modo existente, implementar Block Wars en módulos independientes y usar un adaptador de eventos compartido con simulación y fuentes distinguibles. Crear un PR por fase; no eliminar funcionalidades, no mezclar efectos gratuitos con donaciones y no ejecutar la fase de regalos antes de contar con elegibilidad y validación real.
+
+**Actualización explícita del propietario (2026-11-11):** aplicar las diez referencias de excavación vertical y descargar texturas originales de Minecraft para uso local. Esta indicación sustituye la anterior prohibición de texturas de Mojang para este ensayo. `python scripts/import_minecraft.py` descarga un cliente oficial fijado, verifica integridad y extrae únicamente PNG a `assets-local/minecraft/` (ignorado por Git). No ejecutar el JAR ni incluir recursos de Mojang en commits/PRs. Procedencia y condiciones en `docs/block-wars/MINECRAFT_ASSETS.md`; no asumir permiso comercial ni confundirlo con grabar gameplay del cliente Minecraft. Los efectos son propios y no se importan sonidos.
+
+Juego `/block-wars`, panel `/block-wars/control`; Snake conserva `/` y `/control`. Minería shaft, cámara, cinco picos, 18 eventos, reglas gratuitas, panel y telemetría local existen. El transporte compartido distingue simulación/relay; TikFinity y OBS real siguen pendientes. Sin recursos importados se ve arte de respaldo claramente rotulado. Cambiar contratos requiere pruebas de regresión en ambos juegos.
 
 ## Verificación de la fase de estabilización
 

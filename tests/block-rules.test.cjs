@@ -98,4 +98,49 @@ test('a round turnover inside one vote window allows a fresh vote',()=>{
   const f=fixture({pickVoteThreshold:1});f.event('comment',{text:'!dark'});f.event('comment',{text:'!oro'});
   f.engine.state.round=2;assert.equal(f.event('comment',{text:'!piedra'}),true);
 });
-
+const effectAliases=[['TNT','tnt'],['Rainbow','rainbow'],['Mega','mega'],['Arrow','arrow'],['Butterfly','butterfly'],['Nuke','nuke'],['TNT RAIN','tnt_rain'],['TNTRAIN','tnt_rain'],['Thunder','thunder'],['Fire','fire'],['Rain','rain'],['Tsunami','tsunami'],['BLACK HOLE','black_hole'],['BLACKHOLE','black_hole'],['Jackpot','jackpot'],['Demon','demon'],['Meteor','meteor'],['Spin','spin'],['Fast','fast'],['Big','big']];
+test('every catalog chat alias works case-insensitively bare or prefixed, without a team',()=>{
+  for(const [alias,type] of effectAliases)for(const prefix of ['','!']){
+    if(alias==='Rain'&&prefix==='!')continue;
+    const f=fixture();assert.equal(f.event('comment',{text:`  ${prefix}${alias.toUpperCase()}  `},''),true,alias+prefix);
+    assert.equal(f.actions.at(-1).type,type);assert.equal(f.actions.at(-1).team,'neutral');
+  }
+});
+test('catalog effects share a global cooldown and source-isolated actor cooldowns',()=>{
+  const f=fixture();assert.equal(f.event('comment',{text:'TNT'},'a',0),true);
+  assert.equal(f.event('comment',{text:'Meteor'},'b',9999,'tikfinity'),false);
+  assert.equal(f.event('comment',{text:'Meteor'},'a',10000),false);
+  assert.equal(f.event('comment',{text:'Meteor'},'a',10000,'tikfinity'),true);
+  assert.equal(f.event('comment',{text:'Mega'},'a',20000),true);
+  assert.equal(f.actions.length,3);
+});
+test('effect cooldowns keep identity, dedupe, anonymous bounds, teams, and reset semantics',()=>{
+  const f=fixture();f.event('comment',{text:'!dark'},'a');
+  f.event('comment',{text:'!Fire'},'a',0,'simulator','effect-id');assert.equal(f.actions.at(-1).team,'dark');
+  assert.equal(f.event('comment',{text:'Fire'},'a',20000,'simulator','effect-id'),false);
+  assert.equal(f.event('comment',{text:'Fire'},'',20000,'simulator',null),true);
+  assert.equal(f.event('comment',{text:'TNT'},'',30000,'simulator',null),false);
+  f.rules.reset();assert.equal(f.event('comment',{text:'TNT'},'',0,'simulator',null),true);
+});
+test('!rain remains a vote and bare Rain dispatches one cooldown-protected action',()=>{
+  const f=fixture({rainThreshold:2});assert.equal(f.event('comment',{text:'!rain'},'a'),true);assert.equal(f.actions.length,0);
+  assert.equal(f.event('comment',{text:'RAIN'},'a'),true);assert.equal(f.actions.at(-1).type,'rain');assert.equal(f.rules.state.rainVotes,1);
+  assert.equal(f.event('comment',{text:'!rain'},'b'),true);assert.equal(f.rules.state.rainVotes,2);
+  for(const text of ['please TNT','TNT now','!black_hole','TNT RAIN;whoami','eval(1)','Jackpot<script>','!!TNT'])assert.equal(f.event('comment',{text},'a',20000),false,text);
+});
+test('rejected/paused engine actions do not consume an effect cooldown',()=>{
+  const f=fixture();f.engine.state.paused=true;assert.equal(f.event('comment',{text:'TNT'}),false);
+  f.engine.state.paused=false;f.engine.action=()=>false;assert.equal(f.event('comment',{text:'TNT'}),false);
+  f.engine.action=a=>{f.actions.push(a);return true;};assert.equal(f.event('comment',{text:'TNT'}),true);
+});
+test('new effect cooldown configuration is validated and cannot outlive actor TTL',()=>{
+  const f=fixture({effectCooldownMs:1000,actorEffectCooldownMs:2000});f.event('comment',{text:'TNT'},'a');
+  assert.equal(f.event('comment',{text:'Fire'},'b',1000),true);assert.equal(f.event('comment',{text:'TNT'},'a',2000),true);
+  assert.equal(f.rules.configure({effectCooldownMs:0}),false);assert.equal(f.rules.configure({actorEffectCooldownMs:86400001}),false);
+  assert.throws(()=>fixture({actorTtlMs:60000,actorEffectCooldownMs:60001}),RangeError);
+});
+test('global effect cooldown rejects new-actor spam before allocating membership records',()=>{
+  const f=fixture({maxActors:2});f.event('comment',{text:'TNT'},'a');
+  for(let i=0;i<20;i++)assert.equal(f.event('comment',{text:'TNT'},`spam-${i}`,1),false);
+  assert.equal(f.rules.state.trackedActors,1);assert.equal(f.event('comment',{text:'!dark'},'legitimate',2),true);
+});

@@ -1,6 +1,6 @@
 # Game Design Document — Block Wars LIVE
 
-**Versión:** 0.1 / diseño. **Implementación:** pendiente. **Plataforma:** navegador + OBS en vertical.
+**Versión:** 0.1 / diseño. **Implementación:** ensayo local; ver REFERENCE_IMPLEMENTED.md. **Plataforma:** navegador + OBS en vertical.
 
 ## 1. Fantasía de juego
 

@@ -4,7 +4,7 @@
 
 ## Idea principal
 
-Añadir **cinco tipos de pico** con una sensación de avance visual fuerte. Algunos romperán bloques lentamente; otros tendrán **velocidades descomunales**, especialmente al combinar materiales, encantamientos y aceleraciones temporales. Cada pico debe verse diferente en tamaño, color, animación, partículas y sonido original. El estilo puede evocar la minería por bloques, pero todo el arte, texturas, iconos y audio deben ser originales, sin reutilizar recursos de Minecraft.
+Añadir **cinco tipos de pico** con una sensación de avance visual fuerte. Algunos romperán bloques lentamente; otros tendrán **velocidades descomunales**, especialmente al combinar materiales, encantamientos y aceleraciones temporales. El propietario actualizó el diseño el2026-11-11: los cinco picos y bloques utilizan texturas originales de Minecraft importadas localmente, fuera de Git. Esta indicación sustituye la anterior de arte totalmente original. No se importa audio. Ver [procedencia y límites](MINECRAFT_ASSETS.md) y [resultado implementado](REFERENCE_IMPLEMENTED.md).
 
 Los nombres solicitados para el diseño son **madera, piedra, oro, diamante y netherita**. Son referencias de jugabilidad; la identidad gráfica de LivesIA y sus materiales visuales debe ser propia.
 

@@ -80,9 +80,22 @@ La API de control exige JSON tipado, permite hasta 30 comandos/s y 4096 bytes po
 
 ---
 
-## Próximo modo prioritario: Block Wars LIVE (en diseño)
+## Block Wars LIVE: ensayo local de minería vertical
 
-Block Wars LIVE es un **juego nuevo todavía no implementado** de minería y destrucción de bloques originales, con equipos DARK vs LIGHT, TNT comunitaria por likes y eventos gratis automáticos. La primera fase busca **likes, seguidores, comentarios, visualizaciones y retención auténticas**, no regalos pagados. Serpiente Infinita seguirá disponible como modo alternativo.
+Block Wars LIVE ya funciona localmente: excavación vertical con cámara, cinco picos y encantamientos, equipos DARK vs LIGHT, 25 likes por TNT y 18 eventos gratuitos con enfriamientos. La primera fase busca **likes, seguidores, comentarios, visualizaciones y retención auténticas**. Los regalos pagados están deshabilitados en este modo. Serpiente Infinita conserva sus rutas y funciones.
+
+```powershell
+python scripts/import_minecraft.py  # opcional: PNG originales desde el cliente oficial fijado
+npm start
+# Juego: http://127.0.0.1:4173/block-wars
+# Panel: http://127.0.0.1:4173/block-wars/control
+```
+
+La importación requiere Python 3.10+ y red; el juego sólo requiere Node 20+. Conserva los PNG **fuera de Git**, valida hashes y registra procedencia. Sin importar se usa arte de respaldo y se indica en pantalla. El importador no ejecuta Minecraft. [Recursos y condiciones](docs/block-wars/MINECRAFT_ASSETS.md). La descarga local no acredita permiso para distribuir o monetizar esta aplicación independiente.
+
+OBS: fuente de navegador **720 × 1280**, URL del juego; mantener activa su renderización. El panel simula eventos, permite cambiar picos/encantamientos, pausa, reinicio, reducción de movimiento y emergencia. El chat reconoce `TNT`, `MEGA`, `SPIN`, etc. ([catálogo](docs/block-wars/CATALOG.md)). Los efectos alteran el motor, no son un video pregrabado. [Referencia visual e implementación](docs/block-wars/REFERENCE_IMPLEMENTED.md).
+
+Comprobar con `npm test`, `npm run check` y `npm run test:block-soak`. La suite de importación usa Python 3.10+ (Windows: `python`; Linux/macOS: `python3`), sin paquetes adicionales ni descarga durante las pruebas. La simulación acelerada y la prueba en navegador no sustituyen una emisión prolongada en OBS/CEF. TikFinity recibe eventos en el navegador del juego y aún debe contrastarse con una cuenta LIVE real.
 
 - [Plan y estado de Block Wars](docs/block-wars/README.md)
 - [Diseño del juego](docs/block-wars/GAME_DESIGN.md)

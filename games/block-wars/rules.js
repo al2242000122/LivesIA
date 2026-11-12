@@ -1,15 +1,26 @@
 (function(root,factory){
-  if(typeof module==='object'&&module.exports)module.exports=factory();
-  else root.BlockWarsRules=factory();
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  if(typeof module==='object'&&module.exports)module.exports=factory(require('./config.js'));
+  else root.BlockWarsRules=factory(root.BlockWarsConfig);
+})(typeof globalThis!=='undefined'?globalThis:this,function(engineConfig){
   'use strict';
+  if(!engineConfig||!engineConfig.EVENTS)throw new Error('Load BlockWarsConfig before BlockWarsRules');
+  const {EVENTS}=engineConfig;
+  const EFFECT_ALIASES=Object.create(null);
+  for(const type of Object.keys(EVENTS)){
+    const alias=type.replace(/_/g,' ');EFFECT_ALIASES[alias]=type;EFFECT_ALIASES[alias.replace(/ /g,'')]=type;
+  }
+  function effectType(command){
+    if(command==='!rain')return null; // Preserve the original once-per-round vote.
+    const alias=command.startsWith('!')?command.slice(1):command;
+    return Object.prototype.hasOwnProperty.call(EFFECT_ALIASES,alias)?EFFECT_ALIASES[alias]:null;
+  }
   const SOURCES=['simulator','tikfinity'];
   const PICKS={ '!madera':'wood','!piedra':'stone','!oro':'gold','!diamante':'diamond','!netherita':'netherite' };
-  const DEFAULTS={likeThreshold:25,teamCooldownMs:60000,mineCooldownMs:15000,boomCooldownMs:30000,followCooldownMs:60000,
+  const DEFAULTS={likeThreshold:25,teamCooldownMs:60000,mineCooldownMs:15000,boomCooldownMs:30000,followCooldownMs:60000,effectCooldownMs:10000,actorEffectCooldownMs:15000,
     rainThreshold:5,boomThreshold:3,pickVoteThreshold:3,pickWindowMs:30000,maxEffectsPerFlush:8,maxActors:2000,maxDedupe:4000,
     actorTtlMs:1800000,dedupeTtlMs:300000,maxLikeDelta:1000000,maxNotifications:6};
   const RANGES={likeThreshold:[5,1000],teamCooldownMs:[60000,3600000],mineCooldownMs:[15000,3600000],boomCooldownMs:[30000,3600000],
-    followCooldownMs:[1000,3600000],rainThreshold:[1,1000],boomThreshold:[1,1000],pickVoteThreshold:[1,1000],pickWindowMs:[1000,60000],
+    followCooldownMs:[1000,3600000],effectCooldownMs:[1000,3600000],actorEffectCooldownMs:[1000,3600000],rainThreshold:[1,1000],boomThreshold:[1,1000],pickVoteThreshold:[1,1000],pickWindowMs:[1000,60000],
     maxEffectsPerFlush:[1,8],maxActors:[1,10000],maxDedupe:[1,20000],actorTtlMs:[60000,86400000],dedupeTtlMs:[1000,86400000],
     maxLikeDelta:[1,1000000],maxNotifications:[1,20]};
   const COUNTER_CAP=Number.MAX_SAFE_INTEGER;
@@ -21,11 +32,11 @@
       if(!Object.prototype.hasOwnProperty.call(RANGES,key)||!Number.isSafeInteger(options[key])||options[key]<RANGES[key][0]||options[key]>RANGES[key][1])throw new RangeError('Invalid rules setting: '+key);
       result[key]=options[key];
     }
-    if(result.actorTtlMs<Math.max(result.teamCooldownMs,result.mineCooldownMs,result.boomCooldownMs,result.followCooldownMs,result.pickWindowMs))throw new RangeError('Actor TTL must preserve cooldowns');
+    if(result.actorTtlMs<Math.max(result.teamCooldownMs,result.mineCooldownMs,result.boomCooldownMs,result.followCooldownMs,result.actorEffectCooldownMs,result.pickWindowMs))throw new RangeError('Actor TTL must preserve cooldowns');
     return result;
   }
   function voteCounts(){return {wood:0,stone:0,gold:0,diamond:0,netherite:0};}
-  function sourceMetrics(){return {likes:0,follows:0,comments:0,commands:0,duplicates:0,ignored:0,rejected:0,tnt:0};}
+  function sourceMetrics(){return {likes:0,follows:0,comments:0,commands:0,duplicates:0,ignored:0,rejected:0,tnt:0,effects:0};}
   function createRules(engine,options){
     if(!engine||typeof engine.action!=='function'||!engine.state)throw new TypeError('An engine is required');
     let settings=config(options===undefined?{}:options,DEFAULTS),clock=0,lastSweep=-Infinity,round=engine.state.round,pickWindow=-1;
@@ -35,14 +46,15 @@
     const state={likes:0,likeProgress:0,likesRemainder:0,likeThreshold:settings.likeThreshold,pendingTnt:0,likeProgressBySource:{simulator:0,tikfinity:0},
       membershipCounts:{dark:0,light:0},teams:{dark:{members:0,votes:voteCounts(),pickWinner:null},light:{members:0,votes:voteCounts(),pickWinner:null}},
       rainVotes:0,rainThreshold:settings.rainThreshold,boomCharge:0,boomThreshold:settings.boomThreshold,pickWindowMs:settings.pickWindowMs,
-      notifications:[],lastMessage:'',trackedActors:0,trackedDedupe:0,trackedVotes:0};
-    let rainTriggered=false,drainFirst=0;
+      effectCooldownMs:settings.effectCooldownMs,actorEffectCooldownMs:settings.actorEffectCooldownMs,nextEffectInMs:0,notifications:[],lastMessage:'',trackedActors:0,trackedDedupe:0,trackedVotes:0};
+    let rainTriggered=false,drainFirst=0,lastEffectAt=-Infinity;
     function notify(kind,message,team){
       state.notifications.push({kind,message,team:team||'neutral'});
       if(state.notifications.length>settings.maxNotifications)state.notifications.shift();
       state.lastMessage=message;
     }
     function refresh(){
+      state.nextEffectInMs=Math.max(0,settings.effectCooldownMs-(clock-lastEffectAt));
       state.likes=add(metrics.bySource.simulator.likes,metrics.bySource.tikfinity.likes);
       state.likeProgress=buckets.simulator.progress+buckets.tikfinity.progress;state.likesRemainder=state.likeProgress;
       state.pendingTnt=buckets.simulator.pending+buckets.tikfinity.pending;
@@ -69,7 +81,7 @@
       let value=actors.get(key);
       if(!value){
         if(actors.size>=settings.maxActors)return null;
-        value={team:null,changedAt:-Infinity,mineAt:-Infinity,boomAt:-Infinity,followAt:-Infinity,pickWindow:null,lastSeen:clock};actors.set(key,value);
+        value={team:null,changedAt:-Infinity,mineAt:-Infinity,boomAt:-Infinity,followAt:-Infinity,effectAt:-Infinity,pickWindow:null,lastSeen:clock};actors.set(key,value);
       }
       value.lastSeen=clock;return value;
     }
@@ -115,10 +127,12 @@
       if(event.type==='comment'){
         m.comments=add(m.comments,1);
         if(typeof event.data.text!=='string'||event.data.text.length>256)return reject(source);
-        const command=event.data.text.trim().toLowerCase();
-        if(!['!dark','!light','!mine','!boom','!rain','!pico',...Object.keys(PICKS)].includes(command))return false;
+        const command=event.data.text.trim().toLowerCase().replace(/\s+/g,' '),effect=effectType(command);
+        if(!effect&&!['!dark','!light','!mine','!boom','!rain','!pico',...Object.keys(PICKS)].includes(command))return false;
+        if(effect&&(!ready()||clock-lastEffectAt<settings.effectCooldownMs))return reject(source);
         const user=record(key);if(!user)return reject(source);
-        const ok=comment(command,user,key,identified);
+        const ok=comment(command,user,key,identified,effect);
+        if(ok&&effect)m.effects=add(m.effects,1);
         if(ok)m.commands=add(m.commands,1);else return reject(source);
         refresh();return true;
       }
@@ -126,7 +140,12 @@
       if(!act({type:'repair',team:user.team||'neutral'}))return reject(source);
       user.followAt=clock;m.follows=add(m.follows,1);notify('follow','Nuevo follow: refuerzo gratuito',user.team);refresh();return true;
     }
-    function comment(command,user,key,identified){
+    function comment(command,user,key,identified,effect){
+      if(effect){
+        if(clock-lastEffectAt<settings.effectCooldownMs||clock-user.effectAt<settings.actorEffectCooldownMs)return false;
+        if(!act({type:effect,team:user.team||'neutral'}))return false;
+        lastEffectAt=clock;user.effectAt=clock;notify('effect','Evento gratuito: '+EVENTS[effect].label,user.team);return true;
+      }
       if(command==='!pico'){
         const team=user.team,tool=team&&engine.state.teams[team].pickaxe;
         const names={wood:'madera',stone:'piedra',gold:'oro',diamond:'diamante',netherite:'netherita'};
@@ -174,20 +193,21 @@
       if(next.maxActors<Math.max(actors.size,rainVoters.size)||next.maxDedupe<dedupe.size)return false;
       // Existing credits retain their original threshold; only each source's remainder is repriced.
       for(const source of SOURCES){const bucket=buckets[source];bucket.pending+=Math.floor(bucket.progress/next.likeThreshold);bucket.progress%=next.likeThreshold;}
-      settings=next;state.likeThreshold=next.likeThreshold;state.rainThreshold=next.rainThreshold;state.boomThreshold=next.boomThreshold;state.pickWindowMs=next.pickWindowMs;
+      settings=next;state.effectCooldownMs=next.effectCooldownMs;state.actorEffectCooldownMs=next.actorEffectCooldownMs;state.likeThreshold=next.likeThreshold;state.rainThreshold=next.rainThreshold;state.boomThreshold=next.boomThreshold;state.pickWindowMs=next.pickWindowMs;
       while(state.notifications.length>settings.maxNotifications)state.notifications.shift();
       refresh();return true;
     }
     function reset(){
-      actors.clear();dedupe.clear();rainVoters.clear();clock=0;lastSweep=-Infinity;round=engine.state.round;pickWindow=-1;rainTriggered=false;
+      actors.clear();dedupe.clear();rainVoters.clear();clock=0;lastSweep=-Infinity;round=engine.state.round;pickWindow=-1;rainTriggered=false;lastEffectAt=-Infinity;
       for(const source of SOURCES){Object.assign(metrics.bySource[source],sourceMetrics());buckets[source].progress=0;buckets[source].pending=0;}
       metrics.rejected=0;state.membershipCounts.dark=0;state.membershipCounts.light=0;state.teams.dark.votes=voteCounts();state.teams.light.votes=voteCounts();
       state.teams.dark.pickWinner=null;state.teams.light.pickWinner=null;state.rainVotes=0;state.boomCharge=0;state.notifications.length=0;state.lastMessage='';refresh();
     }
-    return {handle,flush,reset,configure,metrics,state};
+    function clearPending(){
+      for(const source of SOURCES){buckets[source].pending=0;buckets[source].progress=0;}
+      state.boomCharge=0;refresh();
+    }
+    return {handle,flush,reset,configure,clearPending,metrics,state};
   }
   return {createRules,DEFAULTS:Object.freeze(DEFAULTS)};
 });
-
-
-
