@@ -11,7 +11,7 @@ Fecha: 2026-11-11. Rama `codex/first-live-setup`, sobre el PR de objetivos de ex
 - Grabación local MKV en `%LOCALAPPDATA%/LivesIA/recordings`: [ensayo real de33min47s decodificado completamente](OBS_REHEARSAL_2026-11-12.md), con imagen y FX capturados. El nivel de sonido es bajo; mezcla y voz real siguen pendientes. No equivale al ensayo prolongado de120min.
 - Código de sonidos originales para18eventos, comentarios recompensados y follows; narración opcional de ElevenLabs por acciones aceptadas. La credencial local no estaba configurada durante este montaje. No se hizo una llamada real al TTS ni se verificaron sus latencias.
 
-**TikTok LIVE Studio y TikFinity aún no están instalados/verificados.** Se abrió la página oficial de descarga de LIVE Studio; su diálogo de descarga no se completó. El control automático del navegador se detuvo al no poder verificar su URL actual. No se inició sesión ni se determinó la elegibilidad de la cuenta. El juego puede ensayarse sin esos programas.
+**Actualización 2026-11-12:** TikTok LIVE Studio 1.39.6 está instalado, con firmas válidas de TikTok Pte. Ltd. en lanzador y ejecutable. El propietario inició sesión y la aplicación mostró **«Sin acceso»**. La solicitud enviada a TikTok quedó **Under review**; la interfaz indicó respuesta en 3 días hábiles, sin aprobación confirmada. TikFinity aún no está instalado/verificado. [Registro y siguientes comprobaciones](TIKTOK_LIVE_ACCESS.md). El juego puede ensayarse sin esos programas.
 
 ## Abrir el ensayo
 
