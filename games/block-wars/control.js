@@ -13,6 +13,11 @@
       message('Enviado a '+result.receivers+' arena(s) · '+(command.action||command.type)+' · SIMULADOR. Verifica el efecto y los enfriamientos.');return true;
     }catch(error){message('No se pudo conectar al servidor local. Comprueba que node server.js siga ejecutándose.',true);return false;}
   }
+  const catalog=element('catalog-controls');
+  for(const descriptor of Object.values(BlockWarsConfig.EVENTS)){
+    const button=document.createElement('button');button.type='button';button.dataset.action=descriptor.id;
+    button.textContent=descriptor.label;button.title='Prueba gratuita · enfriamiento '+descriptor.cooldown+' s';catalog.append(button);
+  }
   function actor(){return element('actor').value.trim()||'operador-demo';}
   function action(type,extra){return send({type:'bw_action',action:type,team:element('team').value,...extra});}
   document.addEventListener('click',event=>{

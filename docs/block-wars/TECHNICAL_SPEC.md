@@ -1,6 +1,6 @@
 # Especificación técnica — Block Wars LIVE
 
-**Estado:** arquitectura objetivo, no código ya implementado. Preservar el prototipo de serpiente.
+**Estado:** diseño de referencia; adaptador, motor y panel ya ejecutables localmente. Ver REFERENCE_IMPLEMENTED.md y VERIFICATION.md para alcance medido. Preservar el prototipo de serpiente.
 
 ## Arquitectura evolutiva
 

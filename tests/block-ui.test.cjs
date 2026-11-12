@@ -11,8 +11,8 @@ const render=require('../games/block-wars/render.js');
 const root=path.join(__dirname,'..');
 function harness(){
   const nodes=new Map(),listeners={},requests=[];
-  const context2d=new Proxy({},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
-  function node(id){if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},getContext(){return context2d;},width:640,height:800});return nodes.get(id);}
+  const context2d=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
+  function node(id){if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
   let callbacks,frame,instance,updateCalls=0;
   const sandbox={console,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
     LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true});}};
@@ -40,7 +40,7 @@ test('Block Wars app identifies simulator/relay separately and never claims veri
   assert.equal(telemetry.source,'mixed');assert.equal(telemetry.fps>=0,true);assert.deepEqual(Object.keys(telemetry).sort(),['fps','frameMs','particles','paused','queue','reducedMotion','remaining','round','source'].sort());
 });
 test('Block Wars renderer handles mined, damaged, paused, summary and destructive effects',()=>{
-  const canvas={width:640,height:800,getContext(){return new Proxy({},{get(object,key){return object[key]||(object[key]=()=>{});}});}};
+  const canvas={width:720,height:1280,getContext(){return new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){return object[key]||(object[key]=()=>{});}});}};
   const renderer=render.createRenderer(canvas),engine=engineModule.createEngine({seed:14});
   for(const type of ['tnt','meteor','nuke','descomunal'])engine.action({type,team:'dark'});
   engine.update(.1);renderer.draw(engine.state,{time:1});engine.pause(true);renderer.draw(engine.state,{time:1,reducedMotion:true});

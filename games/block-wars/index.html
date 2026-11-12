@@ -1,23 +1,36 @@
 <!doctype html>
 <html lang="es-MX">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Block Wars · Excavación en curso</title><link rel="stylesheet" href="/block-wars/style.css"></head>
-<body class="bw-game">
-<main class="bw-stage" aria-label="Block Wars, competencia autónoma de excavación">
-  <header class="bw-masthead"><div><span class="bw-eyebrow">LIVESIA / ARENA DE EXCAVACIÓN</span><h1>BLOCK<span>WARS</span><i>✦</i></h1></div><div class="bw-round"><span>RONDA</span><b id="round">01</b><strong id="clock">03:00</strong></div></header>
-  <div class="bw-status"><span id="source" class="bw-source">DEMO · AUTÓNOMO</span><span id="relay">RELAY DESCONECTADO</span><span id="fps">— FPS</span></div>
-  <section class="bw-scoreboard" aria-label="Marcador por equipos">
-    <article class="bw-team bw-dark"><div class="bw-team-heading"><span>◆ DARK</span><strong id="dark-score">0</strong></div><div class="bw-tool"><span id="dark-tool">PICO MADERA</span><span id="dark-speed">0.6 b/s</span></div><div class="bw-durability"><i id="dark-durability"></i></div><div id="dark-buff" class="bw-buff">MINERÍA AUTOMÁTICA</div></article>
-    <div class="bw-versus">VS</div>
-    <article class="bw-team bw-light"><div class="bw-team-heading"><span>✦ LIGHT</span><strong id="light-score">0</strong></div><div class="bw-tool"><span id="light-tool">PICO MADERA</span><span id="light-speed">0.6 b/s</span></div><div class="bw-durability"><i id="light-durability"></i></div><div id="light-buff" class="bw-buff">MINERÍA AUTOMÁTICA</div></article>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Block Wars · Minería interactiva</title><link rel="stylesheet" href="/block-wars/style.css"></head>
+<body class="bw-game"><main class="bw-stage" aria-label="Excavación vertical interactiva de Block Wars">
+  <canvas id="mine" width="720" height="1280" aria-label="Mundo pixelado con túnel, cielo y pico en excavación automática"></canvas>
+  <div id="event-banner" class="bw-event-banner" hidden aria-live="polite"></div>
+  <section class="bw-interactions" aria-label="Cómo participar gratis">
+    <div><canvas data-icon="tnt" width="16" height="16" aria-hidden="true"></canvas><strong class="bw-cyan">LIKES</strong><em>=</em><strong class="bw-red">TNT</strong></div>
+    <div><span class="bw-chat-icon" aria-hidden="true">✦</span><strong class="bw-red">CHAT</strong><em>=</em><strong class="bw-cyan">EVENTOS</strong></div>
+    <small id="like-progress">25 likes por TNT · participación gratis</small>
   </section>
-  <div class="bw-map-heading"><span><i></i> EXCAVACIÓN EN CURSO</span><span id="next-event">EVENTO GRATIS EN 60s</span></div>
-  <div class="bw-map"><canvas id="mine" width="640" height="800" aria-label="Mapa original de bloques. Los dos equipos excavan automáticamente."></canvas><div class="bw-map-corner bw-map-corner-a"></div><div class="bw-map-corner bw-map-corner-b"></div></div>
-  <footer class="bw-footer">
-    <div class="bw-community"><div><span>TNT GRATIS · LIKES</span><strong id="like-progress">DEMO 0 · RELAY 0 / 25</strong></div><div class="bw-like-track"><span><i id="like-fill"></i></span><span><i id="relay-fill"></i></span></div></div>
-    <div class="bw-join"><span>ELIGE TU EQUIPO <small>GRATIS</small></span><strong><em>!dark</em><b>o</b><em>!light</em></strong><p>También: !mine · !boom · !rain · !pico</p></div>
-    <div class="bw-facts"><span id="participation">DEMO 0 · RELAY 0 eventos</span><span>ESPECTADORES: NO DISPONIBLE</span></div>
-    <p id="notice" class="bw-notice">Simulación local · Sin LIVE verificado · Sin regalos de pago</p>
-  </footer>
-</main>
-<script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/app.js"></script>
-</body></html>
+  <header class="bw-match"><h1>DARK <i>VS</i> <span>LIGHT</span></h1><p id="scoreline">◆ DARK 0 · ✦ LIGHT 0</p></header>
+  <aside class="bw-command-menu" aria-label="Comandos gratuitos del chat"><h2>COMANDOS</h2><ol>
+      <li id="menu-tnt" class="event-tnt"><span aria-hidden="true">▣</span><b>TNT</b></li>
+      <li id="menu-rainbow" class="event-rainbow"><span aria-hidden="true">▰</span><b>RAINBOW</b></li>
+      <li id="menu-mega" class="event-mega"><span aria-hidden="true">▣</span><b>MEGA</b></li>
+      <li id="menu-arrow" class="event-arrow"><span aria-hidden="true">➶</span><b>ARROW</b></li>
+      <li id="menu-butterfly" class="event-butterfly"><span aria-hidden="true">⋈</span><b>BUTTERFLY</b></li>
+      <li id="menu-nuke" class="event-nuke"><span aria-hidden="true">☢</span><b>NUKE</b></li>
+      <li id="menu-tnt_rain" class="event-tnt_rain"><span aria-hidden="true">▦</span><b>TNT RAIN</b></li>
+      <li id="menu-thunder" class="event-thunder"><span aria-hidden="true">ϟ</span><b>THUNDER</b></li>
+      <li id="menu-fire" class="event-fire"><span aria-hidden="true">♨</span><b>FIRE</b></li>
+      <li id="menu-rain" class="event-rain"><span aria-hidden="true">♧</span><b>RAIN</b></li>
+      <li id="menu-tsunami" class="event-tsunami"><span aria-hidden="true">≈</span><b>TSUNAMI</b></li>
+      <li id="menu-black_hole" class="event-black_hole"><span aria-hidden="true">◎</span><b>BLACK HOLE</b></li>
+      <li id="menu-jackpot" class="event-jackpot"><span aria-hidden="true">▣</span><b>JACKPOT</b></li>
+      <li id="menu-demon" class="event-demon"><span aria-hidden="true">♜</span><b>DEMON</b></li>
+      <li id="menu-meteor" class="event-meteor"><span aria-hidden="true">✹</span><b>METEOR</b></li>
+      <li id="menu-spin" class="event-spin"><span aria-hidden="true">⟳</span><b>SPIN</b></li>
+      <li id="menu-fast" class="event-fast"><span aria-hidden="true">»</span><b>FAST</b></li>
+      <li id="menu-big" class="event-big"><span aria-hidden="true">↗</span><b>BIG</b></li>
+    </ol><small>ESCRIBE EL NOMBRE EN EL CHAT</small></aside>
+  <section id="timer-card" class="bw-timer" aria-label="Cuenta regresiva de eventos"><strong id="timer-caption">PRÓXIMO EVENTO GRATIS</strong><b id="next-event">60.0s</b><div class="bw-time-track"><i id="time-fill"></i></div></section>
+  <div class="bw-tool-readout" id="tool-readout">PICO MADERA · 0.6 b/s</div>
+  <footer class="bw-footer"><span id="source">DEMO · AUTÓNOMO</span><span>RONDA <b id="round">01</b> · <b id="clock">03:00</b></span><small id="relay">RELAY DESCONECTADO · LIVE SIN VERIFICAR</small><small id="asset-status">CARGANDO TEXTURAS LOCALES</small><p id="notice" aria-live="polite">Elige equipo con !dark o !light · Todo gratis</p><small class="bw-attribution">PROYECTO NO OFICIAL · NO APROBADO NI ASOCIADO CON MOJANG O MICROSOFT</small></footer>
+</main><script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/textures.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/app.js"></script></body></html>

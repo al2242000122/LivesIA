@@ -1,6 +1,6 @@
 # Block Wars LIVE — Diseño y ruta de producto
 
-> **Estado:** concepto y especificación para Codex; **todavía no implementado**. El único prototipo ejecutable en la raíz de LivesIA es Serpiente Infinita LIVE.
+> **Estado:** implementado para ensayo local en `/block-wars`, con panel `/block-wars/control`. Snake sigue disponible. [Implementación y límites](REFERENCE_IMPLEMENTED.md); LIVE real, OBS prolongado y monetización siguen sin verificar.
 
 ## Visión
 
@@ -31,7 +31,7 @@ El objetivo inicial NO es cobrar: **atraer audiencia real, conseguir seguidores,
 ## Prioridades irrevocables
 
 1. Mantener **Serpiente Infinita** funcional: no borrarla ni reescribirla como requisito del nuevo modo.
-2. No copiar Minecraft: **no usar marcas, texturas, skins, sonidos, nombres comerciales o assets de Mojang/Microsoft**. “Estilo Minecraft” es solo una referencia conceptual; todo el arte será original.
+2. Actualización del propietario del 2026-11-11: usar texturas originales de Minecraft en el ensayo local, verificadas desde la distribución oficial y guardadas fuera de Git. Sustituye la directriz anterior de arte totalmente original. No aparentar afiliación ni asumir permisos de distribución/monetización. [Procedencia y condiciones](MINECRAFT_ASSETS.md).
 3. No reproducir una partida grabada como si fuese un LIVE interactivo: las mecánicas y respuestas deben ocurrir **en tiempo real**. Un fondo artístico en loop, si se usa, no sustituye al juego.
 4. No fabricar métricas, bots de likes/espectadores, engagement falso, premios canjeables por regalos ni mensajes de presión.
 5. Trabajar mediante **rama + pull request**; no cambiar `main` sin revisión del propietario.
@@ -41,7 +41,7 @@ El objetivo inicial NO es cobrar: **atraer audiencia real, conseguir seguidores,
 | Capacidad | Situación |
 | --- | --- |
 | Juego de serpiente + simulación de eventos | MVP existente, requiere validación en LIVE real |
-| Block Wars LIVE | Documentado; pendiente de implementar |
+| Block Wars LIVE | Motor, excavación, cámara, 18 efectos y panel ejecutables localmente |
 | Eventos gratuitos reales de TikTok | Adaptador por verificar con eventos reales y permisos |
 | Captura OBS vertical | Flujo de referencia definido; prueba presencial pendiente |
 | Monetización con regalos | **Fuera del MVP inicial**; depende de elegibilidad y políticas |

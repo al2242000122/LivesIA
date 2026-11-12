@@ -20,7 +20,9 @@ const files = {
   '/block-wars/control': ['games/block-wars/control.html', 'text/html; charset=utf-8'],
   '/block-wars/style.css': ['games/block-wars/style.css', 'text/css; charset=utf-8'],
 };
-for(const filename of ['config','engine','rules','render','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
+for(const filename of ['config','engine','rules','textures','render','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
+// Only these fixed local PNG names are served. The downloaded client and provenance remain private.
+for(const name of require('./games/block-wars/textures.js').ORIGINAL_NAMES)files[`/block-wars/assets/${name}.png`]=[`assets-local/minecraft/${name}.png`,'image/png'];
 let commandWindow = 0, commandCount = 0;
 let telemetry=null;
 function send(res, status, payload) {
@@ -117,7 +119,10 @@ const server = http.createServer((req, res) => {
     const [filename, mime] = files[route];
     fs.readFile(path.join(__dirname, filename), (error, content) => {
       if (res.destroyed) return;
-      if (error) { console.error('No se pudo leer un archivo de la interfaz:', filename); return send(res, 500, {error: 'Interfaz no disponible'}); }
+      if (error) {
+        if(mime==='image/png')return send(res,404,{error:'Textura local no instalada'});
+        console.error('No se pudo leer un archivo de la interfaz:', filename);return send(res,500,{error:'Interfaz no disponible'});
+      }
       res.writeHead(200, {'Content-Type': mime, 'Cache-Control': 'no-cache'}); res.end(content);
     });
     return;

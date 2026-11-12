@@ -2,6 +2,19 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {start}=require('./helpers/server.cjs');
+const fs=require('node:fs');
+const path=require('node:path');
+const {ORIGINAL_NAMES}=require('../games/block-wars/textures.js');
+test('original texture routes expose only PNG allowlist, with explicit missing-file status',async t=>{
+  const s=await start(t);
+  for(const name of ORIGINAL_NAMES){
+    const response=await fetch(s.base+'/block-wars/assets/'+name+'.png');
+    const local=path.join(__dirname,'../assets-local/minecraft',name+'.png');
+    assert.equal(response.status,fs.existsSync(local)?200:404,name);
+    if(response.ok){assert.equal(response.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await response.arrayBuffer()),fs.readFileSync(local));}
+  }
+  for(const file of ['provenance.json','client.jar','unknown.png','../server.js','%2e%2e%2fstone.png'])assert.equal((await s.request('/block-wars/assets/'+file)).status,404,file);
+});
 test('Block Wars game, panel and each allowlisted asset load; unknown files remain private',async t=>{
   const s=await start(t);
   for(const path of ['/block-wars','/block-wars/control','/block-wars/style.css','/block-wars/config.js','/block-wars/engine.js','/block-wars/rules.js','/block-wars/render.js','/block-wars/app.js','/block-wars/control.js'])assert.equal((await s.request(path)).status,200,path);
@@ -44,4 +57,11 @@ test('telemetry is bounded aggregated data, no PII fields or foreign origins',as
   assert.equal((await post(data)).status,200);
   const snapshot=JSON.parse((await s.request('/api/block-wars/telemetry')).text);
   assert.equal(snapshot.available,true);assert.equal(snapshot.fps,60);assert.equal(snapshot.source,'none');assert.ok(snapshot.ageMs>=0);assert.equal('nickname' in snapshot,false);
+});
+test('catalog bw_action allowlist accepts all18 exact keys and keeps counts typed',async t=>{
+  const s=await start(t),keys=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big'];
+  for(const action of keys)assert.equal((await s.post({type:'bw_action',target:'block-wars',action,team:'neutral'})).status,200,action);
+  for(const action of ['TNT','blackhole','constructor','__proto__','toString','shell','subscribe_paid'])assert.equal((await s.post({type:'bw_action',target:'block-wars',action})).status,400,action);
+  for(const command of [{action:'mega',count:2},{action:'fast',count:1},{action:'tnt',count:9},{action:'tnt',count:0}])assert.equal((await s.post({type:'bw_action',target:'block-wars',...command})).status,400);
+  assert.equal((await s.post({type:'bw_action',target:'block-wars',action:'tnt',count:8})).status,200);
 });

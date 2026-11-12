@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   const element = id => document.getElementById(id);
-  const engine=BlockWarsEngine.createEngine({seed:20261110,width:20,height:25,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
+  const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'shaft',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const rules=BlockWarsRules.createRules(engine,{likeThreshold:25});
   const renderer=BlockWarsRender.createRenderer(element('mine'));
   let reducedMotion=Boolean(engine.state.config && engine.state.config.reducedMotion);
@@ -32,31 +32,44 @@
     if(event.source in totals){totals[event.source]++;sources.add(event.source);}rules.handle(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
   function updateHud(){
-    const state=engine.state;
+    const state=engine.state,active=state.activeEvent&&state.activeEvent.remaining>0?state.activeEvent:null;
     element('round').textContent=String(state.round).padStart(2,'0');
-    const remaining=Math.ceil(Math.max(0,state.remaining));element('clock').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
-    for(const key of ['dark','light']){
-      const team=state.teams[key],config=BlockWarsConfig.PICKAXES[team.pickaxe];
-      element(key+'-score').textContent=Math.floor(team.score).toLocaleString('es-MX');
-      element(key+'-tool').textContent='PICO '+(toolNames[team.pickaxe]||team.pickaxe)+(team.efficiency?' · E'+team.efficiency:'');
-      element(key+'-speed').textContent=Number(team.effectiveSpeed).toFixed(1)+' b/s';
-      element(key+'-durability').style.width=Math.max(0,Math.min(100,100*team.durability/config.durability))+'%';
-      const buffs=team.buffs||{};
-      element(key+'-buff').textContent=buffs.descomunal>0?'DESCOMUNAL · '+Math.ceil(buffs.descomunal)+'s':buffs.turbo>0?'TURBO · '+Math.ceil(buffs.turbo)+'s':team.blocks+' BLOQUES · I'+team.unbreaking+' F'+team.fortune;
-    }
-    const progress=rules.state.likeProgressBySource||{simulator:0,tikfinity:0},threshold=rules.state.likeThreshold||25;
-    element('like-progress').textContent='DEMO '+progress.simulator+' · RELAY '+progress.tikfinity+' / '+threshold;
-    element('like-fill').style.width=Math.min(100,100*progress.simulator/threshold)+'%';element('relay-fill').style.width=Math.min(100,100*progress.tikfinity/threshold)+'%';
-    element('next-event').textContent=state.paused?'ARENA PAUSADA':'EVENTO GRATIS EN '+Math.ceil(Math.max(0,state.nextEventIn))+'s';
+    const remaining=Math.ceil(Math.max(0,state.remaining));
+    element('clock').textContent=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
+    element('scoreline').textContent='◆ DARK '+state.teams.dark.score+' · ✦ LIGHT '+state.teams.light.score;
+    const team=state.teams[state.focus?.team||'dark'];
+    element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · '+team.effectiveSpeed.toFixed(1)+' b/s';
+    const threshold=rules.state.likeThreshold,progress=rules.state.likeProgressBySource;
+    element('like-progress').textContent=threshold+' likes por TNT · DEMO '+progress.simulator+' / RELAY '+progress.tikfinity;
     element('source').textContent=sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
-    element('relay').textContent=relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY':'RELAY DESCONECTADO';
-    element('fps').textContent=fps+' FPS';
-    const counts=rules.metrics.bySource;
-    element('participation').textContent='LIKES D'+counts.simulator.likes+' / R'+counts.tikfinity.likes+' · FOLLOWS D'+counts.simulator.follows+' / R'+counts.tikfinity.follows;
+    element('relay').textContent=relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY · LIVE SIN VERIFICAR':'RELAY DESCONECTADO · LIVE SIN VERIFICAR';
+    const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
+    const label=descriptor?.label||active?.kind||'';
+    element('timer-caption').textContent=active?'EVENTO: '+label:'PRÓXIMO EVENTO GRATIS';
+    element('next-event').textContent=state.paused?'PAUSA':(active?active.remaining:state.nextEventIn).toFixed(1)+'s';
+    element('timer-card').classList.toggle('is-active',Boolean(active));
+    element('time-fill').style.width=Math.max(0,Math.min(100,100*(active?active.remaining/active.duration:state.nextEventIn/state.config.eventInterval)))+'%';
+    const banner=element('event-banner');banner.hidden=!active;
+    if(active){banner.textContent=label+' '+active.remaining.toFixed(1)+'s';banner.style.borderColor=descriptor?.color||'#ff4444';}
+    for(const kind of Object.keys(BlockWarsConfig.EVENTS))element('menu-'+kind)?.classList.toggle('is-active',active?.kind===kind);
   }
+  function paintIcons(){
+    for(const icon of document.querySelectorAll?.('canvas[data-icon]')||[]){
+      const textures=globalThis.BlockWarsTextures;if(!textures)continue;
+      const painter=icon.getContext('2d'),original=textures.source('tnt',icon.dataset.icon);
+      painter.imageSmoothingEnabled=false;
+      if(original){painter.clearRect(0,0,16,16);painter.drawImage(original,0,0,16,16,0,0,16,16);continue;}
+      const pixels=painter.createImageData(16,16);pixels.data.set(textures.tnt(icon.dataset.icon).pixels);painter.putImageData(pixels,0,0);
+    }
+  }
+  paintIcons();
+  globalThis.BlockWarsTextures?.loadOriginals().then(result=>{
+    element('asset-status').textContent=result.ok?'TEXTURAS MINECRAFT · '+result.version:'TEXTURAS DE RESPALDO · IMPORTAR RECURSOS LOCALES';
+    paintIcons();
+  });
   function telemetry(){
     const state=engine.state;
-    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion})}).then(response=>{if(!response.ok)element('notice').textContent='Diagnóstico local no disponible · El juego continúa.';}).catch(()=>{element('notice').textContent='Diagnóstico local sin conexión · El juego continúa.';});
+    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion})}).then(response=>{if(!response.ok)element('notice').textContent='Señal local no disponible · El juego continúa.';}).catch(()=>{element('notice').textContent='Señal local desconectada · El juego continúa.';});
   }
   function frame(now){
     if(stopped)return;
