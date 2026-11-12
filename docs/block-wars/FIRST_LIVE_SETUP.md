@@ -8,7 +8,7 @@ Fecha: 2026-11-11. Rama `codex/first-live-setup`, sobre el PR de objetivos de ex
 - Perfil y colección **LivesIA Ensayo**, escena **Mina LIVE**, lienzo/salida720×1280 a30FPS.
 - Única fuente **Mina infinita**, navegador local `http://127.0.0.1:4173/block-wars`, audio en el mezclador OBS. Sin cámara, captura del escritorio ni micrófono; sin servidor/clave de transmisión.
 - Fuente persistente: no se suspende al ocultarse ni se refresca al activarla. La partida se calcula en tiempo real.
-- Grabación local MKV en `%LOCALAPPDATA%/LivesIA/recordings`. La captura visual en OBS se comprobó; la reproducción sonora se activó en Interactuar. El archivo del ensayo debe detenerse y decodificarse para acreditar audio capturado. No equivale al ensayo prolongado de120min.
+- Grabación local MKV en `%LOCALAPPDATA%/LivesIA/recordings`: [ensayo real de33min47s decodificado completamente](OBS_REHEARSAL_2026-11-12.md), con imagen y FX capturados. El nivel de sonido es bajo; mezcla y voz real siguen pendientes. No equivale al ensayo prolongado de120min.
 - Código de sonidos originales para18eventos, comentarios recompensados y follows; narración opcional de ElevenLabs por acciones aceptadas. La credencial local no estaba configurada durante este montaje. No se hizo una llamada real al TTS ni se verificaron sus latencias.
 
 **TikTok LIVE Studio y TikFinity aún no están instalados/verificados.** Se abrió la página oficial de descarga de LIVE Studio; su diálogo de descarga no se completó. El control automático del navegador se detuvo al no poder verificar su URL actual. No se inició sesión ni se determinó la elegibilidad de la cuenta. El juego puede ensayarse sin esos programas.
