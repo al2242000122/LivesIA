@@ -17,6 +17,7 @@ La evidencia local está en `artifacts/first-live/tiktok-live-under-review.png`,
 - Windows registra **TikTok LIVE Studio1.39.6**, en `C:/Program Files/TikTok LIVE Studio`. Se comprobaron firmas **Valid / TikTok Pte. Ltd.** del lanzador y del ejecutable instalado. Esto comprueba la firma, no constituye una auditoría de malware.
 - Se abrió la aplicación, versión1.39.6. El propietario completó personalmente el inicio de sesión. Después se comprobó la pantalla «¿Qué tipo de contenido LIVE vas a crear?», con el estado **«Sin acceso»** junto al avatar. No se introdujeron credenciales mediante automatización.
 - La aplicación sólo expone la ventana raíz en accesibilidad. Un clic automático en **LIVE de gaming** no cambió la pantalla; el propietario avanzó manualmente al paso2de4. Allí se observaron cámara y micrófono activos en la vista previa local, con estado **«Sin acceso»**. Se solicitó desactivar ambos mediante los selectores o volver atrás si no existe esa opción. No se guardó la captura de esa vista previa ni se inició una emisión. No dar por configurada una escena sin cámara y micrófono hasta comprobarla.
+- El propietario informó que los selectores no permiten desactivar los dispositivos y volvió atrás. Se comprobó el regreso a la selección del tipo de LIVE, sin vista previa de cámara, todavía con **«Sin acceso»**. El asistente queda sin completar; se conserva OBS como entorno de ensayo sin cámara/micrófono.
 
 ## Siguiente comprobación
 
