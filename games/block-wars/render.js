@@ -9,7 +9,7 @@
     const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas 2D no disponible');
     const W=canvas.width,H=canvas.height,cache=new Map();
     const view={cameraY:0,cellSize:90,visibleRows:0,focusDepth:0,activeTeam:'dark'};
-    let lastTime=0,lastRound=0;
+    let lastTime=0,lastRound=0,lastOffset=0,lastElapsed=0;
     function bitmap(kind,id,variant=0){
       const key=`${kind}:${id}:${variant}`;
       if(cache.has(key))return cache.get(key);
@@ -48,6 +48,10 @@
     }
     function crack(block,x,y,cell){
       const damage=1-block.hp/block.maxHp;if(damage<=0)return;
+      const original=Textures.source('crack',bounded(Math.floor(damage*10),0,9));
+      if(original){
+        ctx.save();ctx.globalCompositeOperation='multiply';ctx.drawImage(original,0,0,16,16,x,y,cell,cell);ctx.restore();return;
+      }
       ctx.strokeStyle='#222024';ctx.lineWidth=Math.max(2,cell/32);ctx.beginPath();
       ctx.moveTo(x+cell*.5,y+2);ctx.lineTo(x+cell*.44,y+cell*.3);ctx.lineTo(x+cell*.66,y+cell*.55);ctx.lineTo(x+cell*.42,y+cell*.96);
       if(damage>.4){ctx.moveTo(x+cell*.44,y+cell*.3);ctx.lineTo(x+cell*.1,y+cell*.52);ctx.moveTo(x+cell*.66,y+cell*.55);ctx.lineTo(x+cell*.94,y+cell*.33);}ctx.stroke();
@@ -84,15 +88,18 @@
       ctx.restore();
     }
     function draw(state,options={}){
-      const time=options.time||0,reduced=Boolean(options.reducedMotion),shaft=state.layout==='shaft';
+      const time=options.time||0,reduced=Boolean(options.reducedMotion),endless=state.layout==='endless',shaft=endless||state.layout==='shaft';
       const cell=shaft?W/(state.width+1):W/state.width,offset=shaft?cell:0;
-      const focus=state.focus||{...state.teams.dark.target,team:'dark'};
+      const focus=endless&&state.body?state.body:state.focus||{...state.teams.dark.target,team:'dark'};
       const visible=H/cell,maxCamera=Math.max(0,state.height-visible);
-      const desired=shaft?bounded((focus.y||0)+.5-visible*.78,0,maxCamera):0;
-      if(state.round!==lastRound){view.cameraY=0;lastRound=state.round;}
+      const rowOffset=state.rowOffset||0,wasReset=state.elapsed<lastElapsed||rowOffset<lastOffset;
+      if(endless)view.cameraY=bounded(view.cameraY-(rowOffset-lastOffset),0,maxCamera);
+      let desired=shaft?bounded((focus.y||0)+(endless?0:.5)-visible*(endless?.62:.78),0,maxCamera):0;
+      if(endless)desired=Math.max(view.cameraY,desired);
+      if(wasReset||!endless&&state.round!==lastRound){view.cameraY=0;lastRound=state.round;}
       else if(!state.paused){const dt=bounded(time-lastTime,0,.1);view.cameraY=reduced?desired:view.cameraY+(desired-view.cameraY)*(1-Math.exp(-dt*7));}
-      lastTime=time;
-      Object.assign(view,{cellSize:cell,visibleRows:visible,focusDepth:focus.y||0,activeTeam:focus.team||'dark'});
+      lastTime=time;lastOffset=rowOffset;lastElapsed=state.elapsed||0;
+      Object.assign(view,{cellSize:cell,visibleRows:visible,focusDepth:rowOffset+(focus.y||0),activeTeam:focus.team||'dark'});
       ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,W,H);sky(time,reduced);
       const first=Math.max(0,Math.floor(view.cameraY)),last=Math.min(state.height,Math.ceil(view.cameraY+visible)+1);
       for(let y=first;y<last;y++){
@@ -112,10 +119,10 @@
       if(!reduced)for(const p of state.particles||[]){ctx.globalAlpha=bounded(p.life*2,0,1);ctx.fillStyle=p.color;ctx.fillRect(offset+p.x*cell,(p.y-view.cameraY)*cell,cell/14,cell/14);}ctx.globalAlpha=1;
       const active=state.teams[view.activeTeam]||state.teams.dark,target=shaft?focus:active.target;
       if(target){
-        const x=offset+(target.x+.5)*cell,y=(target.y+.1-view.cameraY)*cell;
-        const buffs=active.buffs||{},size=cell*(buffs.big>0?2.75:buffs.descomunal>0?2.1:1.55);
-        const angle=reduced||state.paused?-.3:buffs.spin>0?time*9:Math.sin(time*Math.min(14,4+active.effectiveSpeed))*.55-.3;
-        ctx.save();ctx.translate(x,y);ctx.rotate(Math.round(angle*12)/12);
+        const x=offset+(target.x+(endless?0:.5))*cell,y=(target.y+(endless?0:.1)-view.cameraY)*cell;
+        const buffs=active.buffs||{},size=cell*(endless?(state.body.radius||.35)*3.2:buffs.big>0?2.75:buffs.descomunal>0?2.1:1.55);
+        const angle=endless?(reduced?-.3:state.body.rotation):reduced||state.paused?-.3:buffs.spin>0?time*9:Math.sin(time*Math.min(14,4+active.effectiveSpeed))*.55-.3;
+        ctx.save();ctx.translate(x,y);ctx.rotate(endless?angle:Math.round(angle*12)/12);
         if(buffs.rainbow>0&&!reduced)ctx.filter=`hue-rotate(${Math.floor(time*70)%360}deg)`;
         if(buffs.demon>0)ctx.filter='sepia(.5) saturate(3)';
         paint('tool',active.pickaxe,-size*.5,-size*.5,size);ctx.restore();

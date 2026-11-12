@@ -20,7 +20,7 @@ const files = {
   '/block-wars/control': ['games/block-wars/control.html', 'text/html; charset=utf-8'],
   '/block-wars/style.css': ['games/block-wars/style.css', 'text/css; charset=utf-8'],
 };
-for(const filename of ['config','engine','rules','textures','render','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
+for(const filename of ['config','physics','engine','rules','textures','render','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
 // Only these fixed local PNG names are served. The downloaded client and provenance remain private.
 for(const name of require('./games/block-wars/textures.js').ORIGINAL_NAMES)files[`/block-wars/assets/${name}.png`]=[`assets-local/minecraft/${name}.png`,'image/png'];
 let commandWindow = 0, commandCount = 0;

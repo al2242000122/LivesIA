@@ -1,8 +1,8 @@
 (function (root, factory) {
   'use strict';
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./config.js'));
-  else root.BlockWarsEngine = factory(root.BlockWarsConfig);
-}(typeof globalThis !== 'undefined' ? globalThis : this, function (config) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./config.js'),require('./physics.js'));
+  else root.BlockWarsEngine = factory(root.BlockWarsConfig,root.BlockWarsPhysics);
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (config,physics) {
   'use strict';
   if (!config) throw new Error('Load BlockWarsConfig before BlockWarsEngine');
   const {PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS} = config;
@@ -31,9 +31,11 @@
       !['seed','width','height','duration','eventInterval','reducedMotion','layout'].includes(key))) {
       throw new TypeError('Invalid engine options');
     }
-    const settings = {seed:20261110,width:20,height:25,duration:180,eventInterval:60,reducedMotion:false,layout:'arena',...options};
+    const settings = {seed:20261110,width:20,height:25,duration:180,eventInterval:60,reducedMotion:false,layout:'arena',
+      ...(options.layout==='endless'?{width:7,height:40}:{}),...options};
     if (!validSeed(settings.seed) || !integer(settings.width,4,40) || !integer(settings.height,4,40) ||
-        settings.width*settings.height>LIMITS.maxCells || !['arena','shaft'].includes(settings.layout) || !validSettings(settings)) {
+        settings.width*settings.height>LIMITS.maxCells || !['arena','shaft','endless'].includes(settings.layout) ||
+        settings.layout==='endless' && (!physics || settings.height<32) || !validSettings(settings)) {
       throw new RangeError('Invalid engine configuration');
     }
     let random,visualRandom,baseSeed=settings.seed,summaryRemaining=0,remainingBlocks=0,shaftReachedFloor=false;
@@ -53,7 +55,7 @@
     }
     function makeWorld(round) {
       const worldRandom=rng((baseSeed+Math.imul(round-1,0x9e3779b9))>>>0);
-      if(settings.layout==='shaft') return makeShaft(worldRandom);
+      if(settings.layout!=='arena') return makeShaft(worldRandom);
       const blocks=new Array(settings.width*settings.height);
       for (let y=0;y<settings.height;y++) {
         for (let x=0;x<Math.ceil(settings.width/2);x++) {
@@ -102,6 +104,12 @@
       state.lastEvent=null;
       state.activeEvent=null;
       state.elapsed=0;
+      state.rowOffset=0;
+      if(state.layout==='endless'){
+        state.body=physics.createBody(state.width);
+        state.body.y=Math.min(4.5,state.height-2);
+        state.remaining=0;
+      }
       state.eventCooldowns=Object.fromEntries(Object.keys(EVENTS).map(key=>[key,{dark:0,light:0}]));
       remainingBlocks=state.blocks.filter(Boolean).length;
       shaftReachedFloor=false;
@@ -123,6 +131,11 @@
     }
     function chooseTarget(id) {
       const team=state.teams[id],half=Math.ceil(state.width/2);
+      if(state.layout==='endless'){
+        const body=state.body;
+        team.target={x:Math.max(0,Math.min(state.width-1,Math.floor(body.x))),y:Math.max(0,Math.min(state.height-1,Math.floor(body.y+body.radius)))};
+        return team.target.y*state.width+team.target.x;
+      }
       if(state.layout==='shaft') return chooseShaftTarget(id);
       // Each side has a mirrored preferred lane; empty halves may cross the frontier.
       for (let pass=0;pass<2;pass++) {
@@ -173,6 +186,11 @@
       return best;
     }
     function updateFocus() {
+      if(state.layout==='endless'){
+        for(const id of TEAM_IDS)chooseTarget(id);
+        state.focus={x:Math.floor(state.body.x),y:Math.floor(state.body.y),team:state.body.team};
+        return;
+      }
       let selected='dark';
       const dark=state.teams.dark.target,light=state.teams.light.target;
       if(!dark || light && light.y>dark.y) selected='light';
@@ -224,7 +242,7 @@
       const bonus=mined && ore ? Math.floor(random()*(team.fortune+1)) : 0;
       const buffBonus=mined && (team.buffs.demon>0 || team.buffs.rainbow>0 && ore)?2:1;
       team.score=Math.min(LIMITS.maxScore,team.score+block.value*(1+bonus)*multiplier*buffBonus);
-      team.blocks=Math.min(state.width*state.height,team.blocks+1);
+      team.blocks=Math.min(state.layout==='endless'?LIMITS.maxScore:state.width*state.height,team.blocks+1);
       state.blocks[index]=null;
       remainingBlocks--;
       particleBurst(index%state.width,Math.floor(index/state.width),block.material);
@@ -298,7 +316,7 @@
       }
     }
     function launch(kind,id,x,y,sequence=0) {
-      if(state.layout!=='shaft') {enqueue(kind,id,x,y);return;}
+      if(state.layout==='arena') {enqueue(kind,id,x,y);return;}
       const descriptor=EVENTS[kind];
       const startY=Math.max(0,y-5-sequence*0.5);
       // A programmed descent is an explicit game design choice, not inferred physics.
@@ -420,6 +438,61 @@
       state.entities.length=0;
       state.activeEvent=null;
     }
+    function streamRows() {
+      if(state.body.y<=25)return;
+      const shift=12,width=state.width;
+      const lastGlobalRow=state.rowOffset+state.height;
+      state.blocks.splice(0,shift*width);
+      const ores=['coal','iron','gold','redstone','lapis','copper','emerald','diamond'];
+      const patches=['granite','diorite','andesite','moss'];
+      for(let row=0;row<shift;row++){
+        const absolute=lastGlobalRow+row,terrainRandom=rng(baseSeed^Math.imul(absolute+1,0x9e3779b9));
+        for(let x=0;x<width;x++){
+          const roll=terrainRandom();
+          const material=roll<0.29?ores[Math.floor(terrainRandom()*ores.length)]:roll<0.51?patches[(Math.floor(absolute/3)+Math.floor(x/2))%patches.length]:roll>0.97?'obsidian':'stone';
+          const data=MATERIALS[material];
+          state.blocks.push({material,hp:data.hardness,maxHp:data.hardness,value:data.value});
+        }
+      }
+      state.rowOffset+=shift;state.body.y-=shift;
+      for(const entity of state.entities){entity.y-=shift;entity.startY-=shift;entity.targetY-=shift;}
+      state.entities=state.entities.filter(entity=>entity.targetY>=0 && entity.y>=-8);
+      for(const list of [state.effects,state.particles])for(const entry of list)entry.y-=shift;
+      state.effects=state.effects.filter(effect=>effect.y>=-8 && effect.y<state.height+8);
+      state.particles=state.particles.filter(particle=>particle.y>=-8 && particle.y<state.height+8);
+      for(const blast of state.queue){
+        blast.y-=shift;
+        blast.indices=blast.indices.slice(blast.cursor).map(index=>index-shift*width).filter(index=>index>=0 && index<state.blocks.length);
+        blast.cursor=0;
+      }
+      state.queue=state.queue.filter(blast=>blast.indices.length>0);
+      remainingBlocks=state.blocks.filter(Boolean).length;
+    }
+    function updateBody(step,budget) {
+      const body=state.body,active=state.activeEvent;
+      body.team=active && own(BUFFS,active.kind)?active.team:body.x<state.width/2?'dark':'light';
+      const team=state.teams[body.team];
+      body.radius=team.buffs.big>0?0.5:0.35;
+      for(const id of TEAM_IDS){
+        const miner=state.teams[id];
+        miner.progress=Math.min(LIMITS.maxProgress,miner.progress+miner.effectiveSpeed*step);
+      }
+      physics.step(body,step,state,index=>{
+        const block=state.blocks[index];
+        if(!block || budget.remaining<=0 || team.progress<=0)return;
+        const damage=Math.min(block.hp,team.progress);
+        block.hp=Math.max(0,block.hp-damage);team.progress=Math.max(0,team.progress-damage);budget.remaining--;
+        if(block.hp<=1e-10){
+          destroy(index,body.team,true);
+          if(team.buffs.big>0 && state.queue.length+state.entities.length<LIMITS.maxQueue){
+            enqueue('big',body.team,index%state.width,Math.floor(index/state.width),{radius:1.1,shape:'circle'});
+          }
+        }
+      });
+      // Keep SPIN's characteristic fast rotation while collisions stay circular.
+      if(team.buffs.spin>0)body.rotation=(body.rotation+9*step)%(Math.PI*2);
+      streamRows();
+    }
     function update(seconds) {
       if(!finite(seconds) || seconds<=0 || state.paused) return;
       const dt=Math.min(seconds,LIMITS.maxDelta);
@@ -434,9 +507,11 @@
         if(summaryRemaining<=1e-10) startRound(state.round+1);
         return;
       }
-      const step=Math.min(dt,state.remaining);
-      state.elapsed=Math.min(state.roundDuration,state.elapsed+step);
-      state.remaining=Math.max(0,state.remaining-step);
+      const endless=state.layout==='endless';
+      const step=endless?dt:Math.min(dt,state.remaining);
+      state.elapsed=endless?Math.min(Number.MAX_SAFE_INTEGER,state.elapsed+step):Math.min(state.roundDuration,state.elapsed+step);
+      if(endless)state.round=1+Math.floor(state.elapsed/180);
+      state.remaining=endless?0:Math.max(0,state.remaining-step);
       state.nextEventIn=Math.max(0,state.nextEventIn-step);
       for(const id of TEAM_IDS) {
         const team=state.teams[id];
@@ -450,7 +525,7 @@
         for(const id of TEAM_IDS) cooldown[id]=Math.max(0,cooldown[id]-step);
       }
       if(state.nextEventIn<=1e-10) {
-        const events=state.layout==='shaft'?Object.keys(EVENTS):['rain','meteor','tnt','turbo','descomunal','nuke'];
+        const events=state.layout!=='arena'?Object.keys(EVENTS):['rain','meteor','tnt','turbo','descomunal','nuke'];
         let accepted=action({type:events[Math.floor(random()*events.length)]});
         if(!accepted) accepted=action({type:'turbo'});
         if(accepted) state.eventCount++;
@@ -459,14 +534,17 @@
       const budget={remaining:LIMITS.maxBlockOps};
       advanceEntities(step);
       processExplosions(budget);
-      // Reserve equal work for both miners even while a full explosion queue drains.
-      const perTeam=Math.floor(budget.remaining/2);
-      for(const id of TEAM_IDS) mine(id,step,{remaining:perTeam});
+      if(endless)updateBody(step,budget);
+      else {
+        // Reserve equal work for both miners even while a full explosion queue drains.
+        const perTeam=Math.floor(budget.remaining/2);
+        for(const id of TEAM_IDS) mine(id,step,{remaining:perTeam});
+      }
       updateFocus();
       // A shaft is a finite downward excavation. Once a miner reaches its floor,
       // start the next round rather than returning to isolated old ceiling walls.
       const reachedFloor=state.layout==='shaft' && (shaftReachedFloor || TEAM_IDS.some(id=>state.teams[id].target?.y>=state.height-1));
-      if(state.remaining<=1e-10 || remainingBlocks===0 || reachedFloor) finishRound();
+      if(!endless && (state.remaining<=1e-10 || remainingBlocks===0 || reachedFloor)) finishRound();
     }
     function pause(value) {
       if(typeof value!=='boolean') return false;

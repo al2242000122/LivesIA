@@ -4,7 +4,7 @@
 Este repositorio contiene el MVP de **Serpiente Infinita LIVE**, un videojuego original de serpiente que juega automáticamente en laberintos generados por procedimiento. Su salida vertical se captura con OBS para transmisiones de TikTok LIVE. Los espectadores pueden afectar la partida mediante eventos gratuitos (likes, follow, chat) y regalos *cuando existan eventos reales*. El siguiente agente/Codex debe convertir el prototipo en un producto robusto sin romper las funciones actuales ni afirmar monetización o conexión verificadas cuando aún no lo estén.
 
 ## Estado del proyecto (MVP; no verificado en una transmisión real)
-- Tecnología: HTML/CSS/JavaScript (Canvas 2D) y Node.js 20+ sin dependencias npm.
+- Tecnología: HTML/CSS/JavaScript (Canvas 2 D) y Node.js 20+ sin dependencias npm.
 - `server.js`: HTTP en `127.0.0.1:4173`, sirve los archivos y conecta el panel de pruebas al juego por SSE. Rutas: `/`, `/control`, `/styles.css`, `/game.js`, `/api/stream`, `/api/status` y `/api/command`.
 - `index.html`: escenario de 720 × 1280 para captura en OBS; el tablero interno es Canvas 600 × 744.
 - `styles.css`: apariencia del LIVE y del panel del creador.
@@ -74,7 +74,9 @@ Codex debe mantener Serpiente Infinita como modo existente, implementar Block Wa
 
 **Actualización explícita del propietario (2026-11-11):** aplicar las diez referencias de excavación vertical y descargar texturas originales de Minecraft para uso local. Esta indicación sustituye la anterior prohibición de texturas de Mojang para este ensayo. `python scripts/import_minecraft.py` descarga un cliente oficial fijado, verifica integridad y extrae únicamente PNG a `assets-local/minecraft/` (ignorado por Git). No ejecutar el JAR ni incluir recursos de Mojang en commits/PRs. Procedencia y condiciones en `docs/block-wars/MINECRAFT_ASSETS.md`; no asumir permiso comercial ni confundirlo con grabar gameplay del cliente Minecraft. Los efectos son propios y no se importan sonidos.
 
-Juego `/block-wars`, panel `/block-wars/control`; Snake conserva `/` y `/control`. Minería shaft, cámara, cinco picos, 18 eventos, reglas gratuitas, panel y telemetría local existen. El transporte compartido distingue simulación/relay; TikFinity y OBS real siguen pendientes. Sin recursos importados se ve arte de respaldo claramente rotulado. Cambiar contratos requiere pruebas de regresión en ambos juegos.
+**Corrección solicitada por el propietario:** el juego visible debe continuar sin finalizar. La app usa `layout:'endless'`: un pico con gravedad, rebote y colisión círculo-bloque, daño por contacto y terreno generado en un buffer de280 celdas. No usar fin de ronda ni resumen en ese modo. `round` es sólo un ciclo interno de votos cada180 s; no reinicia terreno, herramientas o puntuaciones. `arena` y `shaft` conservan comportamiento anterior para compatibilidad. Las diez etapas de grietas son PNG originales `destroy_stage_0..9`: la importación ahora contiene34 PNG, con actualización segura de la instalación24 y respaldo local.
+
+Juego `/block-wars`, panel `/block-wars/control`; Snake conserva `/` y `/control`. Física en `physics.js`, motor y cámara separados; cinco picos,18 eventos, reglas gratuitas y controles se conservan. Telemetría admite el contrato original9 campos y uno ampliado12 campos con `mode,depth,elapsed`, sin PII. El transporte compartido distingue simulación/relay; TikFinity y OBS real siguen pendientes. Sin recursos importados se ve arte de respaldo claramente rotulado. Cambiar contratos requiere pruebas de regresión en ambos juegos. `npm run test:endless-soak` prueba seis horas virtuales del modo infinito, no seis horas reales de OBS.
 
 ## Verificación de la fase de estabilización
 

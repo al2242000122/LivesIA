@@ -9,6 +9,7 @@
     "test": "node scripts/test.cjs",
     "test:soak": "node --expose-gc tests/soak.cjs",
     "test:block-soak": "node --expose-gc tests/block-soak.cjs",
+    "test:endless-soak": "node tests/endless-soak.cjs",
     "check": "node scripts/check.cjs"
   }
 }

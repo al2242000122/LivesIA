@@ -8,9 +8,9 @@ test('original Minecraft catalog loads atomically and aliases existing materials
   const requested=[];
   class ImageStub{set src(url){this.url=url;requested.push(url);this.width=16;this.height=url.includes('magma')?512:16;queueMicrotask(()=>this.onload());}}
   const result=await Textures.loadOriginals({ImageClass:ImageStub});
-  assert.equal(result.loaded,24);assert.equal(result.ok,true);
-  assert.equal(new Set(requested).size,24);
-  assert.ok(requested.every(url=>/^\/block-wars\/assets\/[a-z_]+\.png$/.test(url)));
+  assert.equal(result.loaded,34);assert.equal(result.ok,true);
+  assert.equal(new Set(requested).size,34);
+  assert.ok(requested.every(url=>/^\/block-wars\/assets\/[a-z_0-9]+\.png$/.test(url)));
   assert.equal(Textures.source('tile','crystal'),Textures.source('tile','diamond'));
   assert.equal(Textures.source('tool','gold').url,'/block-wars/assets/gold_pickaxe.png');
   assert.ok(Textures.source('tnt','jackpot'));
@@ -19,6 +19,20 @@ test('original Minecraft catalog loads atomically and aliases existing materials
   const config=require('../configs/minecraft-assets.json');
   assert.equal(Textures.SOURCE_VERSION,config.version);
   assert.deepEqual([...Textures.ORIGINAL_NAMES].sort(),Object.keys(config.textures).sort());
+});
+
+test('block damage selects the original Minecraft destruction stage and composites it over the block',async()=>{
+  class ImageStub{set src(url){this.url=url;this.width=16;this.height=16;queueMicrotask(()=>this.onload());}}
+  await Textures.loadOriginals({ImageClass:ImageStub});
+  const draws=[],blends=[],ctx=new Proxy({drawImage(...args){draws.push(args);},createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(o[k]=()=>{}),set(o,k,v){if(k==='globalCompositeOperation')blends.push(v);o[k]=v;return true;}});
+  const engine=require('../games/block-wars/engine.js').createEngine({seed:42,layout:'shaft',width:7,height:40});
+  const render=require('../games/block-wars/render.js').createRenderer({width:720,height:1280,getContext:()=>ctx});
+  const block=engine.state.blocks[0];block.hp=block.maxHp*.45;
+  render.draw(engine.state,{time:0});
+  assert.ok(draws.some(args=>args[0].url==='/block-wars/assets/destroy_stage_5.png'));
+  assert.ok(blends.includes('multiply'));
+  draws.length=0;block.hp=block.maxHp;render.draw(engine.state,{time:1});
+  assert.ok(draws.every(args=>!args[0].url?.includes('destroy_stage_')),'undamaged blocks have no crack overlay');
 });
 
 test('renderer crops the first square frame of an original animated PNG instead of stretching the sheet',async()=>{

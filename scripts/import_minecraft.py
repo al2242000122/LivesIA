@@ -13,6 +13,7 @@ import urllib.error
 import urllib.request
 import zipfile
 import zlib
+from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parent.parent
 PINNED = {
@@ -38,6 +39,8 @@ TOOLS = {
 }
 TEXTURES = {key: f"assets/minecraft/textures/block/{name}.png" for key, name in BLOCKS.items()}
 TEXTURES.update({key: f"assets/minecraft/textures/item/{name}.png" for key, name in TOOLS.items()})
+LEGACY_TEXTURES = dict(TEXTURES)
+TEXTURES.update({f"destroy_stage_{n}": f"assets/minecraft/textures/block/destroy_stage_{n}.png" for n in range(10)})
 ASSET_LIMIT = 1024 * 1024
 MANIFEST_LIMIT = 2 * 1024 * 1024
 CHUNK_SIZE = 65536
@@ -50,7 +53,7 @@ def validate_config(config):
     if any(config[key] != value for key, value in PINNED.items()):
         raise ValueError("Source must match the official pinned Minecraft 26.3 metadata")
     if config["textures"] != TEXTURES:
-        raise ValueError("Texture paths must match the exact 24-entry whitelist")
+        raise ValueError("Texture paths must match the exact 34-entry whitelist")
     return config
 
 
@@ -134,7 +137,8 @@ def validate_png(data):
 
 def install_archive(archive_path, config, destination):
     """Verify before opening ZIP; install into a new directory without replacing old data."""
-    if config["textures"] != TEXTURES:
+    texture_paths = config["textures"]
+    if texture_paths not in (TEXTURES, LEGACY_TEXTURES):
         raise ValueError("Texture whitelist does not match")
     destination = Path(destination)
     if destination.exists() or destination.is_symlink():
@@ -148,11 +152,11 @@ def install_archive(archive_path, config, destination):
         with zipfile.ZipFile(archive_path) as archive:
             by_name = {}
             for info in archive.infolist():
-                if info.filename in TEXTURES.values():
+                if info.filename in texture_paths.values():
                     if info.filename in by_name:
                         raise ValueError("Duplicate allowlisted ZIP entry")
                     by_name[info.filename] = info
-            for key, archive_path in TEXTURES.items():
+            for key, archive_path in texture_paths.items():
                 info = by_name.get(archive_path)
                 if info is None or info.is_dir() or info.file_size > ASSET_LIMIT or info.flag_bits & 1:
                     raise ValueError("Missing, oversized or encrypted allowlisted ZIP entry")
@@ -174,23 +178,29 @@ def install_archive(archive_path, config, destination):
     return provenance
 
 
-def verify_installed(destination, config):
+def verify_installed(destination, config, allow_legacy=False):
     destination = Path(destination)
     if destination.is_symlink() or not destination.is_dir():
         raise ValueError("Existing assets must be a local directory")
-    names = {key + ".png" for key in TEXTURES} | {"provenance.json"}
-    if {path.name for path in destination.iterdir()} != names:
-        raise ValueError("Existing asset directory has missing or unexpected files")
     provenance_path = destination / "provenance.json"
     if provenance_path.is_symlink() or provenance_path.stat().st_size > ASSET_LIMIT:
         raise ValueError("Invalid local provenance file")
     provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
     if not isinstance(provenance, dict) or provenance.get("schemaVersion") != 1 or any(provenance.get(key) != config[key] for key in PINNED):
         raise ValueError("Existing provenance does not match the pinned source")
-    if not isinstance(provenance.get("textures"), dict) or set(provenance["textures"]) != set(TEXTURES):
+    inventory = provenance.get("textures")
+    if not isinstance(inventory, dict):
         raise ValueError("Existing provenance inventory does not match")
-    for key, archive_path in TEXTURES.items():
-        entry = provenance["textures"][key]
+    texture_paths = TEXTURES
+    if allow_legacy and set(inventory) == set(LEGACY_TEXTURES):
+        texture_paths = LEGACY_TEXTURES
+    if set(inventory) != set(texture_paths):
+        raise ValueError("Existing provenance inventory does not match")
+    names = {key + ".png" for key in texture_paths} | {"provenance.json"}
+    if {path.name for path in destination.iterdir()} != names:
+        raise ValueError("Existing asset directory has missing or unexpected files")
+    for key, archive_path in texture_paths.items():
+        entry = inventory[key]
         path = destination / (key + ".png")
         if not isinstance(entry, dict) or path.is_symlink() or not path.is_file() or path.stat().st_size > ASSET_LIMIT:
             raise ValueError("Invalid local asset entry")
@@ -203,29 +213,73 @@ def verify_installed(destination, config):
     return provenance
 
 
+def upgrade_archive(archive_path, config, destination):
+    """Keep verified old assets until the complete replacement is ready; retain a backup."""
+    destination = Path(destination)
+    old = verify_installed(destination, config, allow_legacy=True)
+    if set(old["textures"]) != set(LEGACY_TEXTURES) or config["textures"] != TEXTURES:
+        raise ValueError("Upgrade requires exactly the previous 24 assets and new 34-entry whitelist")
+    parent = destination.parent.resolve()
+    if destination.is_symlink() or destination.resolve().parent != parent:
+        raise ValueError("Upgrade target must be a direct local directory")
+    with tempfile.TemporaryDirectory(prefix=".minecraft-upgrade-", dir=parent) as scratch:
+        replacement = Path(scratch) / "replacement"
+        provenance = install_archive(archive_path, config, replacement)
+        verify_installed(replacement, config)
+        # Verify again after download/extraction, immediately before moving the old installation.
+        if verify_installed(destination, config, allow_legacy=True) != old:
+            raise ValueError("Previous installation changed during upgrade")
+        backup = parent / ("minecraft-backup-" + uuid4().hex)
+        if backup.parent != parent or backup.exists() or backup.is_symlink():
+            raise ValueError("Invalid backup target")
+        os.rename(destination, backup)
+        try:
+            os.rename(replacement, destination)
+        except OSError as error:
+            if destination.exists() or destination.is_symlink():
+                raise OSError(f"Replacement blocked; previous files preserved in {backup.name}") from error
+            try:
+                os.rename(backup, destination)
+            except OSError as restore_error:
+                raise OSError(f"Restore blocked; previous files preserved in {backup.name}") from restore_error
+            raise
+    return provenance, backup
+
+
+def import_assets(config, destination):
+    """Called only after main validates the pinned configuration; injectable downloads in tests."""
+    destination = Path(destination)
+    upgrade = destination.exists() or destination.is_symlink()
+    if upgrade:
+        provenance = verify_installed(destination, config, allow_legacy=True)
+        if set(provenance["textures"]) == set(TEXTURES):
+            return provenance, "local-checksums-verified", None
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".minecraft-download-", dir=destination.parent) as scratch:
+        manifest_path, client_path = Path(scratch) / "manifest.json", Path(scratch) / "client.jar"
+        download_file(config["manifestUrl"], manifest_path, config["manifestSha1"])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        client = manifest.get("downloads", {}).get("client", {})
+        if manifest.get("id") != config["version"] or any(client.get(key) != config[field] for key, field in [("url", "clientUrl"), ("sha1", "clientSha1"), ("size", "clientSize")]):
+            raise ValueError("Official version manifest does not match the pinned client")
+        download_file(config["clientUrl"], client_path, config["clientSha1"], config["clientSize"])
+        if upgrade:
+            provenance, backup = upgrade_archive(client_path, config, destination)
+            return provenance, "upgraded-and-verified", backup
+        provenance = install_archive(client_path, config, destination)
+        return provenance, "downloaded-and-verified", None
+
+
 def main():
     config = validate_config(json.loads((ROOT / "configs/minecraft-assets.json").read_text(encoding="utf-8")))
     local_root = ROOT / "assets-local"
     if local_root.is_symlink() or local_root.resolve().parent != ROOT:
         raise ValueError("Local assets must remain inside the repository")
     local_root.mkdir(exist_ok=True)
-    destination = local_root / "minecraft"
-    if destination.exists() or destination.is_symlink():
-        provenance = verify_installed(destination, config)
-        status = "local-checksums-verified"
-    else:
-        with tempfile.TemporaryDirectory(prefix=".minecraft-download-", dir=local_root) as scratch:
-            manifest_path, client_path = Path(scratch) / "manifest.json", Path(scratch) / "client.jar"
-            download_file(config["manifestUrl"], manifest_path, config["manifestSha1"])
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            client = manifest.get("downloads", {}).get("client", {})
-            if manifest.get("id") != config["version"] or any(client.get(key) != config[field] for key, field in [("url", "clientUrl"), ("sha1", "clientSha1"), ("size", "clientSize")]):
-                raise ValueError("Official version manifest does not match the pinned client")
-            download_file(config["clientUrl"], client_path, config["clientSha1"], config["clientSize"])
-            provenance = install_archive(client_path, config, destination)
-        status = "downloaded-and-verified"
+    provenance, status, backup = import_assets(config, local_root / "minecraft")
     print(json.dumps({"version": provenance["version"], "files": len(provenance["textures"]), "clientSha1": provenance["clientSha1"],
-                      "clientSize": provenance["clientSize"], "output": "assets-local/minecraft", "status": status}))
+                      "clientSize": provenance["clientSize"], "output": "assets-local/minecraft", "status": status,
+                      "backup": backup.name if backup else None}))
 
 
 if __name__ == "__main__":

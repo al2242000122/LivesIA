@@ -5,6 +5,14 @@ const {start}=require('./helpers/server.cjs');
 const fs=require('node:fs');
 const path=require('node:path');
 const {ORIGINAL_NAMES}=require('../games/block-wars/textures.js');
+test('endless telemetry adds bounded depth and active session time while preserving the old contract',()=>{
+  const {validateTelemetry}=require('../lib/contracts.js');
+  const old={fps:60,frameMs:16.67,round:1,remaining:0,queue:0,particles:0,source:'none',paused:false,reducedMotion:false};
+  assert.deepEqual(validateTelemetry(old),old);
+  const live={...old,mode:'endless',depth:12000,elapsed:21600};
+  assert.deepEqual(validateTelemetry(live),live);
+  for(const fields of [{mode:'endless'},{mode:'external',depth:1,elapsed:1},{mode:'endless',depth:-1,elapsed:1},{mode:'endless',depth:1,elapsed:Infinity},{mode:'endless',depth:1,elapsed:1,nickname:'private'}])assert.equal(validateTelemetry({...old,...fields}),null);
+});
 test('original texture routes expose only PNG allowlist, with explicit missing-file status',async t=>{
   const s=await start(t);
   for(const name of ORIGINAL_NAMES){

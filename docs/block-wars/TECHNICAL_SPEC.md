@@ -2,6 +2,12 @@
 
 **Estado:** diseño de referencia; adaptador, motor y panel ya ejecutables localmente. Ver REFERENCE_IMPLEMENTED.md y VERIFICATION.md para alcance medido. Preservar el prototipo de serpiente.
 
+## Contrato vigente del modo infinito
+
+La app usa `createEngine({layout:'endless'})`, con siete columnas y cuarenta filas. `state.body` expresa centros continuos en celdas y velocidad física; `rowOffset` suma filas descartadas. No hay fin ni resumen: los ciclos internos de180 s sólo renuevan las votaciones. El terreno, herramientas y puntos se conservan entre ciclos. Cámara y entidades compensan los corrimientos de doce filas. [Física, presupuestos y pruebas](ENGINE.md).
+
+Telemetría local: el contrato anterior de9 campos sigue aceptado. El nuevo exige exactamente12 campos: los9 anteriores más `mode` (`arena|shaft|endless`), `depth` finito entre0 y1000000000 y `elapsed` finito entre0 y`Number.MAX_SAFE_INTEGER`. No admite conjuntos parciales ni campos extra. En endless, `remaining=0` no representa finalización: el panel muestra profundidad y tiempo activo. Campos desconocidos, nombres e identidades se rechazan. Las pruebas verifican ambos contratos y límites.
+
 ## Arquitectura evolutiva
 
 ```text
@@ -18,7 +24,7 @@
                                        [Panel privado de creador]
 ```
 
-Fase inicial: mantener Node.js + JavaScript/Canvas 2D + HTTP localhost + SSE y WS ya existentes. No es obligatorio introducir framework ni cambiar estructura de carpetas completa. La nueva implementación puede añadirse bajo `games/block-wars/` y `integrations/`; extraer el adaptador compartido en PR independiente y con pruebas.
+Fase inicial: mantener Node.js + JavaScript/Canvas 2 D + HTTP localhost + SSE y WS ya existentes. No es obligatorio introducir framework ni cambiar estructura de carpetas completa. La nueva implementación puede añadirse bajo `games/block-wars/` y `integrations/`; extraer el adaptador compartido en PR independiente y con pruebas.
 
 ## Modelo de eventos propuesto
 
