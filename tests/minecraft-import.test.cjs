@@ -80,9 +80,10 @@ class ImportTests(unittest.TestCase):
   return config,legacy,destination
  def test_upgrade_preserves_24_asset_backup_and_installs_all_34(self):
   config,legacy,destination=self.legacy_install();old=(destination/'provenance.json').read_bytes()
+  alias=self.root/'path-alias';alias.mkdir();destination=alias/'..'/'assets-local'/'minecraft'
   result,backup=m.upgrade_archive(self.archive,config,destination)
   self.assertEqual(len(result['textures']),34);self.assertEqual(len(m.verify_installed(destination,config)['textures']),34)
-  self.assertTrue(backup.name.startswith('minecraft-backup-'));self.assertEqual(backup.parent,destination.parent)
+  self.assertTrue(backup.name.startswith('minecraft-backup-'));self.assertEqual(backup.parent,destination.parent.resolve())
   self.assertEqual((backup/'provenance.json').read_bytes(),old);self.assertEqual(len(m.verify_installed(backup,config,allow_legacy=True)['textures']),24)
  def test_upgrade_network_and_extraction_failures_preserve_old_installation(self):
   config,legacy,destination=self.legacy_install();old=(destination/'provenance.json').read_bytes()
