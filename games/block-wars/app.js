@@ -1,6 +1,15 @@
 (function () {
   'use strict';
   const element = id => document.getElementById(id);
+  const youtube=typeof location==='object'&&new URLSearchParams(location.search).get('platform')==='youtube';
+  if(youtube){
+    element('interaction-trigger').textContent='ENSAYO';
+    element('interaction-chat-label').textContent='CHAT';
+    element('interaction-events-label').textContent='PENDIENTE';
+    element('command-heading').textContent='EFECTOS DEMO';
+    element('command-instruction').textContent='ACTIVADOS POR EL OPERADOR';
+    element('notice').textContent='YouTube · Ensayo local · Chat real todavía sin conectar';
+  }
   const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'endless',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const rules=BlockWarsRules.createRules(engine,{likeThreshold:25});
   const renderer=BlockWarsRender.createRenderer(element('mine'));
@@ -48,7 +57,8 @@
       case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
     }
   }
-  const transport=LiveTransport.connect({target:'block-wars',onEvent(event){
+  const transport=LiveTransport.connect({target:'block-wars',relayEnabled:!youtube,onEvent(event){
+    if(youtube&&event.source!=='simulator')return;
     if(event.source in totals){totals[event.source]++;sources.add(event.source);}experience.handleEvent(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
   function updateHud(){
@@ -61,9 +71,9 @@
     const team=state.teams[state.focus?.team||'dark'];
     element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · FUERZA '+team.effectiveSpeed.toFixed(1);
     const threshold=rules.state.likeThreshold,progress=rules.state.likeProgressBySource;
-    element('like-progress').textContent=threshold+' likes por TNT · DEMO '+progress.simulator+' / RELAY '+progress.tikfinity;
-    element('source').textContent=sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
-    element('relay').textContent=relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY · LIVE SIN VERIFICAR':'RELAY DESCONECTADO · LIVE SIN VERIFICAR';
+    element('like-progress').textContent=youtube?'LOS LIKES DE YOUTUBE NO CONTROLAN LA MINA':threshold+' likes por TNT · DEMO '+progress.simulator+' / RELAY '+progress.tikfinity;
+    element('source').textContent=youtube?'YOUTUBE · ENSAYO LOCAL':sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
+    element('relay').textContent=youtube?'CHAT YOUTUBE SIN CONECTAR · EFECTOS DE PRUEBA':relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY · LIVE SIN VERIFICAR':'RELAY DESCONECTADO · LIVE SIN VERIFICAR';
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
     const label=descriptor?.label||active?.kind||'';
     element('timer-caption').textContent=active?'EVENTO: '+label:'PRÓXIMO EVENTO GRATIS';

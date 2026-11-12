@@ -1,6 +1,11 @@
 (function () {
   'use strict';
   const element=id=>document.getElementById(id);
+  const youtube=typeof location==='object'&&new URLSearchParams(location.search).get('platform')==='youtube';
+  if(youtube){
+    element('youtube-setup').hidden=false;
+    document.querySelector('a[href="/block-wars"]').href='/block-wars?platform=youtube';
+  }
   const feedback=element('feedback');
   let pollTimer,disposed=false;
   function message(text,error){feedback.textContent=text;feedback.dataset.error=String(Boolean(error));}

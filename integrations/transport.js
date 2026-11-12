@@ -7,7 +7,7 @@
   function connect(options={}){
     const env=options.env||root,target=options.target||'snake';
     const adapter=options.adapter||LiveEvents.createAdapter();
-    const state={relay:'connecting',controls:'connecting',source:'none',verified:false,metrics:adapter.metrics};
+    const state={relay:options.relayEnabled===false?'disabled':'connecting',controls:'connecting',source:'none',verified:false,metrics:adapter.metrics};
     let stopped=false,ws=null,sse=null,wsTimer=null,sseTimer=null,wsAttempt=0,sseAttempt=0;
     function emitStatus(){if(!stopped)options.onStatus?.({...state});}
     function deliver(event){
@@ -25,7 +25,7 @@
       }
     }
     function openWebSocket(){
-      if(stopped)return;
+      if(stopped||options.relayEnabled===false)return;
       state.relay='connecting';emitStatus();
       let socket;
       try{socket=new env.WebSocket('ws://127.0.0.1:21213/');ws=socket;}

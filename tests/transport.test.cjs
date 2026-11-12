@@ -30,6 +30,13 @@ test('SSE audio settings reach the control handler without being discarded as vi
   f.streams[0].onmessage({data:JSON.stringify(command)});
   assert.deepEqual(controls,[command]);assert.equal(events.length,0);connection.stop();
 });
+test('YouTube rehearsal disables TikFinity and its reconnects but retains local controls',()=>{
+  const f=environment(),controls=[];
+  const connection=connect({target:'block-wars',relayEnabled:false,env:f.env,onControl:command=>controls.push(command)});
+  assert.equal(connection.state.relay,'disabled');assert.equal(f.sockets.length,0);assert.equal(f.timers.size,0);
+  f.streams[0].onmessage({data:JSON.stringify({type:'bw_pause',target:'block-wars',paused:true})});
+  assert.equal(controls.length,1);connection.stop();assert.equal(f.timers.size,0);
+});
 test('WebSocket reconnect backoff is bounded and stop releases all resources',()=>{
   const f=environment(),connection=connect({env:f.env}); const delays=[];
   for(let i=0;i<9;i++){f.sockets.at(-1).onclose();delays.push(f.tick());}
