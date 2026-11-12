@@ -78,6 +78,10 @@ Codex debe mantener Serpiente Infinita como modo existente, implementar Block Wa
 
 Juego `/block-wars`, panel `/block-wars/control`; Snake conserva `/` y `/control`. Física en `physics.js`, motor y cámara separados; cinco picos,18eventos, reglas gratuitas y controles se conservan. Telemetría admite el contrato original9campos y uno ampliado12campos con `mode,depth,elapsed`, sin PII. El transporte compartido distingue simulación/relay; TikFinity y OBS real siguen pendientes. Sin recursos importados se ve arte de respaldo claramente rotulado. Cambiar contratos requiere pruebas de regresión en ambos juegos. `npm run test:endless-soak` prueba seis horas virtuales del modo infinito, no seis horas reales de OBS.
 
+## Siguiente encargo: experiencia del LIVE
+
+El propietario confirmó **sin cámara**, con ElevenLabs narrando eventos y nombres de usuario moderados, sonidos/efectos diferenciados y recompensas por comentar. La definición está en `docs/block-wars/LIVE_EXPERIENCE_GOALS.md` y la plantilla en `docs/block-wars/LIVE_SESSION_TEMPLATE.md`. Estado PLANNED: no generar audio ni declarar conexión, sincronía OBS o monetización listas por existir este plan. Empezar por confirmación de acciones y voz/sonido/efectos de TNT, NUKE y comentario recompensado, conservando el juego infinito y Snake. Los follows y suscripciones pagadas son eventos distintos; deben validarse y habilitarse correctamente antes de anunciarse como reales.
+
 ## Verificación de la fase de estabilización
 
 Sin instalar dependencias: `npm run check`, `npm test` y `npm run test:soak` (dos horas virtuales por defecto; `SOAK_HOURS=6` para seis). `node --check` sustituye diagnósticos IDE cuando no están disponibles. Las pruebas unitarias ejecutan el script real del juego con DOM/Canvas/tiempo/transporte dobles; la integración HTTP/SSE usa procesos reales. Ninguna de ellas acredita un LIVE ni una sesión OBS prolongada. Ver `docs/AUDIT_PHASE_1.md` para contrato, evidencias y pendientes.

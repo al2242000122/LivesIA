@@ -82,6 +82,8 @@ La API de control exige JSON tipado, permite hasta 30 comandos/s y 4096 bytes po
 
 ## Block Wars LIVE: ensayo local de minería vertical
 
+La siguiente fase tiene [objetivos de experiencia LIVE](docs/block-wars/LIVE_EXPERIENCE_GOALS.md): sin cámara, narrador reactivo de ElevenLabs, sonidos/efectos propios por evento y recompensas por comentar. Está **PLANNED**; la definición no acredita integración de voz o eventos reales. Incluye [plantilla de prueba](docs/block-wars/LIVE_SESSION_TEMPLATE.md).
+
 Block Wars LIVE ya funciona localmente: **excavación infinita**, con un pico que cae, rebota y choca contra los bloques. El daño ocurre por contacto; el terreno nuevo aparece sin detener la partida ni reiniciar el puntaje al llegar al fondo. Incluye cámara, cinco picos y encantamientos, equipos DARK vs LIGHT,25likes por TNT y18eventos gratuitos con enfriamientos. Los regalos pagados están deshabilitados. Serpiente Infinita conserva sus rutas y funciones.
 
 ```powershell
