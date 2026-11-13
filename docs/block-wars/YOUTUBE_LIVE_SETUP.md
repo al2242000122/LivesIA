@@ -1,6 +1,8 @@
 # YouTube LIVE: preparación del primer ensayo
 
-Actualización: 2026-11-13. Estado: **preparación local implementada, canal y teléfono verificados; activación LIVE por volver a comprobar, ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
+Actualización: 2026-11-13. Estado: **preparación local implementada, acceso a la sala de control LIVE comprobado; ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
+
+El13de noviembre se abrió la sala autenticada del canal y se completó la bienvenida seleccionando software de transmisión. Studio mostró un ensayo sin señal («No hay datos») en `/video/i0fOJAzWJqA/livestreaming`. Se prepararon título, descripción, categoría Videojuegos y visibilidad No listado en el formulario de edición, **sin guardar todavía**: falta que el propietario indique si el contenido está creado específicamente para niños. La visibilidad inicial que asignó Studio fue Público; no conectar el codificador hasta guardar y comprobar la visibilidad del ensayo y el comportamiento de inicio automático. No se mostró ni copió la clave de transmisión.
 
 ## Qué está preparado
 

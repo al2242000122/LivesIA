@@ -27,7 +27,7 @@ Limitación del entorno: dos comprobaciones OBS mediante `powershell.exe` lanzad
 
 ## Pendiente para el LIVE
 
-1. Volver a comprobar en YouTube Studio el acceso LIVE tras la solicitud del12de noviembre; el plazo mostrado no prueba aprobación.
+1. Acceso a la sala LIVE comprobado el13de noviembre en la sesión autenticada. Se preparó el formulario del ensayo, pendiente de la clasificación de público por el propietario y de guardar/verificar No listado. La sala muestra «No hay datos»; no se envió señal.
 2. Conectar la lectura autorizada del chat de YouTube y validar comentarios reales, deduplicación y reconexión. Actualmente todos los botones son simulaciones.
 3. Elegir la voz, introducir la clave localmente y escuchar el primer ensayo. La conexión del plugin ElevenLabs no configura la clave del servidor.
 4. Abrir **LivesIA YouTube / Mina YouTube**, verificar la fuente vertical y grabar una muestra nueva con voz/FX. El ensayo anterior tuvo FX bajos; su medición no acredita la mezcla nueva.
@@ -35,6 +35,8 @@ Limitación del entorno: dos comprobaciones OBS mediante `powershell.exe` lanzad
 6. Revisar la vista previa y los recursos antes de autorizar la emisión. No se inició una transmisión ni se configuraron pagos.
 
 Durante esta preparación quedó pendiente que el propietario cancelara un aviso de administrador de TikTok. El trabajo de Windows se detuvo en ese aviso; no se automatizó la autorización ni se continuó instalando TikTok para el montaje de YouTube.
+
+El propietario confirmó después que el aviso había desaparecido y se comprobó su ausencia. OBS seguía cerrado; se solicitó su apertura manual porque la revisión automática había rechazado abrirlo desde el lanzador («blocked by policy», sin más detalle). La comprobación de rutas/firma/perfil YouTube en PowerShell7 volvió a pasar. Esto no acredita captura o audio reales.
 
 ## Réplica y reversión
 
