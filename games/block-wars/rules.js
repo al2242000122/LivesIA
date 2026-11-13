@@ -94,7 +94,7 @@
       let budget=settings.maxEffectsPerFlush,accepted=0;
       for(let i=0;i<2&&budget;i++){
         const source=SOURCES[(drainFirst+i)%2],bucket=buckets[source],count=Math.min(budget,bucket.pending);
-        if(count&&act({type:'tnt',team:'neutral',count},{source,community:true})){
+        if(count&&act({type:'tnt',team:'neutral',count},{source,community:true,trigger:'like'})){
           bucket.pending-=count;budget-=count;accepted+=count;metrics.bySource[source].tnt=add(metrics.bySource[source].tnt,count);
           notify('tnt','TNT comunitaria activada');
         }

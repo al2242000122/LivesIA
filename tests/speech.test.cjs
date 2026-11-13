@@ -59,6 +59,20 @@ test('speech uses the official fixed endpoint and Spanish template instead of us
   assert.equal(state.errorCode, null);
 });
 
+test('YouTube rehearsal templates keep likes anonymous and distinguish free subscribers from follows', async () => {
+  const {speech,calls,advance}=fixture();
+  assert.equal((await speech.synthesize(payload(1,{kind:'like_milestone',source:'simulator'}))).statusCode,200);
+  const likes=JSON.parse(calls[0][1].body).text;
+  assert.match(likes,/^Prueba\..*likes.*TNT/i);assert.ok(!likes.includes('Ana'));
+  advance();
+  assert.equal((await speech.synthesize(payload(2,{kind:'youtube_subscriber',source:'simulator'}))).statusCode,200);
+  assert.match(JSON.parse(calls[1][1].body).text,/^Prueba\..*Ana María.*suscribirte.*canal/i);
+  for(const source of ['automatic','tikfinity'])for(const kind of ['like_milestone','youtube_subscriber']){
+    assert.equal((await speech.synthesize(payload(3,{kind,source}))).statusCode,400);
+  }
+  assert.equal(calls.length,2);
+});
+
 test('all existing events, rewarded mine and follow have bounded templates and honest attribution', async () => {
   const { speech, calls, advance } = fixture();
   const kinds = [...Object.keys(EVENTS), 'mine', 'follow', 'turbo', 'descomunal'];
