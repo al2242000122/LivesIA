@@ -18,11 +18,12 @@
     const nearest=faces.reduce((best,face)=>face.d<best.d?face:best);
     return {x:nearest.x,y:nearest.y,depth:body.radius+nearest.d};
   }
-  function step(body,dt,world,onContact){
+  function step(body,dt,world,onContact,speedScale=1){
+    const scale=Number.isFinite(speedScale)?clamp(speedScale,1,1.6):1,maxSpeed=MAX_SPEED*scale;
     const steps=Math.min(8,Math.max(1,Math.ceil(dt/0.025))),h=dt/steps;
     for(let substep=0;substep<steps;substep++){
-      body.vy=clamp(body.vy+GRAVITY*h,-MAX_SPEED,MAX_SPEED);
-      body.vx=clamp(body.vx,-MAX_SPEED,MAX_SPEED);
+      body.vy=clamp(body.vy+GRAVITY*h,-maxSpeed,maxSpeed);
+      body.vx=clamp(body.vx,-maxSpeed,maxSpeed);
       body.x+=body.vx*h;body.y+=body.vy*h;
       if(body.x<body.radius){body.x=body.radius;body.vx=Math.abs(body.vx);body.collisions++;}
       if(body.x>world.width-body.radius){body.x=world.width-body.radius;body.vx=-Math.abs(body.vx);body.collisions++;}
@@ -44,8 +45,8 @@
       }
       body.x=clamp(body.x,body.radius,world.width-body.radius);
       body.y=clamp(body.y,body.radius,world.height-body.radius);
-      if(Math.abs(body.vx)<MIN_HORIZONTAL)body.vx=(body.vx<0?-1:1)*MIN_HORIZONTAL;
-      body.vy=clamp(body.vy,-MAX_SPEED,MAX_SPEED);
+      if(Math.abs(body.vx)<MIN_HORIZONTAL*scale)body.vx=(body.vx<0?-1:1)*MIN_HORIZONTAL*scale;
+      body.vy=clamp(body.vy,-maxSpeed,maxSpeed);
       body.rotation=(body.rotation+body.vx*h*0.8)%(Math.PI*2);
     }
   }

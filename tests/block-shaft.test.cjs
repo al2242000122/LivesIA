@@ -47,8 +47,8 @@ test('shaft TNT is a moving object before its fuse resolves into a bounded impac
   assert.ok(engine.state.teams.dark.blocks>1);
 });
 
-test('all18 catalog actions have a measured gameplay consequence and a matching HUD timer',()=>{
-  const keys=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big'];
+test('all20 catalog actions retain a shaft gameplay consequence and matching HUD timer',()=>{
+  const keys=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','storm','creeper','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big'];
   assert.deepEqual(Object.keys(EVENTS),keys);
   const signatures=new Set();
   for(const kind of keys){

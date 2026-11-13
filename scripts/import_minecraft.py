@@ -41,6 +41,17 @@ TEXTURES = {key: f"assets/minecraft/textures/block/{name}.png" for key, name in 
 TEXTURES.update({key: f"assets/minecraft/textures/item/{name}.png" for key, name in TOOLS.items()})
 LEGACY_TEXTURES = dict(TEXTURES)
 TEXTURES.update({f"destroy_stage_{n}": f"assets/minecraft/textures/block/destroy_stage_{n}.png" for n in range(10)})
+BASE_TEXTURES = dict(TEXTURES)
+TEXTURES.update({
+    "water": "assets/minecraft/textures/block/water_still.png",
+    "ice": "assets/minecraft/textures/block/ice.png",
+    "fire": "assets/minecraft/textures/block/fire_0.png",
+    "arrow": "assets/minecraft/textures/item/arrow.png",
+    "dispenser": "assets/minecraft/textures/block/dispenser_front.png",
+    "creeper": "assets/minecraft/textures/entity/creeper/creeper.png",
+    "rain": "assets/minecraft/textures/environment/rain.png",
+})
+SPRITE_DIMENSIONS = {"creeper": (64, 32), "rain": (64, 256)}
 ASSET_LIMIT = 1024 * 1024
 MANIFEST_LIMIT = 2 * 1024 * 1024
 CHUNK_SIZE = 65536
@@ -53,7 +64,7 @@ def validate_config(config):
     if any(config[key] != value for key, value in PINNED.items()):
         raise ValueError("Source must match the official pinned Minecraft 26.3 metadata")
     if config["textures"] != TEXTURES:
-        raise ValueError("Texture paths must match the exact 34-entry whitelist")
+        raise ValueError("Texture paths must match the exact 41-entry whitelist")
     return config
 
 
@@ -104,7 +115,7 @@ def download_file(url, destination, expected_sha1, expected_size=None):
         raise ValueError("Downloaded SHA1 or size does not match")
 
 
-def validate_png(data):
+def validate_png(data, texture_name=None):
     if not isinstance(data, bytes) or len(data) > ASSET_LIMIT or not data.startswith(PNG_SIGNATURE):
         raise ValueError("Invalid PNG signature or size")
     offset, dimensions = len(PNG_SIGNATURE), None
@@ -124,7 +135,10 @@ def validate_png(data):
             if kind != b"IHDR" or length != 13:
                 raise ValueError("PNG must begin with IHDR")
             width, height = struct.unpack_from(">II", payload)
-            if width != 16 or height < 16 or height > 1024 or height % 16:
+            fixed = SPRITE_DIMENSIONS.get(texture_name)
+            if fixed is not None and (width, height) != fixed:
+                raise ValueError("Sprite dimensions do not match its exact allowlisted layout")
+            if fixed is None and (width != 16 or height < 16 or height > 1024 or height % 16):
                 raise ValueError("PNG must be 16 pixels wide with 16..1024-pixel frame-strip height")
             dimensions = (width, height)
         if kind == b"IEND":
@@ -138,7 +152,7 @@ def validate_png(data):
 def install_archive(archive_path, config, destination):
     """Verify before opening ZIP; install into a new directory without replacing old data."""
     texture_paths = config["textures"]
-    if texture_paths not in (TEXTURES, LEGACY_TEXTURES):
+    if texture_paths not in (TEXTURES, BASE_TEXTURES, LEGACY_TEXTURES):
         raise ValueError("Texture whitelist does not match")
     destination = Path(destination)
     if destination.exists() or destination.is_symlink():
@@ -164,7 +178,7 @@ def install_archive(archive_path, config, destination):
                     raise ValueError("ZIP symlinks are not allowed")
                 # read() verifies the complete entry CRC; extract()/extractall() are never used.
                 data = archive.read(info)
-                width, height = validate_png(data)
+                width, height = validate_png(data, key)
                 filename = key + ".png"
                 (stage / filename).write_bytes(data)
                 inventory[key] = {"archivePath": archive_path, "file": filename, "sha256": hashlib.sha256(data).hexdigest(),
@@ -192,8 +206,10 @@ def verify_installed(destination, config, allow_legacy=False):
     if not isinstance(inventory, dict):
         raise ValueError("Existing provenance inventory does not match")
     texture_paths = TEXTURES
-    if allow_legacy and set(inventory) == set(LEGACY_TEXTURES):
-        texture_paths = LEGACY_TEXTURES
+    if allow_legacy:
+        for previous in (LEGACY_TEXTURES, BASE_TEXTURES):
+            if set(inventory) == set(previous):
+                texture_paths = previous
     if set(inventory) != set(texture_paths):
         raise ValueError("Existing provenance inventory does not match")
     names = {key + ".png" for key in texture_paths} | {"provenance.json"}
@@ -205,7 +221,7 @@ def verify_installed(destination, config, allow_legacy=False):
         if not isinstance(entry, dict) or path.is_symlink() or not path.is_file() or path.stat().st_size > ASSET_LIMIT:
             raise ValueError("Invalid local asset entry")
         data = path.read_bytes()
-        width, height = validate_png(data)
+        width, height = validate_png(data, key)
         expected = {"archivePath": archive_path, "file": key + ".png", "sha256": hashlib.sha256(data).hexdigest(),
                     "size": len(data), "width": width, "height": height}
         if entry != expected:
@@ -217,8 +233,8 @@ def upgrade_archive(archive_path, config, destination):
     """Keep verified old assets until the complete replacement is ready; retain a backup."""
     destination = Path(destination)
     old = verify_installed(destination, config, allow_legacy=True)
-    if set(old["textures"]) != set(LEGACY_TEXTURES) or config["textures"] != TEXTURES:
-        raise ValueError("Upgrade requires exactly the previous 24 assets and new 34-entry whitelist")
+    if set(old["textures"]) not in (set(LEGACY_TEXTURES), set(BASE_TEXTURES)) or config["textures"] != TEXTURES:
+        raise ValueError("Upgrade requires the previous 24 or 34 assets and new 41-entry whitelist")
     parent = destination.parent.resolve()
     if destination.is_symlink() or destination.resolve().parent != parent:
         raise ValueError("Upgrade target must be a direct local directory")

@@ -59,7 +59,9 @@
     tnt_rain:event('tnt_rain','TNT RAIN','#f69e69','blast',16,5,0.9,1.7,6,'circle'),
     thunder:event('thunder','THUNDER','#ffdd79','blast',9,4,1,0.55,1,'column'),
     fire:event('fire','FIRE STORM','#ff9a48','blast',14,6,0.65,1.3,4,'circle'),
-    rain:event('rain','RAIN','#6ccbea','blast',8,5,0.4,0.8,5,'circle'),
+    rain:event('rain','LLUVIA DE TNT','#f69e69','blast',8,7,0.85,1.7,8,'circle'),
+    storm:event('storm','STORM','#9bcde8','blast',24,6,0.65,0.8,1,'circle'),
+    creeper:event('creeper','CREEPER','#70bd53','blast',12,6,1,2.5,1,'circle'),
     tsunami:event('tsunami','TSUNAMI','#48b4c9','blast',20,5,3,2,1,'band'),
     black_hole:event('black_hole','BLACK HOLE','#b899e2','blast',30,6,2.5,3.5,1,'pull'),
     jackpot:event('jackpot','JACKPOT TNT','#f9db78','blast',35,6,3.2,5,1,'circle'),
@@ -72,5 +74,27 @@
   const LIMITS = Object.freeze({maxQueue:24,maxParticles:160,maxEffects:24,
     maxBlockOps:40,maxExplosionOps:32,maxProgress:64,maxDelta:0.25,
     maxCells:1600,maxEntities:24,maxSpeed:240,nukeCooldown:45,summaryDuration:4,maxScore:1000000000});
-  return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS});
+  const SELECTED_EVENTS=Object.freeze(['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big']);
+  // Local gameplay tuning: seconds, cells, cells/second and HP. Not platform limits.
+  const MINECRAFT_EFFECTS=Object.freeze({
+    projectile:Object.freeze({spawnHeight:5,spawnInterval:.15,lifetime:6,driftSpeed:.8,fuse:.75,
+      gravity:14,maxFallSpeed:12,maxFallStep:.025,bounceRetention:.25,minBounceSpeed:1,
+      flightSeconds:1.1,flightLifetime:2.5,flightRadius:.2,maxFlightStep:.2,outsideGraceSeconds:.5}),
+    rain:Object.freeze({spawnInterval:.55}),
+    mega:Object.freeze({lifetime:7,fuse:2}),
+    nuke:Object.freeze({lifetime:9,fuse:3,chainRadius:3.2,
+      chainOffsets:Object.freeze([Object.freeze([0,0]),Object.freeze([-2,2]),Object.freeze([2,4])])}),
+    creeper:Object.freeze({fuse:1.3}),
+    arrow:Object.freeze({spawnInterval:.2,volleyCount:4,flightSeconds:.8,originHeight:3,damage:2.4}),
+    meteor:Object.freeze({flightSeconds:1.6,flightLifetime:3,flightRadius:.6,pathRadius:.95,pathDamage:4,penetrationSeconds:.45}),
+    fire:Object.freeze({maxHazards:8,burnOffsetY:.8,burnRadius:1.5,burnSeconds:3,burnDamage:.9,pulseSeconds:.35}),
+    tsunami:Object.freeze({crossingSeconds:3.5,lifetime:3.8,radius:2,damage:1.2,pulseSeconds:.2,
+      pushRangeX:1.7,pushRangeY:3,pushAcceleration:12,maxPushSpeed:7.5}),
+    thunder:Object.freeze({pulseSeconds:1.6}),
+    storm:Object.freeze({pulseSeconds:.35,windFrequency:2,windAcceleration:8}),
+    fast:Object.freeze({physicsSpeedScale:1.6}),
+    big:Object.freeze({bodyRadius:.5,contactBlastRadius:1.1}),
+    spin:Object.freeze({rotationRate:9})
+  });
+  return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS,SELECTED_EVENTS,MINECRAFT_EFFECTS});
 }));

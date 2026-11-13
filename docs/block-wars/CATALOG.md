@@ -2,9 +2,13 @@
 
 Estado: implementación local para ensayo. Los nombres del catálogo provienen del encargo aprobado; los límites de esta página son decisiones propias de seguridad y balance, no mediciones de una plataforma o de un juego de referencia. Ningún comando necesita regalos ni suscripciones pagadas.
 
+## Selección vigente
+
+El propietario eligió los comandos 1–14 de la [propuesta Minecraft implementada](MINECRAFT_COMMANDS.md). El menú y los automáticos de endless promueven esos 14; el catálogo interno conserva los anteriores y añade `storm` y `creeper` (20 claves). La tabla siguiente incluye compatibilidad.
+
 ## Chat
 
-Se aceptan mayúsculas/minúsculas y espacios exteriores. Los espacios internos consecutivos se normalizan. Cada alias funciona sin prefijo o con `!`, con la excepción de `!rain` indicada abajo. No se ejecuta texto, HTML, JavaScript ni shell del chat; sólo se selecciona una acción del catálogo estático `config.EVENTS`.
+Se aceptan mayúsculas/minúsculas y espacios exteriores. Los espacios internos consecutivos se normalizan. Cada alias funciona sin prefijo o con `!`. No se ejecuta texto, HTML, JavaScript ni shell del chat; sólo se selecciona una acción del catálogo estático `config.EVENTS`.
 
 | Alias de chat | Acción del motor |
 | --- | --- |
@@ -14,10 +18,12 @@ Se aceptan mayúsculas/minúsculas y espacios exteriores. Los espacios internos 
 | Arrow | `arrow` |
 | Butterfly | `butterfly` |
 | Nuke | `nuke` |
-| TNT RAIN / TNTRAIN | `tnt_rain` |
+| TNT RAIN / TNTRAIN | `rain` |
 | Thunder | `thunder` |
 | Fire | `fire` |
 | Rain | `rain` |
+| Storm | `storm` |
+| Creeper | `creeper` |
 | Tsunami | `tsunami` |
 | BLACK HOLE / BLACKHOLE | `black_hole` |
 | Jackpot | `jackpot` |
@@ -27,9 +33,9 @@ Se aceptan mayúsculas/minúsculas y espacios exteriores. Los espacios internos 
 | Fast | `fast` |
 | Big | `big` |
 
-`!rain` conserva la votación original: un voto por identidad y ronda, umbral predeterminado de cinco. **Rain sin `!`** pide el evento directo y usa los límites nuevos. `!TNT RAIN` y `!TNTRAIN` seleccionan `tnt_rain`; no son votos.
+`rain`, `!rain`, `!TNT RAIN` y `!TNTRAIN` activan la misma lluvia de TNT. La antigua votación se conserva como **`!voterain`**: un voto por identidad y ciclo, umbral predeterminado de cinco. La clave interna `tnt_rain` permanece disponible para acciones directas compatibles del operador.
 
-Los comandos originales `!dark`, `!light`, `!mine`, `!boom`, `!pico` y los cinco votos de picos conservan su comportamiento. Los comandos de efecto nuevos no requieren elegir equipo: se envía `neutral` cuando no existe pertenencia conocida; el motor resuelve ese destino. No se muestran nombres, hashes ni chat crudo.
+Los comandos originales `!dark`, `!light`, `!mine`, `!boom`, `!pico` y los cinco votos de picos conservan su comportamiento. Los efectos no requieren elegir equipo: se envía `neutral` cuando no existe pertenencia conocida; el motor resuelve ese destino. Se muestra un nombre moderado en las activaciones; hashes y chat crudo no se muestran ni se añaden a telemetría.
 
 ## Límites elegidos
 
@@ -43,7 +49,7 @@ Los comandos originales `!dark`, `!light`, `!mine`, `!boom`, `!pico` y los cinco
 
 ## Contrato del panel
 
-`bw_action.action` admite exactamente las 18 claves de `config.EVENTS`, además de `mine`, `repair`, `turbo`, `descomunal`, `pickaxe` y `enchant`. El origen enviado por el cliente no puede convertir una simulación en evento real. `count` permanece limitado a 1–8 y sólo se admite para `mine`, `repair`, `tnt`, `meteor` y `rain`. No se amplían los campos del panel para ejecutar código o activar regalos/suscripciones.
+`bw_action.action` admite exactamente las 20 claves de `config.EVENTS`, además de `mine`, `repair`, `turbo`, `descomunal`, `pickaxe` y `enchant`. El origen enviado por el cliente no puede convertir una simulación en evento real. `count` permanece limitado a 1–8 y sólo se admite para `mine`, `repair`, `tnt`, `meteor` y `rain`. No se amplían los campos del panel para ejecutar código o activar regalos/suscripciones. La atribución `actor/source/actionId` se pasa como contexto interno separado del JSON del motor.
 
 ## Réplica
 

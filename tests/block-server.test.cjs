@@ -4,7 +4,7 @@ const assert=require('node:assert/strict');
 const {start}=require('./helpers/server.cjs');
 const fs=require('node:fs');
 const path=require('node:path');
-const {ORIGINAL_NAMES}=require('../games/block-wars/textures.js');
+const {ORIGINAL_NAMES,EFFECT_NAMES}=require('../games/block-wars/textures.js');
 test('endless telemetry adds bounded depth and active session time while preserving the old contract',()=>{
   const {validateTelemetry}=require('../lib/contracts.js');
   const old={fps:60,frameMs:16.67,round:1,remaining:0,queue:0,particles:0,source:'none',paused:false,reducedMotion:false};
@@ -15,7 +15,7 @@ test('endless telemetry adds bounded depth and active session time while preserv
 });
 test('original texture routes expose only PNG allowlist, with explicit missing-file status',async t=>{
   const s=await start(t);
-  for(const name of ORIGINAL_NAMES){
+  for(const name of [...ORIGINAL_NAMES,...Object.keys(EFFECT_NAMES)]){
     const response=await fetch(s.base+'/block-wars/assets/'+name+'.png');
     const local=path.join(__dirname,'../assets-local/minecraft',name+'.png');
     assert.equal(response.status,fs.existsSync(local)?200:404,name);
@@ -25,7 +25,7 @@ test('original texture routes expose only PNG allowlist, with explicit missing-f
 });
 test('Block Wars game, panel and each allowlisted asset load; unknown files remain private',async t=>{
   const s=await start(t);
-  for(const path of ['/block-wars','/block-wars/control','/block-wars/style.css','/block-wars/config.js','/block-wars/engine.js','/block-wars/rules.js','/block-wars/render.js','/block-wars/app.js','/block-wars/control.js'])assert.equal((await s.request(path)).status,200,path);
+  for(const path of ['/block-wars','/block-wars/control','/block-wars/style.css','/block-wars/config.js','/block-wars/engine.js','/block-wars/rules.js','/block-wars/effects-render.js','/block-wars/render.js','/block-wars/app.js','/block-wars/control.js'])assert.equal((await s.request(path)).status,200,path);
   assert.equal((await s.request('/games/block-wars/engine.js')).status,404);
   assert.equal(JSON.parse((await s.request('/api/block-wars/telemetry')).text).available,false);
 });
@@ -66,10 +66,14 @@ test('telemetry is bounded aggregated data, no PII fields or foreign origins',as
   const snapshot=JSON.parse((await s.request('/api/block-wars/telemetry')).text);
   assert.equal(snapshot.available,true);assert.equal(snapshot.fps,60);assert.equal(snapshot.source,'none');assert.ok(snapshot.ageMs>=0);assert.equal('nickname' in snapshot,false);
 });
-test('catalog bw_action allowlist accepts all18 exact keys and keeps counts typed',async t=>{
-  const s=await start(t),keys=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big'];
+test('catalog bw_action allowlist preserves18 and accepts storm/creeper while keeping counts typed',async t=>{
+  const s=await start(t),keys=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big','storm','creeper'];
   for(const action of keys)assert.equal((await s.post({type:'bw_action',target:'block-wars',action,team:'neutral'})).status,200,action);
+  assert.equal((await s.post({type:'bw_action',target:'block-wars',action:'tnt',count:8})).status,200);
+});
+
+test('invalid catalog names and counts are rejected before transport',async t=>{
+  const s=await start(t);
   for(const action of ['TNT','blackhole','constructor','__proto__','toString','shell','subscribe_paid'])assert.equal((await s.post({type:'bw_action',target:'block-wars',action})).status,400,action);
   for(const command of [{action:'mega',count:2},{action:'fast',count:1},{action:'tnt',count:9},{action:'tnt',count:0}])assert.equal((await s.post({type:'bw_action',target:'block-wars',...command})).status,400);
-  assert.equal((await s.post({type:'bw_action',target:'block-wars',action:'tnt',count:8})).status,200);
 });

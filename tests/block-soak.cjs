@@ -21,7 +21,7 @@ for(let ms=0;ms<hours*3600000;ms+=250){
     send('like',{delta:37},actor,ms,source);
     send('comment',{text:ms%2000===0?'!dark':'!light'},actor,ms,source);
     send('comment',{text:'!mine'},actor,ms,source);
-    send('comment',{text:'!rain'},actor,ms,source);
+    send('comment',{text:'!voterain'},actor,ms,source);
     send('comment',{text:'!oro'},actor,ms,source);
     send('follow',{},actor,ms,source);
   }
@@ -72,7 +72,7 @@ function runShaft(){
     if(ms%1000===0){
       const source=ms%2000===0?'simulator':'tikfinity',actor=`fixture-${ms%97000}`;
       event('like',{delta:37},ms,source,actor);
-      for(const text of [ms%2000===0?'!dark':'!light','!mine','!rain','!oro'])event('comment',{text},ms,source,actor);
+      for(const text of [ms%2000===0?'!dark':'!light','!mine','!voterain','!oro'])event('comment',{text},ms,source,actor);
       event('follow',{},ms,source,actor);
     }
     if(ms%15000===0){

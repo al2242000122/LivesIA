@@ -19,12 +19,19 @@
     }catch(error){message('No se pudo conectar al servidor local. Comprueba que node server.js siga ejecutándose.',true);return false;}
   }
   const catalog=element('catalog-controls');
-  for(const descriptor of Object.values(BlockWarsConfig.EVENTS)){
+  const descriptions={tnt:'TNT con caída, rebote y mecha',rain:'Ocho TNT escalonadas',thunder:'Lluvia y tres rayos que rompen columnas',storm:'Viento y granizo que daña bloques',creeper:'Cae, prende su mecha y explota',meteor:'Magma que perfora su trayectoria',fire:'Cuatro bolas de fuego y zonas encendidas',tsunami:'Ola que erosiona y empuja el pico',spin:'Pico giratorio: daño por contacto',fast:'Prisa: pico más rápido con colisiones',mega:'TNT gigante con cráter ampliado',nuke:'Supercarga y explosiones en cadena',arrow:'Ráfaga de flechas desde dispensadores',big:'Pico gigante con colisión ampliada'};
+  const selected=new Set(BlockWarsConfig.SELECTED_EVENTS);
+  for(const key of [...selected,...Object.keys(BlockWarsConfig.EVENTS).filter(key=>!selected.has(key))]){
+    const descriptor=BlockWarsConfig.EVENTS[key];
     const button=document.createElement('button');button.type='button';button.dataset.action=descriptor.id;
-    button.textContent=descriptor.label;button.title='Prueba gratuita · enfriamiento '+descriptor.cooldown+' s';catalog.append(button);
+    button.textContent=descriptor.label;button.title=(descriptions[descriptor.id]||'Efecto compatible')+' · enfriamiento del motor '+descriptor.cooldown+' s';
+    (selected.has(descriptor.id)?catalog:element('legacy-controls')).append(button);
   }
   function actor(){return element('actor').value.trim()||'operador-demo';}
-  function action(type,extra){return send({type:'bw_action',action:type,team:element('team').value,...extra});}
+  function action(type,extra){
+    if(Object.prototype.hasOwnProperty.call(BlockWarsConfig.EVENTS,type)&&element('simulate-comment').checked)return send({type:'chat',text:type.replace(/_/g,' '),actor:actor()});
+    return send({type:'bw_action',action:type,team:element('team').value,...extra});
+  }
   document.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button)return;
     if(button.dataset.chat)send({type:'chat',text:button.dataset.chat,actor:actor()});

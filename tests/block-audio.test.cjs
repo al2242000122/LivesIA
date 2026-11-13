@@ -138,7 +138,7 @@ test('volume zero cancels speech, narration can be disabled independently of FX'
   assert.equal(h.requests.length, 1); assert.equal(h.audio.state.fxPlayed, 2); h.audio.stop();
 });
 
-test('all 18 event sounds work offline with distinct TNT, NUKE and comment signatures and bounded nodes', async () => {
+test('all catalog event sounds work offline with distinct TNT, NUKE and comment signatures and bounded nodes', async () => {
   const h = harness({ narrationEnabled: false }); await h.audio.enable();
   const signatures = {};
   for (const kind of ['mine', 'tnt', 'nuke', ...Object.keys(Config.EVENTS)]) {
@@ -149,6 +149,25 @@ test('all 18 event sounds work offline with distinct TNT, NUKE and comment signa
   assert.notDeepEqual(signatures.mine, signatures.tnt); assert.notDeepEqual(signatures.tnt, signatures.nuke);
   for (let i = 0; i < 1000; i++) h.audio.notify(h.event('burst' + i, 'nuke'));
   assert.ok(h.audio.state.nodes <= 8); assert.ok(h.audio.state.dedupe <= 256); h.audio.stop(); assert.equal(h.audio.state.nodes, 0);
+});
+
+test('storm and creeper have separate activation sounds and impact FX never request narration', async () => {
+  const h = harness({ narrationEnabled: false }); await h.audio.enable();
+  const signatures = [];
+  for (const kind of ['rain', 'thunder', 'storm', 'creeper']) {
+    const before = h.oscillators.length;
+    assert.equal(h.audio.notify(h.event('new-' + kind, kind)), true);
+    signatures.push(JSON.stringify(h.oscillators.slice(before).map(node => [node.type, node.frequency.value, node.frequency.end])));
+    await h.clock.advance(1100);
+  }
+  assert.equal(new Set(signatures).size, 4);
+  h.audio.setNarration(true);
+  assert.equal(h.audio.impact('creeper'), true);
+  assert.equal(h.audio.impact('creeper'), false, 'rapid same-kind impacts are grouped');
+  assert.equal(h.audio.impact('unknown'), false);
+  await flush(); assert.equal(h.requests.length, 0, 'impact cues cannot bill TTS');
+  h.audio.mute(true); assert.equal(h.audio.impact('tnt'), false);
+  h.audio.stop(); assert.equal(h.audio.state.nodes, 0);
 });
 
 test('front-end payload contains bounded moderated names and automatic events have no invented actor', async () => {
