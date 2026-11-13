@@ -41,9 +41,9 @@ test('rain votes are once per round and pick votes once per window with unlock c
   assert.equal(f.event('comment',{text:'!netherita'},'a'),false);
   assert.equal(f.event('comment',{text:'!oro'},'a'),true);assert.equal(f.event('comment',{text:'!piedra'},'a'),false);
   f.event('comment',{text:'!oro'},'b');assert.equal(f.actions.at(-1).pickaxe,'gold');
-  f.event('comment',{text:'!rain'},'a');assert.equal(f.event('comment',{text:'!rain'},'a'),false);
-  f.event('comment',{text:'!rain'},'b');assert.equal(f.actions.at(-1).type,'rain');
-  f.engine.state.round=2;assert.equal(f.event('comment',{text:'!rain'},'a',1001),true);assert.equal(f.rules.state.rainVotes,1);
+  f.event('comment',{text:'!voterain'},'a');assert.equal(f.event('comment',{text:'!voterain'},'a'),false);
+  f.event('comment',{text:'!voterain'},'b');assert.equal(f.actions.at(-1).type,'rain');
+  f.engine.state.round=2;assert.equal(f.event('comment',{text:'!voterain'},'a',1001),true);assert.equal(f.rules.state.rainVotes,1);
   assert.equal(f.event('comment',{text:'!piedra'},'a',1001),true);
 });
 test('follow gets a team or neutral bonus, fallback cooldown, safe info summaries',()=>{
@@ -98,10 +98,9 @@ test('a round turnover inside one vote window allows a fresh vote',()=>{
   const f=fixture({pickVoteThreshold:1});f.event('comment',{text:'!dark'});f.event('comment',{text:'!oro'});
   f.engine.state.round=2;assert.equal(f.event('comment',{text:'!piedra'}),true);
 });
-const effectAliases=[['TNT','tnt'],['Rainbow','rainbow'],['Mega','mega'],['Arrow','arrow'],['Butterfly','butterfly'],['Nuke','nuke'],['TNT RAIN','tnt_rain'],['TNTRAIN','tnt_rain'],['Thunder','thunder'],['Fire','fire'],['Rain','rain'],['Tsunami','tsunami'],['BLACK HOLE','black_hole'],['BLACKHOLE','black_hole'],['Jackpot','jackpot'],['Demon','demon'],['Meteor','meteor'],['Spin','spin'],['Fast','fast'],['Big','big']];
+const effectAliases=[['TNT','tnt'],['Rainbow','rainbow'],['Mega','mega'],['Arrow','arrow'],['Butterfly','butterfly'],['Nuke','nuke'],['TNT RAIN','rain'],['TNTRAIN','rain'],['Thunder','thunder'],['Fire','fire'],['Rain','rain'],['Tsunami','tsunami'],['BLACK HOLE','black_hole'],['BLACKHOLE','black_hole'],['Jackpot','jackpot'],['Demon','demon'],['Meteor','meteor'],['Spin','spin'],['Fast','fast'],['Big','big']];
 test('every catalog chat alias works case-insensitively bare or prefixed, without a team',()=>{
   for(const [alias,type] of effectAliases)for(const prefix of ['','!']){
-    if(alias==='Rain'&&prefix==='!')continue;
     const f=fixture();assert.equal(f.event('comment',{text:`  ${prefix}${alias.toUpperCase()}  `},''),true,alias+prefix);
     assert.equal(f.actions.at(-1).type,type);assert.equal(f.actions.at(-1).team,'neutral');
   }
@@ -122,10 +121,10 @@ test('effect cooldowns keep identity, dedupe, anonymous bounds, teams, and reset
   assert.equal(f.event('comment',{text:'TNT'},'',30000,'simulator',null),false);
   f.rules.reset();assert.equal(f.event('comment',{text:'TNT'},'',0,'simulator',null),true);
 });
-test('!rain remains a vote and bare Rain dispatches one cooldown-protected action',()=>{
-  const f=fixture({rainThreshold:2});assert.equal(f.event('comment',{text:'!rain'},'a'),true);assert.equal(f.actions.length,0);
+test('!voterain preserves voting while Rain dispatches one cooldown-protected action',()=>{
+  const f=fixture({rainThreshold:2});assert.equal(f.event('comment',{text:'!voterain'},'a'),true);assert.equal(f.actions.length,0);
   assert.equal(f.event('comment',{text:'RAIN'},'a'),true);assert.equal(f.actions.at(-1).type,'rain');assert.equal(f.rules.state.rainVotes,1);
-  assert.equal(f.event('comment',{text:'!rain'},'b'),true);assert.equal(f.rules.state.rainVotes,2);
+  assert.equal(f.event('comment',{text:'!voterain'},'b'),true);assert.equal(f.rules.state.rainVotes,2);
   for(const text of ['please TNT','TNT now','!black_hole','TNT RAIN;whoami','eval(1)','Jackpot<script>','!!TNT'])assert.equal(f.event('comment',{text},'a',20000),false,text);
 });
 test('rejected/paused engine actions do not consume an effect cooldown',()=>{

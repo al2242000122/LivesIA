@@ -57,7 +57,7 @@ for(let i=0;i<Math.ceil(hours*3600000/50);i++){
     combined:state.entities.length+state.queue.length,particles:state.particles.length,effects:state.effects.length,removedPerStep:removed}))peak[key]=Math.max(peak[key],value);
   if(state.round!==cycle){
     receive({type:'comment',source:'simulator',id:'cycle-'+state.round,receivedAt:ms,
-      actor:{stableHash:'cycle-voter'},data:{text:'!rain'}});
+      actor:{stableHash:'cycle-voter'},data:{text:'!voterain'}});
     assert.equal(rules[0].state.rainVotes,1,'same identity can vote again in a new logical cycle');votingCycles++;
   }
   if(i%1000===0){

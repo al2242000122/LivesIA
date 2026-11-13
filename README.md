@@ -86,7 +86,7 @@ El [montaje del primer ensayo LIVE](docs/block-wars/FIRST_LIVE_SETUP.md) incluye
 
 También hay [preparación independiente para YouTube LIVE](docs/block-wars/YOUTUBE_LIVE_SETUP.md): perfil **LivesIA YouTube** y vista `/block-wars?platform=youtube`, con TikFinity desactivado y simulaciones identificadas. El canal y teléfono están verificados; la activación LIVE está en espera y el chat real sigue pendiente. Sus likes y suscriptores todavía no disparan efectos. En TikTok, [LIVE Studio está instalado y la solicitud de acceso sigue en revisión](docs/block-wars/TIKTOK_LIVE_ACCESS.md).
 
-Block Wars LIVE ya funciona localmente: **excavación infinita**, con un pico que cae, rebota y choca contra los bloques. El daño ocurre por contacto; el terreno nuevo aparece sin detener la partida ni reiniciar el puntaje al llegar al fondo. Incluye cámara, cinco picos y encantamientos, equipos DARK vs LIGHT,25likes por TNT y18eventos gratuitos con enfriamientos. Los regalos pagados están deshabilitados. Serpiente Infinita conserva sus rutas y funciones.
+Block Wars LIVE ya funciona localmente: **excavación infinita**, con un pico que cae, rebota y choca contra los bloques. El daño ocurre por contacto; el terreno nuevo aparece sin detener la partida ni reiniciar el puntaje al llegar al fondo. Incluye seguimiento de la mina, cinco picos y encantamientos, equipos DARK vs LIGHT y25likes por TNT. Los [14 comandos seleccionados](docs/block-wars/MINECRAFT_COMMANDS.md) tienen efectos Minecraft, autor visible y respuestas de activación/rechazo; se conservan los anteriores en un catálogo interno de20efectos. Los regalos pagados están deshabilitados. Serpiente Infinita conserva sus rutas y funciones.
 
 ```powershell
 python scripts/import_minecraft.py  # opcional: PNG originales desde el cliente oficial fijado
@@ -95,7 +95,7 @@ npm start
 # Panel: http://127.0.0.1:4173/block-wars/control
 ```
 
-La importación requiere Python3.10+ y red; el juego sólo requiere Node20+. Instala34PNG originales, incluidas las diez etapas de grietas de Minecraft. Actualiza instalaciones anteriores de24PNG con respaldo y preserva los originales si falla la actualización. Conserva los PNG **fuera de Git**, valida hashes y registra procedencia. Sin importar se usa arte de respaldo y se indica en pantalla. El importador no ejecuta Minecraft. [Recursos y condiciones](docs/block-wars/MINECRAFT_ASSETS.md). La descarga local no acredita permiso para distribuir o monetizar esta aplicación independiente.
+La importación requiere Python3.10+ y red; el juego sólo requiere Node20+. Instala41PNG originales, incluidas las diez etapas de grietas y recursos de agua, hielo, fuego, lluvia, flechas, dispensador y creeper. Actualiza instalaciones anteriores de24o34PNG con respaldo y preserva los originales si falla la actualización. Conserva los PNG **fuera de Git**, valida hashes y registra procedencia. Sin importar se usa arte de respaldo y se indica en pantalla. El importador no ejecuta Minecraft. [Recursos y condiciones](docs/block-wars/MINECRAFT_ASSETS.md). La descarga local no acredita permiso para distribuir o monetizar esta aplicación independiente.
 
 OBS: fuente de navegador **720 × 1280**, URL del juego; mantener activa su renderización. El panel simula eventos, permite cambiar picos/encantamientos, pausa, reinicio, reducción de movimiento y emergencia. El chat reconoce `TNT`, `MEGA`, `SPIN`, etc. ([catálogo](docs/block-wars/CATALOG.md)). Los efectos alteran el motor, no son un video pregrabado. [Referencia visual e implementación](docs/block-wars/REFERENCE_IMPLEMENTED.md).
 

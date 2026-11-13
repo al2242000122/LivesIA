@@ -56,3 +56,13 @@ test('automatic event announces once and operator demo does not borrow the last 
   assert.equal(app.heard.filter(event=>event.source==='automatic').length,1);
   assert.equal(new Set(app.heard.map(event=>event.id)).size,app.heard.length);
 });
+
+test('automatic narration IDs remain unique after a deterministic engine reset',()=>{
+  const app=harness();
+  for(let i=0;i<101;i++)app.experience.update(.05);
+  const first=app.heard.find(event=>event.source==='automatic');assert.ok(first);
+  app.engine.reset();app.rules.reset();app.experience.reset();
+  for(let i=0;i<101;i++)app.experience.update(.05);
+  const automatic=app.heard.filter(event=>event.source==='automatic');
+  assert.equal(automatic.length,2);assert.notEqual(automatic[0].id,automatic[1].id);
+});

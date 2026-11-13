@@ -7,17 +7,26 @@
   // Original synthesized cues. No Minecraft sound files or third-party assets.
   const CUES = Object.freeze({
     mine:[['square',900,550,0.055]], follow:[['sine',660,990,0.18]],
-    tnt:[['square',220,80,0.22]], nuke:[['sawtooth',90,32,0.8],['sine',220,70,0.6]],
+    tnt:[['square',480,300,0.18]], nuke:[['square',220,220,0.15],['square',165,165,0.22,0.25],['triangle',110,55,0.45,0.55]],
     mega:[['triangle',180,50,0.38]], arrow:[['sine',1100,200,0.1]],
     rainbow:[['sine',880,1320,0.2]], butterfly:[['sine',1050,1550,0.16]],
     tnt_rain:[['square',300,90,0.25]], thunder:[['sawtooth',70,28,0.32]],
-    fire:[['sawtooth',300,90,0.25]], rain:[['sine',600,400,0.12]],
+    fire:[['sawtooth',1300,450,0.25]], rain:[['square',620,300,0.13],['square',520,250,0.13,0.18],['square',420,200,0.13,0.36]],
+    storm:[['sawtooth',280,80,0.65],['triangle',1200,320,0.15,0.2]],
+    creeper:[['sawtooth',2700,1800,0.65],['square',3400,2400,0.35,0.15]],
     tsunami:[['triangle',120,60,0.5]], black_hole:[['sine',180,25,0.65]],
     jackpot:[['sine',660,1320,0.35],['sine',880,1760,0.35]],
     demon:[['sawtooth',140,55,0.3]], meteor:[['triangle',260,40,0.5]],
     spin:[['sine',350,1400,0.25]], fast:[['square',700,1200,0.1]],
     big:[['triangle',150,80,0.3]], turbo:[['triangle',800,1400,0.15]],
     descomunal:[['sawtooth',140,40,0.45]]
+  });
+  const IMPACTS = Object.freeze({
+    tnt:[['triangle',120,28,0.35]], rain:[['triangle',150,40,0.25]], tnt_rain:[['triangle',150,40,0.25]],
+    mega:[['sawtooth',100,25,0.6]], nuke:[['sawtooth',80,22,0.85],['triangle',130,30,0.65]],
+    creeper:[['square',160,30,0.3],['triangle',90,25,0.4]], thunder:[['sawtooth',100,25,0.55]],
+    storm:[['triangle',1400,350,0.09]], meteor:[['sawtooth',180,25,0.55]],
+    fire:[['sawtooth',650,180,0.2]], arrow:[['square',1700,500,0.07]], tsunami:[['triangle',200,55,0.35]]
   });
   const MAX_PENDING = 2, MAX_NODES = 8, MAX_AUDIO_BYTES = 2 * 1024 * 1024;
   const EVENT_TTL = 8000, DEDUPE_TTL = 120000, MAX_SEEN = 256, ERROR_BACKOFF = 30000;
@@ -42,7 +51,7 @@
     const later = options.setTimeout || ((fn, delay) => env.setTimeout(fn, delay));
     const cancelTimer = options.clearTimeout || (id => env.clearTimeout(id));
     const gap = Number.isFinite(options.minSpeechGapMs) && options.minSpeechGapMs >= 0 ? options.minSpeechGapMs : 10000;
-    const queue = [], seen = new Map(), nodes = new Set();
+    const queue = [], seen = new Map(), nodes = new Set(), lastImpact = new Map();
     let context, master, active = null, pumpTimer = null, stopped = false, enabling = null;
     let lastStarted = -Infinity, voiceBlockedUntil = 0;
     const state = {enabled:false,muted:false,paused:false,volume:0.6,narrationEnabled:options.narrationEnabled !== false,
@@ -66,21 +75,28 @@
       state.nodes = nodes.size;
     }
     function clearFX() { for (const item of [...nodes]) releaseNode(item,true); }
-    function cue(kind) {
-      const notes = CUES[kind];
-      if (!context || context.state !== 'running' || nodes.size + notes.length > MAX_NODES) { state.fxDropped++; return; }
+    function cue(notes) {
+      if (!notes || !context || context.state !== 'running' || nodes.size + notes.length > MAX_NODES) { state.fxDropped++; return false; }
       try {
-        for (const [type, start, end, duration] of notes) {
+        for (const [type, start, end, duration, delay = 0] of notes) {
           const osc = context.createOscillator(), gain = context.createGain(), item = {osc,gain};
-          nodes.add(item); osc.type = type; osc.frequency.setValueAtTime(start,context.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(end,context.currentTime + duration);
-          gain.gain.setValueAtTime(0.035,context.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001,context.currentTime + duration);
+          const at = context.currentTime + delay;
+          nodes.add(item); osc.type = type; osc.frequency.setValueAtTime(start,at);
+          osc.frequency.exponentialRampToValueAtTime(end,at + duration);
+          gain.gain.setValueAtTime(0.035,at);
+          gain.gain.exponentialRampToValueAtTime(0.0001,at + duration);
           osc.connect(gain); gain.connect(master); osc.onended = () => releaseNode(item,false);
-          osc.start(); osc.stop(context.currentTime + duration);
+          osc.start(at); osc.stop(at + duration);
         }
-        state.fxPlayed++;
-      } catch (_) { state.fxDropped++; clearFX(); }
+        state.fxPlayed++; return true;
+      } catch (_) { state.fxDropped++; clearFX(); return false; }
+    }
+    function impact(kind) {
+      if (!audible() || !Object.prototype.hasOwnProperty.call(IMPACTS,kind)) return false;
+      const time = now();
+      if (time - (lastImpact.get(kind) ?? -Infinity) < 150) return false;
+      if (!cue(IMPACTS[kind])) return false;
+      lastImpact.set(kind,time); return true;
     }
     function cleanupRun(run) {
       cancelTimer(run.timer);
@@ -184,7 +200,7 @@
       purge(); const key = event.source + ':' + event.id;
       if (seen.has(key)) return false;
       seen.set(key,event.at); while (seen.size > MAX_SEEN) seen.delete(seen.keys().next().value);
-      cue(event.kind);
+      cue(CUES[event.kind]);
       if (!state.narrationEnabled || now() < voiceBlockedUntil) { status('fx_only'); return true; }
       if (queue.length >= MAX_PENDING) {
         let lowest = 0; for (let i = 1; i < queue.length; i++) if (queue[i].priority < queue[lowest].priority) lowest = i;
@@ -202,12 +218,12 @@
     }
     function setNarration(value) { state.narrationEnabled = Boolean(value); if (!state.narrationEnabled) clearVoice(); status(state.narrationEnabled ? 'narration_enabled' : 'narration_disabled'); }
     function stop() {
-      if (stopped) return; stopped = true; state.enabled = false; clearVoice(); clearFX(); seen.clear();
+      if (stopped) return; stopped = true; state.enabled = false; clearVoice(); clearFX(); seen.clear(); lastImpact.clear();
       if (master) { try { master.disconnect(); } catch (_) { /* Already disconnected. */ } }
       if (context) { try { const closed = context.close(); if (closed && closed.catch) closed.catch(() => {}); } catch (_) { /* Context already closed. */ } }
       status('stopped');
     }
-    return {enable,mute,pause,notify,setVolume,setNarration,stop,state};
+    return {enable,mute,pause,notify,impact,setVolume,setNarration,stop,state};
   }
   return Object.freeze({createAudio});
 }));

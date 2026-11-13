@@ -5,6 +5,7 @@
   'use strict';
   const SOURCE_VERSION='26.3';
   const ORIGINAL_NAMES=Object.freeze(['stone','soil','coal','iron','gold','redstone','lapis','emerald','diamond','copper','granite','diorite','andesite','moss','obsidian','magma','bedrock','wood_pickaxe','stone_pickaxe','gold_pickaxe','diamond_pickaxe','netherite_pickaxe','tnt','tnt_top',...Array.from({length:10},(_,i)=>'destroy_stage_'+i)]);
+  const EFFECT_NAMES=Object.freeze({water:[16,0],ice:[16,16],fire:[16,0],arrow:[16,16],dispenser:[16,16],creeper:[64,32],rain:[64,256]});
   let originals=new Map();
   function source(kind,id){
     if(kind==='crack')return Number.isInteger(id)&&id>=0&&id<=9?originals.get('destroy_stage_'+id)||null:null;
@@ -14,16 +15,20 @@
   async function loadOriginals({ImageClass=root.Image,timeoutMs=5000}={}){
     originals=new Map();
     if(typeof ImageClass!=='function')return {ok:false,loaded:0};
-    const results=await Promise.allSettled(ORIGINAL_NAMES.map(name=>new Promise((resolve,reject)=>{
+    const names=[...ORIGINAL_NAMES,...Object.keys(EFFECT_NAMES)];
+    const results=await Promise.allSettled(names.map(name=>new Promise((resolve,reject)=>{
       const image=new ImageClass();
       const timer=setTimeout(()=>finish(false),Math.max(1,Math.min(10000,timeoutMs)));
       function finish(ok){clearTimeout(timer);image.onload=null;image.onerror=null;ok?resolve([name,image]):reject(new Error('Textura local no disponible: '+name));}
-      image.onload=()=>finish(image.width===16&&image.height>=16&&image.height<=1024&&image.height%16===0);
+      image.onload=()=>{
+        const dimensions=EFFECT_NAMES[name];
+        finish(dimensions&&dimensions[1]?image.width===dimensions[0]&&image.height===dimensions[1]:image.width===16&&image.height>=16&&image.height<=1024&&image.height%16===0);
+      };
       image.onerror=()=>finish(false);image.src='/block-wars/assets/'+name+'.png';
     })));
-    if(results.some(result=>result.status==='rejected'))return {ok:false,loaded:0};
-    originals=new Map(results.map(result=>result.value));
-    return {ok:true,loaded:originals.size,version:SOURCE_VERSION};
+    if(results.slice(0,ORIGINAL_NAMES.length).some(result=>result.status==='rejected'))return {ok:false,complete:false,loaded:0};
+    originals=new Map(results.filter(result=>result.status==='fulfilled').map(result=>result.value));
+    return {ok:true,complete:originals.size===names.length,loaded:originals.size,version:SOURCE_VERSION};
   }
   const SIZE=16;
   const clamp=n=>Math.max(0,Math.min(255,Math.round(n)));
@@ -92,5 +97,22 @@
     for(let y=0;y<5;y++)for(let x=0;x<11;x++)if(letters[y][x]==='1')pixel(out,x+2,y+6,[22,23,23]);
     return out;
   }
-  return {tile,pickaxe,tnt,source,loadOriginals,ORIGINAL_NAMES,SOURCE_VERSION};
+  function sprite(kind){
+    const out=image();
+    function rect(x,y,w,h,color){for(let row=y;row<y+h;row++)for(let col=x;col<x+w;col++)pixel(out,col,row,color);}
+    if(kind==='creeper'){
+      rect(4,0,8,7,[74,151,49]);rect(5,7,6,6,[87,161,56]);rect(3,13,4,3,[61,118,40]);rect(9,13,4,3,[61,118,40]);
+      rect(5,2,2,2,[18,33,16]);rect(9,2,2,2,[18,33,16]);rect(7,4,2,3,[18,33,16]);rect(6,5,4,1,[18,33,16]);
+    }else if(kind==='arrow'){
+      for(let i=2;i<14;i++)rect(i,15-i,1,2,[135,96,48]);rect(11,1,4,2,[216,219,213]);rect(13,1,2,4,[216,219,213]);rect(1,11,3,3,[231,229,203]);
+    }else if(kind==='fire'){
+      for(let y=3;y<16;y++)for(let x=2;x<14;x++)if(y>5+(x*7%5))pixel(out,x,y,y>11?[255,221,69]:[239,107+(x%3)*20,24]);
+    }else{
+      const colors=kind==='ice'?[[151,201,242],[196,231,252]]:kind==='dispenser'?[[109,111,110],[59,61,62]]:[[38,100,202],[71,145,229]];
+      for(let y=0;y<16;y++)for(let x=0;x<16;x++)pixel(out,x,y,colors[(Math.floor(x/3)+Math.floor(y/2))%2]);
+      if(kind==='dispenser')rect(5,5,6,6,[23,25,26]);
+    }
+    return out;
+  }
+  return {tile,pickaxe,tnt,sprite,source,loadOriginals,ORIGINAL_NAMES,EFFECT_NAMES,SOURCE_VERSION};
 });

@@ -21,22 +21,22 @@ class ImportTests(unittest.TestCase):
    warnings.simplefilter('ignore',UserWarning)
    with zipfile.ZipFile(self.archive,'w',compression=zipfile.ZIP_STORED) as out:
     for key,name in self.config['textures'].items():
-     if key!=missing:out.writestr(name,png())
+     if key!=missing:out.writestr(name,png(*m.SPRITE_DIMENSIONS.get(key,(16,16))))
     if duplicate:out.writestr(self.config['textures']['stone'],png())
     if extra:out.writestr('../escaped.png',png());out.writestr('main.class',b'never execute')
   config={**self.config,'clientSha1':hashlib.sha1(self.archive.read_bytes()).hexdigest(),'clientSize':self.archive.stat().st_size}
   return config
  def test_config_has_exact_pinned_official_sources_and_whitelist(self):
-  self.assertEqual(len(m.validate_config(self.config)['textures']),34)
+  self.assertEqual(len(m.validate_config(self.config)['textures']),41)
   for key,value in [('version','latest'),('clientUrl','https://evil.example/client.jar'),('manifestUrl','file:///tmp/x'),('clientSha1','0'*40),('clientSize',1)]:
    with self.subTest(key=key),self.assertRaises(ValueError):m.validate_config({**self.config,key:value})
   with self.assertRaises(ValueError):m.validate_config({**self.config,'textures':{**self.config['textures'],'script':'../x'}})
- def test_verified_archive_installs_only_34_pngs_and_records_actual_hashes(self):
+ def test_verified_archive_installs_only_41_pngs_and_records_actual_hashes(self):
   config=self.archive_config();destination=self.root/'minecraft';result=m.install_archive(self.archive,config,destination)
   self.assertEqual(set(p.name for p in destination.iterdir()),{key+'.png' for key in config['textures']}|{'provenance.json'})
-  self.assertEqual(result['clientSha1'],config['clientSha1']);self.assertEqual(result['version'],'26.3');self.assertEqual(len(result['textures']),34)
+  self.assertEqual(result['clientSha1'],config['clientSha1']);self.assertEqual(result['version'],'26.3');self.assertEqual(len(result['textures']),41)
   for key,entry in result['textures'].items():
-   data=(destination/(key+'.png')).read_bytes();self.assertEqual(entry['sha256'],hashlib.sha256(data).hexdigest());self.assertEqual(entry['archivePath'],config['textures'][key]);self.assertEqual(entry['width'],16);self.assertEqual(entry['height'],16)
+   data=(destination/(key+'.png')).read_bytes();self.assertEqual(entry['sha256'],hashlib.sha256(data).hexdigest());self.assertEqual(entry['archivePath'],config['textures'][key]);self.assertEqual((entry['width'],entry['height']),m.SPRITE_DIMENSIONS.get(key,(16,16)))
   self.assertEqual(m.verify_installed(destination,config),result)
   (destination/'stone.png').write_bytes(b'tampered')
   with self.assertRaises(ValueError):m.verify_installed(destination,config)
@@ -60,6 +60,10 @@ class ImportTests(unittest.TestCase):
   for image in [b'not png',bytes(bytearray(png()[:20])+b'X'+png()[21:]),png(32),png(16,17),png(16,1040),png()[:-1],b'x'*(1024*1024+1)]:
    with self.subTest(length=len(image)),self.assertRaises(ValueError):m.validate_png(image)
   self.assertEqual(m.validate_png(png(16,32)),(16,32))
+  self.assertEqual(m.validate_png(png(64,32),'creeper'),(64,32))
+  self.assertEqual(m.validate_png(png(64,256),'rain'),(64,256))
+  for key,size in [('creeper',(16,16)),('rain',(64,32)),('stone',(64,64))]:
+   with self.subTest(texture=key),self.assertRaises(ValueError):m.validate_png(png(*size),key)
  def test_zip_symlinks_and_oversized_assets_reject_atomically(self):
   for case in ['symlink','oversized']:
    with self.subTest(case=case):
@@ -67,7 +71,7 @@ class ImportTests(unittest.TestCase):
      for key,name in self.config['textures'].items():
       info=zipfile.ZipInfo(name)
       if key=='stone' and case=='symlink':info.create_system=3;info.external_attr=(0o120777)<<16
-      archive.writestr(info,png()+b'x'*(1024*1024) if key=='stone' and case=='oversized' else png())
+      archive.writestr(info,png()+b'x'*(1024*1024) if key=='stone' and case=='oversized' else png(*m.SPRITE_DIMENSIONS.get(key,(16,16))))
     config={**self.config,'clientSha1':hashlib.sha1(self.archive.read_bytes()).hexdigest(),'clientSize':self.archive.stat().st_size}
     with self.assertRaises(ValueError):m.install_archive(self.archive,config,self.root/case)
     self.assertFalse((self.root/case).exists())
@@ -75,16 +79,22 @@ class ImportTests(unittest.TestCase):
   with self.assertRaises(ValueError):m.download_file('https://example.com/client.jar',self.root/'bad',self.config['clientSha1'])
   self.assertFalse((self.root/'bad').exists())
  def legacy_install(self):
-  config=self.archive_config();legacy={**config,'textures':{k:v for k,v in config['textures'].items() if not k.startswith('destroy_stage_')}}
+  config=self.archive_config();legacy={**config,'textures':dict(m.LEGACY_TEXTURES)}
   destination=self.root/'assets-local'/'minecraft';m.install_archive(self.archive,legacy,destination)
   return config,legacy,destination
- def test_upgrade_preserves_24_asset_backup_and_installs_all_34(self):
+ def test_upgrade_preserves_24_asset_backup_and_installs_all_41(self):
   config,legacy,destination=self.legacy_install();old=(destination/'provenance.json').read_bytes()
   alias=self.root/'path-alias';alias.mkdir();destination=alias/'..'/'assets-local'/'minecraft'
   result,backup=m.upgrade_archive(self.archive,config,destination)
-  self.assertEqual(len(result['textures']),34);self.assertEqual(len(m.verify_installed(destination,config)['textures']),34)
+  self.assertEqual(len(result['textures']),41);self.assertEqual(len(m.verify_installed(destination,config)['textures']),41)
   self.assertTrue(backup.name.startswith('minecraft-backup-'));self.assertEqual(backup.parent,destination.parent.resolve())
   self.assertEqual((backup/'provenance.json').read_bytes(),old);self.assertEqual(len(m.verify_installed(backup,config,allow_legacy=True)['textures']),24)
+ def test_upgrade_from_base34_preserves_original_checksums_and_backup(self):
+  config=self.archive_config();base={**config,'textures':dict(m.BASE_TEXTURES)};destination=self.root/'base34'
+  m.install_archive(self.archive,base,destination);old=(destination/'provenance.json').read_bytes()
+  result,backup=m.upgrade_archive(self.archive,config,destination)
+  self.assertEqual(len(result['textures']),41);self.assertEqual(len(m.verify_installed(backup,config,allow_legacy=True)['textures']),34)
+  self.assertEqual((backup/'provenance.json').read_bytes(),old)
  def test_upgrade_network_and_extraction_failures_preserve_old_installation(self):
   config,legacy,destination=self.legacy_install();old=(destination/'provenance.json').read_bytes()
   with mock.patch.object(m,'download_file',side_effect=m.urllib.error.URLError('fixture offline')):

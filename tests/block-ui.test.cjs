@@ -72,3 +72,35 @@ test('YouTube scene blocks TikFinity events and labels all interaction as local 
   assert.match(app.nodes.get('relay').textContent,/CHAT.*SIN CONECTAR/);
   assert.match(app.nodes.get('like-progress').textContent,/NO CONTROLAN/);
 });
+
+test('comment activation names the correct author and a rejected command is never labelled activated',()=>{
+  const app=harness();
+  const event={type:'comment',source:'simulator',id:'rain-ana',receivedAt:100,actor:{stableHash:'ana',displayName:'Ana'},data:{text:'!rain'}};
+  app.transport.onEvent(event);app.tick(10);app.tick(200);
+  assert.match(app.nodes.get('activation-title').textContent,/RAIN|LLUVIA/);
+  assert.match(app.nodes.get('activation-actor').textContent,/Ana/);
+  assert.match(app.nodes.get('activation-source').textContent,/PRUEBA/);
+  app.transport.onEvent({...event,id:'rain-beto',receivedAt:101,actor:{stableHash:'beto',displayName:'Beto'}});
+  app.tick(400);
+  assert.match(app.nodes.get('command-feedback').textContent,/enfriamiento|espera|ocupad/i);
+  assert.doesNotMatch(app.nodes.get('activation-actor').textContent,/Beto/);
+  app.transport.onControl({type:'bw_emergency',target:'block-wars'});app.tick(600);
+  assert.equal(app.nodes.get('activation-card').hidden,true);
+});
+
+test('the public menu promotes exactly the selected14 while keeping compatibility effects in the operator panel',()=>{
+  const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
+  const menu=html.match(/<ol id="command-list">([\s\S]*?)<\/ol>/)[1];
+  const ids=[...menu.matchAll(/id="menu-([^"]+)"/g)].map(match=>match[1]);
+  assert.deepEqual(ids,['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big']);
+  assert.ok(html.indexOf('/block-wars/effects-render.js')<html.indexOf('/block-wars/render.js'));
+});
+
+test('the server and shared event adapter retain the fictitious comment author displayed in the game',()=>{
+  const {validateCommand}=require('../lib/contracts.js');
+  const {createAdapter}=require('../integrations/events.js');
+  const wire=validateCommand({type:'chat',target:'block-wars',text:'RAIN',actor:'Minera Ana'});
+  const event=createAdapter({now:()=>100,salt:'fixture'}).normalize(wire,'simulator');
+  const app=harness();app.transport.onEvent(event);app.tick(10);app.tick(200);
+  assert.equal(app.nodes.get('activation-actor').textContent,'Minera Ana');
+});

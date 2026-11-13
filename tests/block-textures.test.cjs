@@ -6,10 +6,10 @@ const Textures=require('../games/block-wars/textures.js');
 
 test('original Minecraft catalog loads atomically and aliases existing materials',async()=>{
   const requested=[];
-  class ImageStub{set src(url){this.url=url;requested.push(url);this.width=16;this.height=url.includes('magma')?512:16;queueMicrotask(()=>this.onload());}}
+  class ImageStub{set src(url){this.url=url;requested.push(url);[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,url.includes('magma')?512:16];queueMicrotask(()=>this.onload());}}
   const result=await Textures.loadOriginals({ImageClass:ImageStub});
-  assert.equal(result.loaded,34);assert.equal(result.ok,true);
-  assert.equal(new Set(requested).size,34);
+  assert.equal(result.loaded,41);assert.equal(result.ok,true);assert.equal(result.complete,true);
+  assert.equal(new Set(requested).size,41);
   assert.ok(requested.every(url=>/^\/block-wars\/assets\/[a-z_0-9]+\.png$/.test(url)));
   assert.equal(Textures.source('tile','crystal'),Textures.source('tile','diamond'));
   assert.equal(Textures.source('tool','gold').url,'/block-wars/assets/gold_pickaxe.png');
@@ -18,7 +18,18 @@ test('original Minecraft catalog loads atomically and aliases existing materials
   assert.equal(Textures.source('tile','magma').height,512);
   const config=require('../configs/minecraft-assets.json');
   assert.equal(Textures.SOURCE_VERSION,config.version);
-  assert.deepEqual([...Textures.ORIGINAL_NAMES].sort(),Object.keys(config.textures).sort());
+  assert.deepEqual([...Textures.ORIGINAL_NAMES,...Object.keys(Textures.EFFECT_NAMES)].sort(),Object.keys(config.textures).sort());
+});
+
+test('optional effect textures preserve the installed base34 and disclose partial artwork',async()=>{
+  class BaseOnly{set src(url){this.url=url;this.width=16;this.height=16;queueMicrotask(()=>Object.keys(Textures.EFFECT_NAMES).some(name=>url.endsWith('/'+name+'.png'))?this.onerror():this.onload());}}
+  const partial=await Textures.loadOriginals({ImageClass:BaseOnly});
+  assert.equal(partial.ok,true);assert.equal(partial.complete,false);assert.equal(partial.loaded,34);
+  assert.ok(Textures.source('tile','stone'));assert.equal(Textures.source('sprite','creeper'),null);
+  class WithSkin{set src(url){this.url=url;[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,16];queueMicrotask(()=>this.onload());}}
+  assert.equal((await Textures.loadOriginals({ImageClass:WithSkin})).complete,true);
+  assert.equal(Textures.source('sprite','creeper').width,64);
+  assert.equal(Textures.source('sprite','rain').height,256);
 });
 
 test('block damage selects the original Minecraft destruction stage and composites it over the block',async()=>{

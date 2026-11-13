@@ -53,16 +53,28 @@
         if(typeof command.settings.reducedMotion==='boolean')reducedMotion=command.settings.reducedMotion;
         break;
       case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);audio.pause(engine.state.paused);break;
-      case 'bw_reset':audio.pause(true);engine.reset(command.seed);rules.reset();audio.pause(false);break;
-      case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
+      case 'bw_reset':audio.pause(true);engine.reset(command.seed);rules.reset();experience.reset();presentInteraction();audio.pause(false);break;
+      case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();experience.clear();presentInteraction();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
     }
   }
   const transport=LiveTransport.connect({target:'block-wars',relayEnabled:!youtube,onEvent(event){
     if(youtube&&event.source!=='simulator')return;
     if(event.source in totals){totals[event.source]++;sources.add(event.source);}experience.handleEvent(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
+  function originLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':'EVENTO DE LA MINA';}
+  function presentInteraction(){
+    const activation=experience.state.lastActivation,feedback=experience.state.lastFeedback;
+    element('activation-card').hidden=!activation;
+    if(activation){
+      element('activation-source').textContent=originLabel(activation.source);
+      element('activation-title').textContent=BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
+      element('activation-actor').textContent=activation.source==='automatic'?'LA MINA':activation.actorName||'LA COMUNIDAD';
+    }
+    element('command-feedback').hidden=!feedback||feedback.accepted;
+    if(feedback&&!feedback.accepted)element('command-feedback').textContent=feedback.message;
+  }
   function updateHud(){
-    const state=engine.state,active=state.activeEvent&&state.activeEvent.remaining>0?state.activeEvent:null;
+    const state=engine.state,active=state.activeEvent;
     const depth=Math.floor((state.rowOffset||0)+(state.body?.y||0));
     element('round').textContent=String(depth).padStart(4,'0');
     const elapsed=Math.floor(state.elapsed||0);
@@ -77,12 +89,17 @@
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
     const label=descriptor?.label||active?.kind||'';
     element('timer-caption').textContent=active?'EVENTO: '+label:'PRÓXIMO EVENTO GRATIS';
-    element('next-event').textContent=state.paused?'PAUSA':(active?active.remaining:state.nextEventIn).toFixed(1)+'s';
+    const remainingLabel=active?(active.remaining>0?active.remaining.toFixed(1)+'s':'EN CURSO'):state.nextEventIn.toFixed(1)+'s';
+    element('next-event').textContent=state.paused?'PAUSA':remainingLabel;
     element('timer-card').classList.toggle('is-active',Boolean(active));
     element('time-fill').style.width=Math.max(0,Math.min(100,100*(active?active.remaining/active.duration:state.nextEventIn/state.config.eventInterval)))+'%';
     const banner=element('event-banner');banner.hidden=!active;
-    if(active){banner.textContent=label+' '+active.remaining.toFixed(1)+'s';banner.style.borderColor=descriptor?.color||'#ff4444';}
-    for(const kind of Object.keys(BlockWarsConfig.EVENTS))element('menu-'+kind)?.classList.toggle('is-active',active?.kind===kind);
+    if(active){
+      const actor=active.source==='automatic'?'LA MINA':active.actor||'LA COMUNIDAD';
+      banner.textContent=originLabel(active.source)+' · '+label+' · '+actor+' · '+remainingLabel;banner.style.borderColor=descriptor?.color||'#ff4444';
+    }
+    for(const kind of BlockWarsConfig.SELECTED_EVENTS)element('menu-'+kind).classList.toggle('is-active',active?.kind===kind||(kind==='rain'&&active?.kind==='tnt_rain'));
+    presentInteraction();
   }
   function paintIcons(){
     for(const icon of document.querySelectorAll?.('canvas[data-icon]')||[]){
@@ -95,7 +112,7 @@
   }
   paintIcons();
   globalThis.BlockWarsTextures?.loadOriginals().then(result=>{
-    element('asset-status').textContent=result.ok?'TEXTURAS MINECRAFT · '+result.version:'TEXTURAS DE RESPALDO · IMPORTAR RECURSOS LOCALES';
+    element('asset-status').textContent=result.ok?(result.complete?'TEXTURAS MINECRAFT · '+result.version:'TEXTURAS MINECRAFT BASE · FALTAN TEXTURAS DE EFECTOS'):'TEXTURAS DE RESPALDO · IMPORTAR RECURSOS LOCALES';
     paintIcons();
   });
   function telemetry(){
