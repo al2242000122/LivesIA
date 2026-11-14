@@ -1,5 +1,7 @@
 # Voz reactiva de ElevenLabs — ensayo local
 
+**Alcance inicial YouTube, confirmado por el propietario el 2026-11-13:** voz sólo para metas comunitarias de likes y suscriptores gratuitos; los comandos y eventos automáticos conservan sus FX sin narración. El ensayo identifica todas las recompensas como «Prueba». Todavía no existe un conector de eventos reales de YouTube: estos avisos son simulaciones, no una detección de likes o suscripciones del canal. En TikTok, follow y suscripción pagada siguen siendo distintos.
+
 Implementación local: el servidor convierte **acciones confirmadas del juego** en frases cortas en español. No acepta texto libre, comentarios completos, URLs, SSML, un modelo o una voz enviados por el navegador. Conserva el juego infinito y Snake. La voz no habilita regalos ni suscripciones pagadas, y configurar credenciales no verifica una conexión real con TikTok ni una emisión en OBS.
 
 ## Preparar la cuenta y la voz
@@ -8,26 +10,14 @@ Implementación local: el servidor convierte **acciones confirmadas del juego** 
 2. Crea una clave para Text to Speech con el menor alcance y límite de consumo disponibles en tu cuenta. Revisa ahí tu cuota y condiciones antes del ensayo; este proyecto no compra un plan.
 3. Introduce la clave únicamente en la terminal local del servidor. **No compartirla en el chat, panel, URL, capturas, Git ni archivos del proyecto.** No se requiere SDK ni `npm install`.
 
-Ejemplo en PowerShell, desde la raíz de LivesIA. La clave se solicita ocultamente y se borra del entorno de esa terminal cuando se detiene el servidor con `Ctrl+C`:
+Desde una terminal local visible, en la raíz de LivesIA. Primero detener el servidor anterior con `Ctrl+C` en su propia ventana; el lanzador rechaza un puerto ocupado y no cierra procesos ajenos. La clave se solicita ocultamente, sólo se conserva en memoria del proceso y el entorno anterior se restaura al terminar:
 
 ```powershell
-$speechSecret = Read-Host 'Clave de ElevenLabs (entrada oculta)' -AsSecureString
-$speechPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($speechSecret)
-try {
-  $env:ELEVENLABS_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($speechPointer)
-  $env:ELEVENLABS_VOICE_ID = Read-Host 'Voice ID elegido'
-  $env:ELEVENLABS_MAX_CHARACTERS_PER_HOUR = '12000'
-  node server.js
-} finally {
-  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($speechPointer)
-  $speechSecret.Dispose()
-  Remove-Item Env:ELEVENLABS_API_KEY -ErrorAction SilentlyContinue
-  Remove-Item Env:ELEVENLABS_VOICE_ID -ErrorAction SilentlyContinue
-  Remove-Item Env:ELEVENLABS_MAX_CHARACTERS_PER_HOUR -ErrorAction SilentlyContinue
-}
+.\scripts\start-youtube-voice.ps1 -CheckOnly
+.\scripts\start-youtube-voice.ps1
 ```
 
-Las variables pertenecen al proceso del servidor. El navegador y la fuente de OBS no reciben la clave ni el Voice ID. Reinicia el servidor al cambiar configuración. Mantén el servicio en `127.0.0.1`, sin túneles ni exposición pública.
+El lanzador pide Voice ID y clave, valida sus formatos y usa Flash v2.5 con un presupuesto de12000caracteres/hora. No inicia OBS, grabación ni emisión. Las variables pertenecen al proceso del servidor; el navegador y la fuente de OBS no reciben la clave ni el Voice ID. Reinicia el servidor al cambiar configuración. Mantén el servicio en `127.0.0.1`, sin túneles ni exposición pública. El modo `-CheckOnly` no pide ni muestra secretos y no comprueba autenticación con ElevenLabs.
 
 ## Configuración y límites
 
@@ -47,7 +37,9 @@ El presupuesto se reserva **antes de solicitar el audio**, incluso si el proveed
 
 ## Comprobar el ensayo
 
-Abre `/block-wars/control`, habilita el audio según los controles de la aplicación y prueba una acción gratuita. Los eventos simulados se narran con el prefijo **«Prueba»**. Verifica primero con audífonos o grabación local; después comprueba en OBS que la fuente de navegador entrega audio una sola vez, sin eco ni una segunda pestaña reproduciéndolo. Revisa la grabación antes de emitir. Si la voz no está configurada, el juego debe continuar con sus efectos locales.
+Para YouTube abre `/block-wars?platform=youtube` y su panel `/block-wars/control?platform=youtube`. Habilita el audio y la narración. Prueba25likes hasta que se acepte la TNT comunitaria y «Suscriptor de prueba»: sólo ellos solicitan voz. Si el motor aplaza la TNT, el aviso espera su aceptación. Prueba después RAIN, THUNDER, STORM y NUKE: deben producir FX sin consumir TTS. `!boom` y `!voterain` tampoco se anuncian como likes. Fuera de la variante YouTube se conserva la narración anterior de acciones.
+
+Los eventos simulados se narran con el prefijo **«Prueba»**. Verifica primero con audífonos o grabación local; después comprueba en OBS que la fuente de navegador entrega audio una sola vez, sin eco ni una segunda pestaña reproduciéndolo. Revisa la grabación antes de emitir. Si la voz no está configurada, el juego debe continuar con sus efectos locales.
 
 En otra terminal se puede consultar únicamente el estado seguro:
 
@@ -86,10 +78,12 @@ node --test tests/speech.test.cjs
 ```
 
 - `actionId`: 8–80 caracteres, empieza por letra o dígito y sólo usa letras ASCII, dígitos, `:`, `_`, `-`. Se conserva dos minutos en memoria para evitar narrar/cobrar dos veces la misma acción, incluso después de un error. La tabla admite hasta 256 entradas y rechaza nuevas solicitudes si se llena; no expulsa entradas vigentes.
-- `kind`: los 18 eventos existentes, más `mine`, `follow` y los refuerzos existentes `turbo` y `descomunal`. No admite regalos ni suscripciones.
+- `kind`: los20eventos existentes, más `mine`, `follow` y los refuerzos `turbo` y `descomunal`. Añade `like_milestone` y `youtube_subscriber` exclusivamente con `source:simulator`; no admite regalos ni suscripciones pagadas. La selección de qué acción se narra se aplica en la experiencia del juego; el endpoint conserva los tipos anteriores para compatibilidad.
 - `actorName`: hasta 64 caracteres de entrada, letras/marcas/números Unicode, espacios, `_` y `-`; admite cadena vacía. Se normaliza y recorta antes de pronunciarlo. Un filtro local básico de palabras ofensivas usa una atribución genérica a la comunidad; **no equivale a moderación completa**. Nunca se lee el comentario recibido. El operador debe poder silenciar la narración.
 - `team`: `dark`, `light` o `neutral`.
 - `source`: `simulator`, `tikfinity` o `automatic`. Simulación se anuncia como prueba; los eventos automáticos se atribuyen a la mina, sin nombre inventado. Un follow automático se rechaza. El campo de fuente por sí solo no acredita que el evento sea real: eso depende del adaptador y su validación.
+
+La experiencia recibe internamente `{platform:'youtube'}` como quinto argumento y pasa al audio `narrate` y, sólo para las dos recompensas, `speechKind`. No amplía los cinco campos HTTP ni permite frases libres. Las metas de likes nunca pronuncian el nombre de un espectador. Las suscripciones de ensayo no se aceptan desde TikFinity ni desde el temporizador.
 
 Al habilitar la voz se envían a ElevenLabs la frase resultante y, cuando corresponda, el nombre público normalizado. No se envían el chat completo, ID de TikTok ni telemetría de la partida. El audio permanece en memoria durante la respuesta. La ruta fija es HTTPS de ElevenLabs, con redirecciones bloqueadas; el solicitante no puede elegir host o URL. El servidor devuelve MP3 o un error fijo y nunca reenvía mensajes privados del proveedor. La latencia, el volumen y la captura OBS todavía deben medirse con la voz y equipo elegidos.
 

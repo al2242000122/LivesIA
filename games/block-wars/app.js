@@ -18,9 +18,9 @@
     element('audio-enable').hidden=Boolean(status.enabled);
     element('audio-status').textContent=status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
       status.paused?'AUDIO EN PAUSA':status.lastStatus==='voice_error'||status.lastStatus==='voice_timeout'?'SONIDOS ACTIVOS · VOZ NO DISPONIBLE':
-      voiceAvailable&&narrationRequested?'SONIDOS + VOZ CONFIGURADA · ENSAYAR':'SONIDOS ACTIVOS · VOZ PENDIENTE';
+      voiceAvailable&&narrationRequested?(youtube?'SONIDOS + VOZ LIKES/SUBS · PRUEBA':'SONIDOS + VOZ CONFIGURADA · ENSAYAR'):'SONIDOS ACTIVOS · VOZ PENDIENTE';
   }});
-  const experience=BlockWarsExperience.createExperience(engine,rules,audio,text=>{element('notice').textContent=text;});
+  const experience=BlockWarsExperience.createExperience(engine,rules,audio,text=>{element('notice').textContent=text;},{platform:youtube?'youtube':'local'});
   element('audio-enable').addEventListener('click',()=>audio.enable());
   async function speechHealth(){
     try{const response=await fetch('/api/block-wars/speech/status',{cache:'no-store'});voiceAvailable=response.ok&&Boolean((await response.json()).enabled);}
@@ -67,7 +67,7 @@
     element('activation-card').hidden=!activation;
     if(activation){
       element('activation-source').textContent=originLabel(activation.source);
-      element('activation-title').textContent=BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
+      element('activation-title').textContent=youtube&&activation.kind==='follow'?'SUSCRIPTOR DE PRUEBA':BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
       element('activation-actor').textContent=activation.source==='automatic'?'LA MINA':activation.actorName||'LA COMUNIDAD';
     }
     element('command-feedback').hidden=!feedback||feedback.accepted;

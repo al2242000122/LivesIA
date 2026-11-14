@@ -1,6 +1,10 @@
 # YouTube LIVE: preparación del primer ensayo
 
-Fecha: 2026-11-12. Estado: **preparación local implementada, canal y teléfono verificados; activación LIVE en espera, ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
+Actualización: 2026-11-13. Estado: **preparación local implementada, acceso a la sala de control LIVE comprobado; ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
+
+El13de noviembre se abrió la sala autenticada del canal y se completó la bienvenida seleccionando software de transmisión. Se guardaron título, descripción, categoría Videojuegos y **No listado**; el propietario confirmó público general, no creado específicamente para niños. Studio mostró el ensayo sin señal («No hay datos») en `/video/i0fOJAzWJqA/livestreaming`. No se mostró ni copió la clave de transmisión. El comportamiento de inicio automático queda por comprobar antes de enviar señal desde OBS.
+
+OBS portable cargó **LivesIA YouTube / Mina YouTube** mediante el acceso directo local «Mina Infinita YouTube». Se grabaron y decodificaron completos dos ensayos de147.133s y122.100s: H.264720×1280/30FPS y AAC44.1kHz estéreo. Se elevaron únicamente los FX; el pico de la segunda muestra fue−21.57dBFS, sin saturación en esa muestra. La voz real y su mezcla siguen pendientes. [Evidencia](OBS_YOUTUBE_REHEARSAL_2026-11-13.md).
 
 ## Qué está preparado
 
@@ -8,7 +12,9 @@ Perfil y colección independientes **LivesIA YouTube**, escena **Mina YouTube**.
 
 La vista YouTube muestra **ENSAYO**, **CHAT PENDIENTE** y **EFECTOS DEMO**. No abre el WebSocket de TikFinity ni acepta sus eventos. Los botones del panel siguen disponibles como simulaciones explícitas. Likes, suscriptores, miembros, Super Chat y regalos de YouTube **no controlan el juego** en esta fase. No anunciar lo contrario durante una prueba.
 
-Los picos, colisiones, minería infinita,18eventos, efectos, voz opcional y Snake se conservan. Sólo el perfil nuevo selecciona la variante YouTube; las rutas sin el parámetro mantienen su funcionamiento anterior.
+Los picos, colisiones, minería infinita,20eventos internos,14comandos destacados, efectos y Snake se conservan. En YouTube, la voz opcional se limita inicialmente a metas comunitarias de likes y suscriptores gratuitos de prueba. Comandos y eventos automáticos sólo reproducen FX. Sólo el perfil nuevo selecciona la variante YouTube; las rutas sin el parámetro mantienen su funcionamiento anterior.
+
+Para preparar la entrada privada de ElevenLabs existe `scripts/start-youtube-voice.ps1`: solicita la clave ocultamente en una terminal local y no la guarda ni inicia aplicaciones/emisiones. Ver [configuración y prueba](SPEECH_SETUP.md). Las pruebas automatizadas no consumen créditos; la autenticación, voz elegida, pronunciación y mezcla OBS siguen sin comprobarse.
 
 ## Crear el canal y habilitar LIVE
 
@@ -53,6 +59,8 @@ Cambiar esa descripción únicamente cuando la integración real de comentarios 
 La alternativa oficial es la [API de YouTube LIVE Chat](https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages). `streamList` entrega mensajes mediante una conexión de servidor y puede incluir historial inicial; requiere deduplicación y un corte temporal para no premiar mensajes antiguos al conectar. `list` exige respetar `pollingIntervalMillis` y presupuesto de cuota. No reutilizar el WebSocket de TikFinity como si fuera YouTube.
 
 Pendiente de implementar y probar: acceso de lectura autorizado, selección del LIVE/chat correctos, reanudación, cuotas, identidades mínimas en memoria y fuente YouTube distinguible, comandos permitidos/moderación, enfriamientos y anuncios sólo por acciones aceptadas. Un suscriptor gratuito y un miembro pagado son eventos distintos. No prometer notificación individual de cada suscripción, ni convertir likes agregados en autores de acciones. Pagos y monetización siguen deshabilitados.
+
+Los likes se tratarán como hitos de comunidad: `statistics.likeCount` es un agregado, no una identidad por pulsación ([videos](https://developers.google.com/youtube/data/reference/rest/v3/videos)). `newSponsorEvent` representa membresía pagada, no una suscripción gratuita ([tipos de chat](https://developers.google.com/youtube/data/live/reference/rest/v3/liveChatMessages)). Los suscriptores con privacidad activada no aparecen en la lista reciente; no se garantiza aviso nominal para todos ([ayuda de YouTube](https://support.google.com/youtube/answer/7280745?hl=es)). La API de [suscripciones recientes](https://developers.google.com/youtube/data/reference/rest/v3/subscriptions/list) exige acceso autorizado para `myRecentSubscribers`; antes de habilitarla debe evitar premiar historial anterior al LIVE. Fuentes comprobadas el2026-11-13.
 
 ## Verificación y aceptación
 

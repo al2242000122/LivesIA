@@ -5,6 +5,8 @@
   if(youtube){
     element('youtube-setup').hidden=false;
     document.querySelector('a[href="/block-wars"]').href='/block-wars?platform=youtube';
+    element('follow-demo').textContent='+ Suscriptor gratuito · PRUEBA';
+    element('voice-policy').textContent+=' En YouTube la voz sólo ensaya metas de likes y nuevos suscriptores gratuitos. Los comandos y eventos automáticos conservan sonidos y efectos, sin narración. Ningún botón confirma actividad real de YouTube.';
   }
   const feedback=element('feedback');
   let pollTimer,disposed=false;

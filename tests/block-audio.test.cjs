@@ -65,6 +65,52 @@ test('audio requires operator enable, accepts only known actions and deduplicate
   h.audio.stop();
 });
 
+test('internal narration policy retains action FX and uses only typed, compatible speech overrides', async () => {
+  const h=harness();await h.audio.enable();
+  for(const kind of Config.SELECTED_EVENTS)h.audio.notify(h.event('fx-'+kind,kind,{narrate:false}));
+  await flush();assert.equal(h.requests.length,0);assert.ok(h.audio.state.fxPlayed>0);
+  await h.clock.advance(1000);
+  for(const extra of [{narrate:'false'},{speechKind:'free text'},{speechKind:'youtube_subscriber'},{speechKind:'like_milestone',source:'tikfinity'}]){
+    assert.equal(h.audio.notify(h.event('invalid','tnt',extra)),false);
+  }
+  h.audio.notify(h.event('likes','tnt',{speechKind:'like_milestone',narrate:true,actorName:'Not the liker'}));
+  await flush();assert.equal(h.requests.length,1);assert.equal(h.requests[0].event.kind,'like_milestone');assert.equal(h.requests[0].event.actorName,'');
+  h.media[0].end();await flush();
+  h.audio.notify(h.event('sub','follow',{speechKind:'youtube_subscriber',narrate:true}));
+  await flush();assert.equal(h.requests[1].event.kind,'youtube_subscriber');assert.equal(h.requests[1].event.actorName,'Diego');
+  h.audio.stop();
+});
+
+test('real YouTube experience routes fourteen commands and automatic effects to FX, and only simulator rewards to TTS', async () => {
+  const {createEngine}=require('../games/block-wars/engine.js');
+  const {createRules}=require('../games/block-wars/rules.js');
+  const {createExperience}=require('../games/block-wars/experience.js');
+  const h=harness();await h.audio.enable();
+  function scene(){
+    const engine=createEngine({seed:14,layout:'endless',width:7,height:40,eventInterval:5});
+    const rules=createRules(engine);
+    return {engine,rules,experience:createExperience(engine,rules,h.audio,()=>{},{platform:'youtube'})};
+  }
+  const comment=(id,text)=>({id,type:'comment',source:'simulator',receivedAt:1,actor:{stableHash:'miner',displayName:'Minero demo'},data:{text}});
+  for(const kind of Config.SELECTED_EVENTS){
+    const app=scene();assert.equal(app.experience.handleEvent(comment('cmd-'+kind,kind)),true);
+    await h.clock.advance(1000);
+  }
+  const app=scene();for(let i=0;i<101;i++)app.experience.update(.05);
+  await flush();assert.equal(h.requests.length,0);assert.equal(h.audio.state.fxPlayed,15);
+  const like={id:'likes',type:'like',source:'simulator',receivedAt:2,data:{delta:25}};
+  app.engine.pause(true);app.experience.handleEvent(like);await flush();assert.equal(h.requests.length,0);
+  app.engine.pause(false);app.experience.update(.05);await flush();
+  assert.equal(h.requests.length,1);assert.equal(h.requests[0].event.kind,'like_milestone');assert.equal(h.requests[0].event.actorName,'');
+  h.media[0].end();await flush();
+  app.experience.handleEvent({...comment('subscriber',''),type:'follow',receivedAt:3});await flush();
+  assert.equal(h.requests.length,2);assert.equal(h.requests[1].event.kind,'youtube_subscriber');
+  h.audio.pause(true);app.engine.reset();app.rules.reset();app.experience.reset();h.audio.pause(false);
+  await flush();assert.equal(h.requests.length,2);assert.equal(h.audio.state.playing,false);
+  h.audio.mute(true);app.experience.handleEvent({...like,id:'muted',receivedAt:4});await flush();assert.equal(h.requests.length,2);
+  h.audio.stop();
+});
+
 test('one narration at a time, two pending maximum, NUKE replaces lower priority pending', async () => {
   const h = harness(); await h.audio.enable();
   h.audio.notify(h.event('a')); await flush();

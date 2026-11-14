@@ -12,15 +12,15 @@ const experience=require('../games/block-wars/experience.js');
 const root=path.join(__dirname,'..');
 const gameIds=new Set([...fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8').matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 function harness(platform='local'){
-  const nodes=new Map(),listeners={},requests=[];
+  const nodes=new Map(),listeners={},requests=[],sounds=[];
   const context2d=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
   function node(id){if(!gameIds.has(id))throw new Error('Missing game markup ID: '+id);if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
   let callbacks,frame,instance,updateCalls=0;
   const sandbox={console,location:{search:platform==='youtube'?'?platform=youtube':''},URLSearchParams,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
-    BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(){},setVolume(){},setNarration(){},stop(){}};}},
+    BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(event){sounds.push(event);},setVolume(){},setNarration(){},stop(){}};}},
     LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true,json:async()=>({enabled:false})});}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'games/block-wars/app.js'),'utf8'),sandbox,{filename:'app.js'});
-  return {nodes,requests,listeners,get engine(){return instance;},get updates(){return updateCalls;},get transport(){return callbacks;},tick(now){frame(now);}};
+  return {nodes,requests,listeners,sounds,get engine(){return instance;},get updates(){return updateCalls;},get transport(){return callbacks;},tick(now){frame(now);}};
 }
 test('Block Wars app executes real engine/render, bounds suspended-frame catch-up and processes controls',()=>{
   const app=harness();app.tick(10);app.tick(100000);assert.equal(app.updates,5);
@@ -71,6 +71,15 @@ test('YouTube scene blocks TikFinity events and labels all interaction as local 
   assert.match(app.nodes.get('source').textContent,/YOUTUBE.*ENSAYO/);
   assert.match(app.nodes.get('relay').textContent,/CHAT.*SIN CONECTAR/);
   assert.match(app.nodes.get('like-progress').textContent,/NO CONTROLAN/);
+  assert.equal(app.sounds[0].speechKind,'like_milestone');
+  const command=harness('youtube');
+  command.transport.onEvent({type:'comment',source:'simulator',id:'yt-rain',receivedAt:3,actor:{stableHash:'miner',displayName:'Minero demo'},data:{text:'RAIN'}});
+  assert.equal(command.sounds[0].kind,'rain');assert.equal(command.sounds[0].narrate,false);
+  const subscriber=harness('youtube');
+  subscriber.transport.onEvent({type:'follow',source:'simulator',id:'yt-sub',receivedAt:4,actor:{stableHash:'sub',displayName:'Sub demo'},data:{}});
+  subscriber.tick(200);
+  assert.equal(subscriber.sounds[0].speechKind,'youtube_subscriber');
+  assert.equal(subscriber.nodes.get('activation-title').textContent,'SUSCRIPTOR DE PRUEBA');
 });
 
 test('comment activation names the correct author and a rejected command is never labelled activated',()=>{

@@ -11,7 +11,8 @@
     return name&&/^[\p{L}\p{N}\p{M} _-]+$/u.test(name)?name.slice(0,32):'un minero';
   }
   function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':'EVENTO DE LA MINA';}
-  function createExperience(engine,rules,audio,onNotice=()=>{}){
+  function createExperience(engine,rules,audio,onNotice=()=>{},options={}){
+    const youtube=options.platform==='youtube';
     let context=null,sequence=0,impactSeen=new WeakSet();
     const state={lastActivation:null,lastFeedback:null,elapsed:0};
     // Local IDs never incorporate viewer names, hashes or event identifiers.
@@ -26,18 +27,26 @@
       if(!audible.has(kind))return;
       const source=['simulator','tikfinity'].includes(origin?.source)?origin.source:'automatic';
       const name=source==='automatic'?'':origin?.actorName||'';
-      const label=config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
+      const subscriberDemo=youtube&&kind==='follow'&&source==='simulator';
+      const label=config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:subscriberDemo?'SUSCRIPTOR DE PRUEBA':'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
       const by=name?name:source==='automatic'?'La mina':'La comunidad';
       const activation={id,kind,team:team||'neutral',actorName:name,source,at:state.elapsed,until:state.elapsed+FEEDBACK_TTL};
       if(source==='automatic')activation.engineActionId=origin?.engineActionId||'';
       state.lastActivation=activation;
-      const message=sourceLabel(source)+' · '+by+(kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
+      const message=sourceLabel(source)+' · '+by+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
       publish({...activation,accepted:true,reason:'activated',retryAfterMs:0},message);
-      audio.notify({id,kind,team:team||'neutral',actorName:name,source});
+      const sound={id,kind,team:team||'neutral',actorName:name,source};
+      if(youtube){
+        // Only simulator rewards have a verified local meaning. No real YouTube bridge exists yet.
+        const speechKind=subscriberDemo?'youtube_subscriber':source==='simulator'&&kind==='tnt'&&origin?.trigger==='like'?'like_milestone':null;
+        sound.narrate=Boolean(speechKind);
+        if(speechKind)sound.speechKind=speechKind;
+      }
+      audio.notify(sound);
     }
     engine.action=function(action,metadata){
       // Deferred community credits retain their source without borrowing a spectator's name.
-      const origin=metadata?.community&&['simulator','tikfinity'].includes(metadata.source)?{source:metadata.source,actorName:''}:context;
+      const origin=metadata?.community&&['simulator','tikfinity'].includes(metadata.source)?{source:metadata.source,actorName:'',trigger:metadata.trigger}:context;
       const id=nextId(),source=['simulator','tikfinity'].includes(origin?.source)?origin.source:'automatic';
       const accepted=perform(action,{actor:source==='automatic'?'':origin?.actorName||'',source,actionId:id});
       if(accepted)announce(context?.follow?'follow':action.type,action.team,origin,id);
