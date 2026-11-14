@@ -30,3 +30,6 @@ Ensayo local OBS33.0.1 con fuente y salida60FPS:112.01s,6720frames H.264720×128
 6. Antes de revertir, detener grabación/emisión y confirmar cierre de Studio si estaba activo. Volver a `codex/youtube-live-chat`, reiniciar servidor y actualizar fuente; devolver fuente/salida30FPS si se busca replicar el ensayo anterior. Conservar recursos locales, credenciales y grabaciones. No modificar main.
 
 Pendiente: aceptación del propietario del estilo/ritmo/música y comandos en transmisión real actualizada; ensayo120min reales y monetización. No se inicia un LIVE nuevo al aplicar este PR.
+
+
+Estado local al terminar: instalación habitual en la rama de este PR, servidor iniciado con `npm start`, recursos22OGG+WAV copiados y cotejados antes de instalar. OBSfuente restaurada a `http://127.0.0.1:4173/block-wars?platform=youtube`, frecuencia personalizada60 y salida60; sonido activado tras la recarga. Temporal4174 detenido. La emisión de prueba previa figura `complete`/`unlisted`; el lector queda sin seleccionar una emisión nueva. La autorización de lectura continúa configurada. Emisión/grabación detenidas; no se reabre un LIVE por este cambio.
