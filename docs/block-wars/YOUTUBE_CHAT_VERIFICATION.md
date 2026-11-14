@@ -1,6 +1,6 @@
 # Verificación del lector de chat — 2026-11-14
 
-Estado: **código y pruebas locales verificados; autorización de la cuenta, chat real e ingestión pendientes**. Rama `codex/youtube-live-chat`, basada en `codex/elevenlabs-youtube-onboarding`; main permanece intacto.
+Estado: **código, pruebas locales y autorización de lectura verificados; chat real e ingestión pendientes**. Rama `codex/youtube-live-chat`, basada en `codex/elevenlabs-youtube-onboarding`; main permanece intacto.
 
 ## Comprobaciones ejecutadas
 
@@ -32,8 +32,12 @@ Los ensayos de seis horas **virtuales** de sondeo y streaming recorren reconexio
 
 ## Configuración real y límites
 
-Google Cloud: proyecto y YouTube Data API v3 habilitados; cliente **Mina Infinita LIVE local** creado con permiso explícito del propietario. El JSON descargado se guarda fuera de Git y nunca se imprime. El propietario aprobó añadir únicamente su cuenta como usuario de prueba; el último estado leído todavía mostraba la lista vacía y se solicitó completar el paso manualmente debido a un fallo del control de ventana. No existe todavía autorización privada guardada ni recepción de comentarios reales comprobada.
+Google Cloud: proyecto y YouTube Data API v3 habilitados; cliente **Mina Infinita LIVE local** creado con permiso explícito del propietario. El propietario añadió personalmente dos usuarios de prueba y completó la autorización de lectura tras revisar el aviso de Google. El asistente terminó con código0 y guardó el archivo privado fuera de Git. Ningún token o clave se incluye en esta evidencia.
+
+El 2026-11-14 el servidor comprobó el canal esperado mediante la API oficial y consultó una emisión propia: el ensayo conocido figura como `unlisted`/`ready`. Se seleccionó ese video explícitamente; el lector quedó `waiting_live`, con autenticación válida, error nulo y cero comentarios recibidos. La muestra inicial consumió 3 unidades del contador local, no es una lectura de la cuota global del proyecto. El servidor se reinició mediante el arranque normal; la configuración privada conserva sólo la ruta del archivo de autorización.
+
+OBS 33.0.1 mantuvo perfil/escena **LivesIA YouTube / Mina YouTube**, 30 FPS y emisión/grabación detenidas. Se actualizó la fuente y se activó su sonido. La configuración de Emisión todavía apuntaba a Twitch; se preparó **YouTube-RTMPS / Primary YouTube ingest server** y se dejó la entrada protegida para que el propietario pegue personalmente la clave del ensayo. Su guardado y la señal de salida todavía no se verificaron. No se muestra, copia ni captura esa clave. Evidencia visual local en `artifacts/youtube-preparation/obs-chat-autorizado.png`, fuera de Git.
 
 No se inició una transmisión. Likes y suscriptores reales siguen pendientes; sus botones continúan siendo simulaciones. Los comentarios YouTube tienen FX y autor, sin TTS. Recursos de Minecraft permanecen locales/ignorados y el permiso de comercialización no se da por resuelto.
 
-El formato HTTP autenticado, cuenta/canal efectivo, latencia, glifos reales de la fuente y comportamiento en OBS se aceptan mediante un ensayo no listado autorizado. El contador de cuota es local y se reinicia con el proceso. OAuth externo en Prueba requiere renovar consentimiento al caducar, según la [configuración y sus fuentes](YOUTUBE_CHAT_SETUP.md).
+El formato HTTP autenticado del chat, latencia y comportamiento de comandos reales en OBS se aceptan mediante un ensayo no listado autorizado; comprobar la cuenta/canal no sustituye ese ensayo. Los contadores de voz permanecieron en cero tras preparar esta sesión. El contador de cuota es local y se reinicia con el proceso. OAuth externo en Prueba requiere renovar consentimiento al caducar, según la [configuración y sus fuentes](YOUTUBE_CHAT_SETUP.md).

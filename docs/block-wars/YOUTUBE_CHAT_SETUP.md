@@ -1,6 +1,6 @@
 # Chat oficial de YouTube: configuración local
 
-Estado al 2026-11-13: autenticación de lectura y lector implementados para revisión; conexión real pendiente. El propietario aceptó las condiciones de Google Cloud y autorizó crear el cliente de escritorio **Mina Infinita LIVE local** en el proyecto `mina-infinita-live`. YouTube Data API v3 está habilitada. Crear el cliente no autoriza por sí solo la cuenta ni demuestra recepción de comentarios.
+Estado al2026-11-14: código probado, autorización de lectura completada personalmente y canal/emisión propios comprobados por la API. El ensayo conocido permanece no listado y el lector muestra `waiting_live`, sin comentarios recibidos. El propietario aceptó las condiciones de Google Cloud y autorizó crear el cliente de escritorio **Mina Infinita LIVE local** en el proyecto `mina-infinita-live`. YouTube Data API v3 está habilitada. La recepción real de comentarios y la ingestión siguen pendientes; ver [evidencia](YOUTUBE_CHAT_VERIFICATION.md).
 
 ## Autorizar la cuenta
 
