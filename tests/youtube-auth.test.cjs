@@ -62,3 +62,53 @@ test('overall request deadlines bound stalled fetch and stalled body',async()=>{
   const start=Date.now();await assert.rejects(tokenRequest({}, {fetchImpl,timeoutMs:25}),{message:'youtube_auth_request'});assert.ok(Date.now()-start<1000);
  }
 });
+async function desktopFixture(root) {
+ const clientFile=path.join(root,'desktop.json');
+ await fs.writeFile(clientFile,JSON.stringify({installed:{client_id:'id',client_secret:'secret',auth_uri:AUTH_URL,token_uri:TOKEN_URL,redirect_uris:['http://localhost']}}));
+ return clientFile;
+}
+test('setup deadline destroys a partial HTTP request connection',async t=>{
+ const {root}=await fixture(t);
+ const clientFile=await desktopFixture(root);
+ const flow=await startYouTubeAuthorization({clientFile,authFile:path.join(root,'new.json'),timeoutMs:150});
+ const location=new URL(flow.localUrl);
+ const socket=require('node:net').connect(Number(location.port),'127.0.0.1');
+ t.after(()=>socket.destroy());
+ socket.on('error',()=>{});
+ const closed=new Promise(resolve=>socket.once('close',resolve));
+ await new Promise(resolve=>socket.once('connect',resolve));
+ socket.write(`GET / HTTP/1.1\r\nHost: ${location.host}\r\nX-Partial: `);
+ await assert.rejects(flow.done,{message:'youtube_auth_timeout'});
+ await Promise.race([closed,new Promise((_,reject)=>{const timer=setTimeout(()=>reject(new Error('partial socket remained open')),1000);timer.unref();})]);
+});
+for(const overwrite of [false,true]) test(`timeout during private write prevents installation (overwrite=${overwrite})`,async t=>{
+ const {root,authFile}=await fixture(t);
+ const target=overwrite ? authFile : path.join(root,'new.json');
+ const original=overwrite ? await fs.readFile(target,'utf8') : null;
+ const clientFile=await desktopFixture(root);
+ let releaseWrite;
+ let enteredWrite;
+ let writeReturned;
+ const entered=new Promise(resolve=>{enteredWrite=resolve;});
+ const release=new Promise(resolve=>{releaseWrite=resolve;});
+ const returned=new Promise(resolve=>{writeReturned=resolve;});
+ const flow=await startYouTubeAuthorization({clientFile,authFile:target,overwrite,timeoutMs:200,fetchImpl:async()=>response({refresh_token:'new-refresh'}),writeFileImpl:async(...args)=>{
+  await fs.writeFile(...args);enteredWrite();await release;writeReturned();
+ }});
+ const page=await (await fetch(flow.localUrl)).text();
+ const auth=new URL(page.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&'));
+ const callback=new URL(auth.searchParams.get('redirect_uri'));
+ callback.searchParams.set('state',auth.searchParams.get('state'));callback.searchParams.set('code','fixture-code');
+ const request=fetch(callback).catch(()=>null);
+ await entered;
+ await assert.rejects(flow.done,{message:'youtube_auth_timeout'});
+ releaseWrite();await returned;await request;
+ // Wait until the callback has removed its temporary file, proving persistence unwound.
+ for(let attempt=0;attempt<100;attempt++) {
+  if(!(await fs.readdir(root)).some(name=>name.endsWith('.tmp'))) break;
+  await new Promise(resolve=>setTimeout(resolve,5));
+ }
+ assert.equal((await fs.readdir(root)).some(name=>name.endsWith('.tmp')),false);
+ if(overwrite) assert.equal(await fs.readFile(target,'utf8'),original);
+ else await assert.rejects(fs.stat(target),{code:'ENOENT'});
+});
