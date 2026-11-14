@@ -15,8 +15,8 @@ test('solid side contact reflects horizontal velocity and reports its normal',()
 test('solid floor contact reflects downward velocity without tunneling through it',()=>{
   const map=world();for(let x=0;x<7;x++)map.blocks[6*7+x]={hp:2};
   const body={...Physics.createBody(7),x:3.5,y:5.4,vx:2.5,vy:5};
-  let touched=false;Physics.step(body,0.25,map,()=>{touched=true;});
-  assert.ok(touched);assert.ok(body.vy<0);assert.ok(body.y<=6-body.radius+1e-5);
+  let touched=false,reflected=false;Physics.step(body,0.25,map,()=>{touched=true;reflected||=body.vy<0;});
+  assert.ok(touched);assert.ok(reflected);assert.ok(body.y<=6-body.radius+1e-5);
 });
 
 test('persistent terrain collision stays outside solids and horizontal walls for10000 steps',()=>{
@@ -30,4 +30,15 @@ test('persistent terrain collision stays outside solids and horizontal walls for
     assert.ok(Math.abs(body.vy)<=Physics.MAX_SPEED);
   }
   assert.ok(body.collisions>100);
+});
+
+
+test('pickaxe crosses open terrain briskly and retains collision at maximum boosted speed',()=>{
+  const map=world(),body=Physics.createBody(7),x=body.x;
+  Physics.step(body,.1,map,()=>{});
+  assert.ok(body.x-x>=.5,'at least half a cell of horizontal travel in100ms');
+  for(let col=0;col<7;col++)map.blocks[8*7+col]={hp:2};
+  Object.assign(body,{x:3.5,y:5,vx:14,vy:24});
+  let touched=false;Physics.step(body,.25,map,()=>{touched=true;},1.6);
+  assert.ok(touched);assert.ok(body.y<=8-body.radius+1e-5);
 });

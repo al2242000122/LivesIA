@@ -73,25 +73,26 @@
   });
   const LIMITS = Object.freeze({maxQueue:24,maxParticles:160,maxEffects:24,
     maxBlockOps:40,maxExplosionOps:32,maxProgress:64,maxDelta:0.25,
-    maxCells:1600,maxEntities:24,maxSpeed:240,nukeCooldown:45,summaryDuration:4,maxScore:1000000000});
+    maxCells:1600,maxEntities:24,maxWeather:8,maxSpeed:240,nukeCooldown:45,summaryDuration:4,maxScore:1000000000});
   const SELECTED_EVENTS=Object.freeze(['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big']);
   // Local gameplay tuning: seconds, cells, cells/second and HP. Not platform limits.
   const MINECRAFT_EFFECTS=Object.freeze({
-    projectile:Object.freeze({spawnHeight:5,spawnInterval:.15,lifetime:6,driftSpeed:.8,fuse:.75,
-      gravity:14,maxFallSpeed:12,maxFallStep:.025,bounceRetention:.25,minBounceSpeed:1,
-      flightSeconds:1.1,flightLifetime:2.5,flightRadius:.2,maxFlightStep:.2,outsideGraceSeconds:.5}),
-    rain:Object.freeze({spawnInterval:.55}),
-    mega:Object.freeze({lifetime:7,fuse:2}),
-    nuke:Object.freeze({lifetime:9,fuse:3,chainRadius:3.2,
+    mining:Object.freeze({contactWorkMultiplier:3}),
+    projectile:Object.freeze({spawnHeight:5,spawnInterval:.1,lifetime:6,driftSpeed:1.2,fuse:.4,
+      gravity:28,maxFallSpeed:20,maxFallStep:.025,bounceRetention:.25,minBounceSpeed:1,
+      flightSeconds:.65,flightLifetime:2.5,flightRadius:.2,maxFlightStep:.2,outsideGraceSeconds:.5}),
+    rain:Object.freeze({spawnInterval:.16}),
+    mega:Object.freeze({lifetime:7,fuse:.9}),
+    nuke:Object.freeze({lifetime:9,fuse:1.5,chainRadius:3.2,
       chainOffsets:Object.freeze([Object.freeze([0,0]),Object.freeze([-2,2]),Object.freeze([2,4])])}),
-    creeper:Object.freeze({fuse:1.3}),
-    arrow:Object.freeze({spawnInterval:.2,volleyCount:4,flightSeconds:.8,originHeight:3,damage:2.4}),
-    meteor:Object.freeze({flightSeconds:1.6,flightLifetime:3,flightRadius:.6,pathRadius:.95,pathDamage:4,penetrationSeconds:.45}),
-    fire:Object.freeze({maxHazards:8,burnOffsetY:.8,burnRadius:1.5,burnSeconds:3,burnDamage:.9,pulseSeconds:.35}),
-    tsunami:Object.freeze({crossingSeconds:3.5,lifetime:3.8,radius:2,damage:1.2,pulseSeconds:.2,
-      pushRangeX:1.7,pushRangeY:3,pushAcceleration:12,maxPushSpeed:7.5}),
-    thunder:Object.freeze({pulseSeconds:1.6}),
-    storm:Object.freeze({pulseSeconds:.35,windFrequency:2,windAcceleration:8}),
+    creeper:Object.freeze({fuse:.8}),
+    arrow:Object.freeze({spawnInterval:.1,volleyCount:4,flightSeconds:.45,originHeight:3,damage:2.4}),
+    meteor:Object.freeze({flightSeconds:.8,flightLifetime:3,flightRadius:.6,pathRadius:.95,pathDamage:4,penetrationSeconds:.45}),
+    fire:Object.freeze({maxHazards:8,burnOffsetY:.8,burnRadius:1.5,burnSeconds:3,burnDamage:.9,pulseSeconds:.18}),
+    tsunami:Object.freeze({crossingSeconds:1.5,lifetime:2,radius:2,damage:1.2,pulseSeconds:.12,
+      pushRangeX:1.7,pushRangeY:3,pushAcceleration:12,maxPushSpeed:15}),
+    thunder:Object.freeze({pulseSeconds:.65}),
+    storm:Object.freeze({pulseSeconds:.18,windFrequency:2,windAcceleration:8}),
     fast:Object.freeze({physicsSpeedScale:1.6}),
     big:Object.freeze({bodyRadius:.5,contactBlastRadius:1.1}),
     spin:Object.freeze({rotationRate:9})

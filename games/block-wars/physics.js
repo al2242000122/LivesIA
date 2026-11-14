@@ -4,9 +4,9 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-  const GRAVITY=14,MAX_SPEED=7.5,MIN_HORIZONTAL=2.5,RESTITUTION=0.8;
+  const GRAVITY=30,MAX_SPEED=15,MIN_HORIZONTAL=5,RESTITUTION=0.86;
   function createBody(width){
-    return {x:width/2,y:4.5,vx:2.8,vy:0,radius:0.35,rotation:0,team:'dark',collisions:0};
+    return {x:width/2,y:4.5,vx:5.6,vy:0,radius:0.35,rotation:0,team:'dark',collisions:0};
   }
   function normal(body,x,y){
     const nearestX=clamp(body.x,x,x+1),nearestY=clamp(body.y,y,y+1);
@@ -20,7 +20,9 @@
   }
   function step(body,dt,world,onContact,speedScale=1){
     const scale=Number.isFinite(speedScale)?clamp(speedScale,1,1.6):1,maxSpeed=MAX_SPEED*scale;
-    const steps=Math.min(8,Math.max(1,Math.ceil(dt/0.025))),h=dt/steps;
+    // A faster body needs spatial as well as temporal substeps to keep narrow blocks solid.
+    const travel=Math.hypot(body.vx,body.vy)*dt+GRAVITY*dt*dt/2;
+    const steps=Math.min(64,Math.max(1,Math.ceil(dt/.0125),Math.ceil(travel/(body.radius*.5)))),h=dt/steps;
     for(let substep=0;substep<steps;substep++){
       body.vy=clamp(body.vy+GRAVITY*h,-maxSpeed,maxSpeed);
       body.vx=clamp(body.vx,-maxSpeed,maxSpeed);

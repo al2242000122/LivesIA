@@ -5,6 +5,22 @@ const {start}=require('./helpers/server.cjs');
 const fs=require('node:fs');
 const path=require('node:path');
 const {ORIGINAL_NAMES,EFFECT_NAMES}=require('../games/block-wars/textures.js');
+
+test('local audio exposes only exact sound names and the20second music file, never provenance or arbitrary paths',async t=>{
+  const s=await start(t);
+  assert.equal((await s.request('/block-wars/audio-assets.js')).status,200);
+  const {SOUNDS,MUSIC_URL}=require('../games/block-wars/audio-assets.js');
+  for(const key of Object.keys(SOUNDS)){
+    const response=await fetch(s.base+'/assets-local/minecraft-sounds/'+key+'.ogg');
+    const local=path.join(__dirname,'../assets-local/minecraft-sounds',key+'.ogg');
+    assert.equal(response.status,fs.existsSync(local)?200:404,key);
+    if(response.ok){assert.equal(response.headers.get('content-type'),'audio/ogg');assert.deepEqual(Buffer.from(await response.arrayBuffer()),fs.readFileSync(local));}
+  }
+  const music=await fetch(s.base+MUSIC_URL),localMusic=path.join(__dirname,'../assets-local/audio/background-loop.wav');
+  assert.equal(music.status,fs.existsSync(localMusic)?200:404);
+  if(music.ok){assert.equal(music.headers.get('content-type'),'audio/wav');assert.deepEqual(Buffer.from(await music.arrayBuffer()),fs.readFileSync(localMusic));}
+  for(const route of ['/assets-local/minecraft-sounds/provenance.json','/assets-local/minecraft-sounds/unknown.ogg','/assets-local/audio/original.opus','/assets-local/audio/%2e%2e%2f.env.local'])assert.equal((await s.request(route)).status,404,route);
+});
 test('endless telemetry adds bounded depth and active session time while preserving the old contract',()=>{
   const {validateTelemetry}=require('../lib/contracts.js');
   const old={fps:60,frameMs:16.67,round:1,remaining:0,queue:0,particles:0,source:'none',paused:false,reducedMotion:false};

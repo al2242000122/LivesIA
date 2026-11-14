@@ -12,3 +12,13 @@
 .bw-command-feedback{position:absolute;z-index:3;left:100px;right:190px;bottom:147px;margin:0;background:#251d13ed;border-left:4px solid #efbc61;padding:9px 12px;color:#ffe9bf;font:bold 14px/1.4 var(--bw-mono);pointer-events:none}
 .bw-event-banner{height:44px;font-size:16px;line-height:39px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#101719cf}
 .bw-command-menu .event-storm{--event:#a3d4ed}.bw-command-menu .event-creeper{--event:#83cf48}
+
+/* Minecraft resource icons and square inventory-style HUD. No Unicode proxy icons. */
+.bw-command-menu canvas{width:24px;height:24px;flex:none;image-rendering:pixelated}
+.bw-command-menu h2{border-radius:0;border-color:#b7b7b7;box-shadow:inset 2px 2px #fff5,inset -2px -2px #0008}
+.bw-command-menu li{border-color:#656565;box-shadow:inset 1px 1px #fff3,inset -2px -2px #0009}
+.bw-command-menu li.is-active{border-color:#fff;background:#4a593c}
+.bw-command-menu li.is-active b{color:white;text-shadow:2px 2px #222}
+.bw-command-menu li b{font-family:var(--bw-mono);font-weight:900;letter-spacing:0;font-size:16px}
+.bw-timer,.bw-activation,.bw-audio-gate{border-color:#aaa;box-shadow:inset 2px 2px #fff4,inset -2px -2px #0009,4px 4px #171717}
+.bw-control #audio-form{flex-wrap:wrap}.bw-control #audio-form label{flex:1 1 145px}

@@ -1,0 +1,32 @@
+{
+  "version": "26.3",
+  "manifestUrl": "https://piston-meta.mojang.com/v1/packages/9f67e10ed013deeaad20ac3c800652765d493408/26.3.json",
+  "manifestSha1": "9f67e10ed013deeaad20ac3c800652765d493408",
+  "assetIndexUrl": "https://piston-meta.mojang.com/v1/packages/e99f9973047785b5a9d52eaf72020b97545053c9/34.json",
+  "assetIndexSha1": "e99f9973047785b5a9d52eaf72020b97545053c9",
+  "assetIndexSize": 597235,
+  "sounds": {
+    "mine": "minecraft/sounds/dig/stone1.ogg",
+    "mine2": "minecraft/sounds/dig/stone2.ogg",
+    "mine3": "minecraft/sounds/dig/stone3.ogg",
+    "fuse": "minecraft/sounds/random/fuse.ogg",
+    "explode": "minecraft/sounds/random/explode1.ogg",
+    "explode2": "minecraft/sounds/random/explode2.ogg",
+    "explode3": "minecraft/sounds/random/explode3.ogg",
+    "thunder": "minecraft/sounds/ambient/weather/thunder1.ogg",
+    "rain": "minecraft/sounds/ambient/weather/rain1.ogg",
+    "fire": "minecraft/sounds/fire/fire.ogg",
+    "splash": "minecraft/sounds/liquid/splash.ogg",
+    "bow": "minecraft/sounds/random/bow.ogg",
+    "bowhit": "minecraft/sounds/random/bowhit1.ogg",
+    "levelup": "minecraft/sounds/random/levelup.ogg",
+    "orb": "minecraft/sounds/random/orb.ogg",
+    "anvil": "minecraft/sounds/random/anvil_land.ogg",
+    "portal": "minecraft/sounds/portal/trigger.ogg",
+    "dragon": "minecraft/sounds/mob/enderdragon/growl1.ogg",
+    "elytra": "minecraft/sounds/item/elytra/elytra_loop.ogg",
+    "riptide": "minecraft/sounds/item/trident/riptide1.ogg",
+    "creeper": "minecraft/sounds/mob/creeper/say1.ogg",
+    "break": "minecraft/sounds/random/break.ogg"
+  }
+}

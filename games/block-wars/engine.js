@@ -104,6 +104,7 @@
       state.lastEvent=null;
       state.activeEvent=null;
       state.weather=null;
+      state.weatherEvents=[];
       state.hazards=[];
       state.actionResults=[];
       state.elapsed=0;
@@ -509,7 +510,7 @@
         entity.x+=entity.vx*dt;entity.nextPulse=(entity.nextPulse||0)-dt;
         if(entity.nextPulse<=0){damageArea(entity,tuning.radius,tuning.damage,budget);entity.nextPulse=tuning.pulseSeconds;}
         const body=state.body;
-        if(Math.abs(body.x-entity.x)<tuning.pushRangeX&&Math.abs(body.y-entity.y)<tuning.pushRangeY)body.vx=Math.min(tuning.maxPushSpeed,body.vx+dt*tuning.pushAcceleration);
+        if(Math.abs(body.x-entity.x)<tuning.pushRangeX&&Math.abs(body.y-entity.y)<tuning.pushRangeY)body.vx=Math.min(tuning.maxPushSpeed,Math.max(physics.MIN_HORIZONTAL*(body.speedScale||1),body.vx)+dt*tuning.pushAcceleration);
         return entity.age>=entity.duration;
       }
       if(entity.stage==='flight')done=advanceFlight(entity,dt,budget);
@@ -518,19 +519,22 @@
       return done||entity.age>=entity.duration&&'spent';
     }
     function advanceWeather(dt,budget){
-      const weather=state.weather;if(!weather)return;
-      weather.elapsed+=dt;weather.remaining=Math.max(0,weather.remaining-dt);weather.nextPulse-=dt;
-      if(weather.kind==='storm')state.body.vx+=Math.sin(weather.elapsed*MC.storm.windFrequency)*dt*MC.storm.windAcceleration;
-      if(weather.nextPulse<=1e-10){
-        const x=Math.floor(random()*state.width),y=terrainBelow(x,state.body.y);
-        if(weather.kind==='thunder'){
-          enqueue('thunder',weather.team,x,y,undefined,attribution(weather));weather.nextPulse=MC.thunder.pulseSeconds;
-        }else{
-          if(state.queue.length+state.entities.length<LIMITS.maxQueue)launchEndless('storm',weather.team,x,y,0,attribution(weather));
-          weather.nextPulse=MC.storm.pulseSeconds;
+      for(let i=state.weatherEvents.length-1;i>=0;i--){
+        const weather=state.weatherEvents[i];
+        weather.elapsed+=dt;weather.remaining=Math.max(0,weather.remaining-dt);weather.nextPulse-=dt;
+        if(weather.kind==='storm')state.body.vx+=Math.sin(weather.elapsed*MC.storm.windFrequency)*dt*MC.storm.windAcceleration;
+        if(weather.nextPulse<=1e-10){
+          const x=Math.floor(random()*state.width),y=terrainBelow(x,state.body.y);
+          if(weather.kind==='thunder'){
+            enqueue('thunder',weather.team,x,y,undefined,attribution(weather));weather.nextPulse=MC.thunder.pulseSeconds;
+          }else{
+            if(state.queue.length+state.entities.length<LIMITS.maxQueue)launchEndless('storm',weather.team,x,y,0,attribution(weather));
+            weather.nextPulse=MC.storm.pulseSeconds;
+          }
         }
+        if(weather.remaining<=1e-10)state.weatherEvents.splice(i,1);
       }
-      if(weather.remaining<=1e-10)state.weather=null;
+      state.weather=state.weatherEvents[state.weatherEvents.length-1]||null;
     }
     function advanceHazards(dt,budget){
       for(let i=state.hazards.length-1;i>=0;i--){
@@ -540,7 +544,7 @@
       }
     }
     function hasPendingAction(actionId){
-      return [state.entities,state.queue,state.hazards].some(list=>list.some(entry=>entry.actionId===actionId))||state.weather?.actionId===actionId;
+      return [state.entities,state.queue,state.hazards].some(list=>list.some(entry=>entry.actionId===actionId))||state.weatherEvents.some(entry=>entry.actionId===actionId);
     }
     function advanceResults(dt){
       for(const result of state.actionResults){
@@ -577,19 +581,22 @@
       const explosion=descriptor?.mode==='blast';
       const arenaLegacy=state.layout==='arena' && ['tnt','meteor','rain','nuke'].includes(kind);
       const endless=state.layout==='endless',weather=endless&&['thunder','storm'].includes(kind);
+      const rapid=endless&&['youtube','tikfinity','simulator'].includes(context?.source)&&
+        typeof context?.actionId==='string'&&/^[a-zA-Z0-9:_-]{1,80}$/.test(context.actionId);
       const entries=weather?0:endless&&kind==='arrow'?MC.arrow.volleyCount:arenaLegacy?(kind==='rain'?count*4:count):explosion?count*descriptor.count:count;
-      if(weather&&state.weather)return false;
+      if(weather&&(state.weatherEvents.length>=LIMITS.maxWeather||!rapid&&state.weather))return false;
       if(explosion && (state.queue.length+state.entities.length+entries>LIMITS.maxQueue ||
-          kind==='nuke' && state.nukeCooldown>1e-10)) return false;
+          kind==='nuke' && !rapid && state.nukeCooldown>1e-10)) return false;
       const id=TEAM_IDS.includes(input.team)?input.team:TEAM_IDS[Math.floor(random()*2)];
       const team=state.teams[id];
-      if(own(BUFFS,kind) && team.cooldowns[kind]>1e-10) return false;
-      if(descriptor && !arenaLegacy && state.eventCooldowns[kind][id]>1e-10) return false;
+      if(!rapid && own(BUFFS,kind) && team.cooldowns[kind]>1e-10) return false;
+      if(!rapid && descriptor && !arenaLegacy && state.eventCooldowns[kind][id]>1e-10) return false;
       const meta=actionContext(context);
       if(state.actionResults.length>=64)state.actionResults.shift();
       state.actionResults.push({kind,...meta,blocks:0,remaining:descriptor?.mode==='buff'?descriptor.duration:0,completed:false});
       if(weather){
         state.weather={kind,team:id,remaining:descriptor.duration,duration:descriptor.duration,elapsed:0,nextPulse:0,...meta};
+        state.weatherEvents.push(state.weather);
       }else if(explosion) {
         for(let i=0;i<entries;i++) {
           const target=team.target || {x:Math.floor(state.width/2),y:Math.floor(state.height/2)};
@@ -699,7 +706,7 @@
       body.speedScale=speedScale;
       for(const id of TEAM_IDS){
         const miner=state.teams[id];
-        miner.progress=Math.min(LIMITS.maxProgress,miner.progress+miner.effectiveSpeed*step);
+        miner.progress=Math.min(LIMITS.maxProgress,miner.progress+miner.effectiveSpeed*step*MC.mining.contactWorkMultiplier);
       }
       physics.step(body,step,state,index=>{
         const block=state.blocks[index];
@@ -785,6 +792,7 @@
       state.lastEvent=null;
       state.activeEvent=null;
       state.weather=null;
+      state.weatherEvents=[];
       state.hazards.length=0;
       for(const result of state.actionResults)if(!result.completed){result.completed=true;result.cancelled=true;}
       for(const id of TEAM_IDS) {

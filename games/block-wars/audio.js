@@ -1,36 +1,12 @@
 (function (root, factory) {
   'use strict';
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./config.js'), root);
-  else root.BlockWarsAudio = factory(root.BlockWarsConfig, root);
-}(typeof globalThis !== 'undefined' ? globalThis : this, function (Config, root) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./config.js'), root, require('./audio-assets.js'));
+  else root.BlockWarsAudio = factory(root.BlockWarsConfig, root, root.BlockWarsAudioAssets);
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (Config, root, Assets) {
   'use strict';
-  // Original synthesized cues. No Minecraft sound files or third-party assets.
-  const CUES = Object.freeze({
-    mine:[['square',900,550,0.055]], follow:[['sine',660,990,0.18]],
-    tnt:[['square',480,300,0.18]], nuke:[['square',220,220,0.15],['square',165,165,0.22,0.25],['triangle',110,55,0.45,0.55]],
-    mega:[['triangle',180,50,0.38]], arrow:[['sine',1100,200,0.1]],
-    rainbow:[['sine',880,1320,0.2]], butterfly:[['sine',1050,1550,0.16]],
-    tnt_rain:[['square',300,90,0.25]], thunder:[['sawtooth',70,28,0.32]],
-    fire:[['sawtooth',1300,450,0.25]], rain:[['square',620,300,0.13],['square',520,250,0.13,0.18],['square',420,200,0.13,0.36]],
-    storm:[['sawtooth',280,80,0.65],['triangle',1200,320,0.15,0.2]],
-    creeper:[['sawtooth',2700,1800,0.65],['square',3400,2400,0.35,0.15]],
-    tsunami:[['triangle',120,60,0.5]], black_hole:[['sine',180,25,0.65]],
-    jackpot:[['sine',660,1320,0.35],['sine',880,1760,0.35]],
-    demon:[['sawtooth',140,55,0.3]], meteor:[['triangle',260,40,0.5]],
-    spin:[['sine',350,1400,0.25]], fast:[['square',700,1200,0.1]],
-    big:[['triangle',150,80,0.3]], turbo:[['triangle',800,1400,0.15]],
-    descomunal:[['sawtooth',140,40,0.45]]
-  });
-  const IMPACTS = Object.freeze({
-    tnt:[['triangle',120,28,0.35]], rain:[['triangle',150,40,0.25]], tnt_rain:[['triangle',150,40,0.25]],
-    mega:[['sawtooth',100,25,0.6]], nuke:[['sawtooth',80,22,0.85],['triangle',130,30,0.65]],
-    creeper:[['square',160,30,0.3],['triangle',90,25,0.4]], thunder:[['sawtooth',100,25,0.55]],
-    storm:[['triangle',1400,350,0.09]], meteor:[['sawtooth',180,25,0.55]],
-    fire:[['sawtooth',650,180,0.2]], arrow:[['square',1700,500,0.07]], tsunami:[['triangle',200,55,0.35]]
-  });
+  const CUES = Assets.CUES, IMPACTS = Assets.IMPACTS;
   const MAX_PENDING = 2, MAX_NODES = 8, MAX_AUDIO_BYTES = 2 * 1024 * 1024;
-  // OBS rehearsal peaked at -33.5 dBFS. Raise FX alone; eight notes stay <= 0.8 before master volume.
-  const FX_NOTE_GAIN = 0.1;
+  const MAX_SAMPLE_MS = 12000;
   const EVENT_TTL = 8000, DEDUPE_TTL = 120000, MAX_SEEN = 256, ERROR_BACKOFF = 30000;
   const SOURCES = new Set(['simulator','tikfinity','youtube','automatic']);
   const KINDS = new Set([...Object.keys(Config.EVENTS), ...Object.keys(Config.BUFFS), 'mine', 'follow']);
@@ -59,11 +35,12 @@
     const cancelTimer = options.clearTimeout || (id => env.clearTimeout(id));
     const gap = Number.isFinite(options.minSpeechGapMs) && options.minSpeechGapMs >= 0 ? options.minSpeechGapMs : 10000;
     const queue = [], seen = new Map(), nodes = new Set(), lastImpact = new Map();
-    let context, master, active = null, pumpTimer = null, stopped = false, enabling = null;
-    let lastStarted = -Infinity, voiceBlockedUntil = 0;
+    let context, active = null, pumpTimer = null, stopped = false, enabling = null;
+    let lastStarted = -Infinity, voiceBlockedUntil = 0, music = null;
     const state = {enabled:false,muted:false,paused:false,volume:0.6,narrationEnabled:options.narrationEnabled !== false,
       queue:0,playing:false,phase:'idle',lastStatus:'disabled',dropped:0,errors:0,fxPlayed:0,fxDropped:0,
-      requested:0,started:0,finished:0,nodes:0,dedupe:0};
+      requested:0,started:0,finished:0,nodes:0,dedupe:0,fxAssetStatus:'pending',musicStatus:'disabled',
+      musicEnabled:options.musicEnabled !== false,musicVolume:.18,fxVolume:.8,voiceVolume:1};
 
     function status(code) {
       state.queue = queue.length; state.playing = active !== null; state.nodes = nodes.size; state.dedupe = seen.size;
@@ -76,32 +53,53 @@
     function clearPump() { if (pumpTimer !== null) cancelTimer(pumpTimer); pumpTimer = null; }
     function releaseNode(item, stop) {
       if (!nodes.delete(item)) return;
-      item.osc.onended = null;
-      if (stop) { try { item.osc.stop(); } catch (_) { /* Already ended. */ } }
-      try { item.osc.disconnect(); item.gain.disconnect(); } catch (_) { /* Already disconnected. */ }
+      cancelTimer(item.timer); item.media.onended = null; item.media.onerror = null;
+      if (stop) { try { item.media.pause(); } catch (_) { /* Already stopped. */ } }
+      try { item.media.src = ''; item.media.load(); } catch (_) { /* Released media. */ }
       state.nodes = nodes.size;
     }
     function clearFX() { for (const item of [...nodes]) releaseNode(item,true); }
-    function cue(notes) {
-      if (!notes || !context || context.state !== 'running' || nodes.size + notes.length > MAX_NODES) { state.fxDropped++; return false; }
+    function sampleVolume() { return state.volume * state.fxVolume * .65; }
+    function cue(samples) {
+      if (!samples || !context || context.state !== 'running' || state.fxVolume === 0 || nodes.size + samples.length > MAX_NODES) { state.fxDropped++; return false; }
       try {
-        for (const [type, start, end, duration, delay = 0] of notes) {
-          const osc = context.createOscillator(), gain = context.createGain(), item = {osc,gain};
-          const at = context.currentTime + delay;
-          nodes.add(item); osc.type = type; osc.frequency.setValueAtTime(start,at);
-          osc.frequency.exponentialRampToValueAtTime(end,at + duration);
-          gain.gain.setValueAtTime(FX_NOTE_GAIN,at);
-          gain.gain.exponentialRampToValueAtTime(0.0001,at + duration);
-          osc.connect(gain); gain.connect(master); osc.onended = () => releaseNode(item,false);
-          osc.start(at); osc.stop(at + duration);
+        for (const key of samples) {
+          if (!Object.hasOwn(Assets.SOUNDS,key)) continue;
+          const media = new env.Audio(), item = {media,timer:null};
+          media.preload='auto'; media.src='/assets-local/minecraft-sounds/'+key+'.ogg';
+          media.volume=sampleVolume(); nodes.add(item);
+          media.onended=()=>releaseNode(item,false);
+          const fail=()=>{if(!nodes.has(item))return;releaseNode(item,true);state.fxAssetStatus='unavailable';state.fxDropped++;status('minecraft_sounds_unavailable');};
+          media.onerror=fail;
+          item.timer=later(()=>releaseNode(item,true),MAX_SAMPLE_MS);
+          const played=media.play();
+          if(played&&played.then)played.then(()=>{if(nodes.has(item)){state.fxAssetStatus='minecraft';status();}},fail);
+          else state.fxAssetStatus='minecraft';
         }
-        state.fxPlayed++; return true;
-      } catch (_) { state.fxDropped++; clearFX(); return false; }
+        state.fxPlayed++; state.nodes=nodes.size; return true;
+      } catch (_) { state.fxDropped++; state.fxAssetStatus='unavailable'; clearFX(); return false; }
+    }
+    function stopMusic() {
+      if(!music)return;
+      const previous=music;music=null;previous.onerror=null;
+      try{previous.pause();previous.src='';previous.load();}catch(_){/* Already released. */}
+      state.musicStatus='stopped';
+    }
+    function syncMusic() {
+      if(!audible()||!state.musicEnabled||state.musicVolume===0){stopMusic();return;}
+      if(music){music.volume=state.volume*state.musicVolume;return;}
+      try{
+        const media=new env.Audio();music=media;media.preload='auto';media.src=Assets.MUSIC_URL;
+        media.loop=true;media.volume=state.volume*state.musicVolume;
+        const fail=()=>{if(music!==media)return;stopMusic();state.musicStatus='unavailable';status('music_unavailable');};
+        media.onerror=fail;const played=media.play();state.musicStatus='playing';
+        if(played&&played.catch)played.catch(fail);
+      }catch(_){stopMusic();state.musicStatus='unavailable';}
     }
     function impact(kind) {
       if (!audible() || !Object.prototype.hasOwnProperty.call(IMPACTS,kind)) return false;
       const time = now();
-      if (time - (lastImpact.get(kind) ?? -Infinity) < 150) return false;
+      if (time - (lastImpact.get(kind) ?? -Infinity) < (kind==='mine'?100:150)) return false;
       if (!cue(IMPACTS[kind])) return false;
       lastImpact.set(kind,time); return true;
     }
@@ -165,7 +163,7 @@
         if (!audible() || !state.narrationEnabled || now() - event.at >= EVENT_TTL) { active = null; cleanupRun(run); state.dropped++; state.phase = 'idle'; status('voice_expired'); pump(); return; }
         if (!blob || !Number.isFinite(blob.size) || blob.size <= 0 || blob.size > MAX_AUDIO_BYTES || (blob.type && !blob.type.startsWith('audio/'))) throw Error('invalid_audio');
         cancelTimer(run.timer); run.url = env.URL.createObjectURL(blob); run.media = new env.Audio();
-        run.media.preload = 'auto'; run.media.src = run.url; run.media.volume = state.volume;
+        run.media.preload = 'auto'; run.media.src = run.url; run.media.volume = state.volume * state.voiceVolume;
         run.media.onended = () => complete(run); run.media.onerror = () => complete(run,'voice_error');
         run.timer = later(() => complete(run,'voice_timeout'),20000);
         await run.media.play();
@@ -192,10 +190,10 @@
       enabling = (async () => {
         try {
           const AudioContext = env.AudioContext || env.webkitAudioContext;
-          if (!context) { context = new AudioContext(); master = context.createGain(); master.connect(context.destination); master.gain.value = state.volume; }
+          if (!context) context = new AudioContext();
           await context.resume();
           if (stopped) return false;
-          state.enabled = context.state === 'running'; status(state.enabled ? 'ready' : 'audio_unavailable'); return state.enabled;
+          state.enabled = context.state === 'running'; syncMusic(); status(state.enabled ? 'ready' : 'audio_unavailable'); return state.enabled;
         } catch (_) { state.enabled = false; status(stopped ? 'stopped' : 'audio_unavailable'); return false; }
       })();
       try { return await enabling; }
@@ -216,21 +214,32 @@
       }
       queue.push(event); pump(); return true;
     }
-    function mute(value) { state.muted = Boolean(value); if (state.muted) { clearVoice(); clearFX(); } status(state.muted ? 'muted' : 'ready'); }
-    function pause(value) { state.paused = Boolean(value); if (state.paused) { clearVoice(); clearFX(); } status(state.paused ? 'paused' : 'ready'); }
+    function mute(value) { state.muted = Boolean(value); if (state.muted) { clearVoice(); clearFX(); } syncMusic(); status(state.muted ? 'muted' : 'ready'); }
+    function pause(value) { state.paused = Boolean(value); if (state.paused) { clearVoice(); clearFX(); } syncMusic(); status(state.paused ? 'paused' : 'ready'); }
     function setVolume(value) {
       if (!Number.isFinite(value) || value < 0 || value > 1) return false;
-      state.volume = value; if (master) master.gain.value = value; if (active && active.media) active.media.volume = value;
+      state.volume = value; if (active && active.media) active.media.volume = value * state.voiceVolume;
+      for(const item of nodes)item.media.volume=sampleVolume(); syncMusic();
       if (value === 0) { clearVoice(); clearFX(); } status('volume_changed'); return true;
+    }
+    function setMix(patch) {
+      if(!patch||typeof patch!=='object'||Array.isArray(patch))return false;
+      const keys=Object.keys(patch);
+      if(keys.some(key=>!['musicEnabled','musicVolume','fxVolume','voiceVolume'].includes(key)))return false;
+      if(keys.some(key=>key==='musicEnabled'?typeof patch[key]!=='boolean':!Number.isFinite(patch[key])||patch[key]<0||patch[key]>1))return false;
+      Object.assign(state,patch);
+      for(const item of nodes)item.media.volume=sampleVolume();
+      if(state.fxVolume===0)clearFX();
+      if(active?.media)active.media.volume=state.volume*state.voiceVolume;
+      syncMusic();status('mix_changed');return true;
     }
     function setNarration(value) { state.narrationEnabled = Boolean(value); if (!state.narrationEnabled) clearVoice(); status(state.narrationEnabled ? 'narration_enabled' : 'narration_disabled'); }
     function stop() {
-      if (stopped) return; stopped = true; state.enabled = false; clearVoice(); clearFX(); seen.clear(); lastImpact.clear();
-      if (master) { try { master.disconnect(); } catch (_) { /* Already disconnected. */ } }
+      if (stopped) return; stopped = true; state.enabled = false; clearVoice(); clearFX(); stopMusic(); seen.clear(); lastImpact.clear();
       if (context) { try { const closed = context.close(); if (closed && closed.catch) closed.catch(() => {}); } catch (_) { /* Context already closed. */ } }
       status('stopped');
     }
-    return {enable,mute,pause,notify,impact,setVolume,setNarration,stop,state};
+    return {enable,mute,pause,notify,impact,setVolume,setMix,setNarration,stop,state};
   }
   return Object.freeze({createAudio});
 }));
