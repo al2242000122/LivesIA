@@ -64,3 +64,34 @@ test('obsolete owner response never grants ownership to a later selection',async
  const c=createYouTubeChat({expectedChannelId:channel,getAccessToken:async()=> 'x',fetchImpl:async url=>{if(url.includes('/channels')){owners++;if(owners===1)return new Promise(r=>oldResolve=r);return json({items:[{id:other}]});}videos++;return json({items:[]});}});
  await c.select(video);await new Promise(setImmediate);await c.select('zyxwvutsrqp');oldResolve(json({items:[{id:channel}]}));for(let i=0;i<20;i++)await new Promise(setImmediate);assert.equal(owners,2);assert.equal(videos,0);assert.equal(c.status().error,'youtube_channel_mismatch');c.stop();
 });
+function streamHarness(streamFactory,{jitter=0.5}={}){
+ let current=100000,nextId=0;const scheduled=new Map(),events=[],requests=[];
+ const timers={setTimeout(fn,ms){const id=++nextId;scheduled.set(id,{fn,at:current+ms,ms});return id;},clearTimeout(id){scheduled.delete(id);}};
+ const json=value=>({ok:true,body:new ReadableStream({start(c){c.enqueue(Buffer.from(JSON.stringify(value)));c.close();}})});
+ const fetchImpl=async url=>{const u=new URL(url);if(u.pathname.endsWith('/channels'))return json({items:[{id:channel}]});if(u.pathname.endsWith('/videos'))return json({items:[{id:video,snippet:{channelId:channel},liveStreamingDetails:{activeLiveChatId:'chat',actualStartTime:'2026-01-01'}}]});requests.push(u);return streamFactory({index:requests.length,now:()=>current,timers});};
+ const c=createYouTubeChat({expectedChannelId:channel,now:()=>current,timers,random:()=>jitter,getAccessToken:async()=> 'fixture',fetchImpl,onEvent:e=>events.push(e)});
+ const flush=async()=>{for(let i=0;i<20;i++)await new Promise(setImmediate);};
+ return {c,events,requests,timers,scheduled,flush,get time(){return current;},async advance(ms){current+=ms;for(const [id,t]of [...scheduled])if(t.at<=current){scheduled.delete(id);t.fn();}await flush();}};
+}
+test('200 stream callback budget rotates preserving cursor and dedupe for next event',async()=>{
+ let cancelled=0;const h=streamHarness(({index})=>({ok:true,body:{getReader(){let sent=false;return {read(){if(sent)return new Promise(()=>{});sent=true;const frames=index===1?[{items:[],nextPageToken:'history'},...Array.from({length:201},(_,i)=>({items:[message('n'+i)],nextPageToken:'p'+i}))]:[{items:[message('n199',115000),message('n200',115000)],nextPageToken:'p200'}];return Promise.resolve({value:Buffer.from(JSON.stringify(frames)),done:false});},cancel(){cancelled++;return Promise.resolve();}};}}}));
+ await h.c.select(video);await h.flush();assert.equal(h.events.length,200);assert.equal(cancelled,1);await h.advance(15000);assert.equal(h.requests.length,2);assert.equal(h.requests[1].searchParams.get('pageToken'),'p199');assert.equal(h.events.length,201);assert.equal(new Set(h.events.map(e=>e.id)).size,201);h.c.stop();
+});
+test('HTTP500 stream retries always wait15..60 seconds including jitter extremes',async()=>{
+ for(const jitter of [0,1]){const h=streamHarness(()=>({ok:false,status:500,body:{cancel:async()=>{}}}),{jitter});await h.c.select(video);await h.flush();for(let i=0;i<9;i++){const wait=[...h.scheduled.values()].find(x=>x.ms>=15000&&x.ms<=60000);assert.ok(wait,'bounded retry wait');const before=h.requests.length;await h.advance(wait.ms-1);assert.equal(h.requests.length,before);await h.advance(1);assert.equal(h.requests.length,before+1);}h.c.stop();}
+});
+test('absolute stream lifetime rotates a whitespace trickle before six minute mark',async()=>{
+ let cancelled=0;const h=streamHarness(({timers})=>({ok:true,body:{getReader(){let first=true;return {read(){if(first){first=false;return Promise.resolve({done:false,value:Buffer.from('[')});}return new Promise(resolve=>timers.setTimeout(()=>resolve({done:false,value:Buffer.from(' ')}),60000));},cancel(){cancelled++;return Promise.resolve();}};}}}));await h.c.select(video);await h.flush();for(let i=0;i<5;i++)await h.advance(60000);assert.equal(cancelled,1);await h.advance(15000);assert.equal(h.requests.length,2);h.c.stop();
+});
+test('cumulative stream byte bound rotates even when no JSON frames complete',async()=>{
+ let cancelled=0;const h=streamHarness(()=>({ok:true,body:{getReader(){let n=0;return {read(){return Promise.resolve({done:false,value:Buffer.from((n++===0?'[':'')+' '.repeat(262144))});},cancel(){cancelled++;return Promise.resolve();}};}}}));await h.c.select(video);await h.flush();assert.equal(cancelled,1);assert.ok(h.scheduled.size<=1);await h.advance(15000);assert.equal(h.requests.length,2);h.c.stop();
+});
+test('six virtual hours of live STREAM trickles rotate with cursor and unique events',async()=>{
+ let cancelled=0,serial=0,lastId=null;
+ const h=streamHarness(({index,now,timers})=>({ok:true,body:{getReader(){let first=true,pendingTimer;return {read(){if(first){first=false;const items=index===1?[]:lastId?[message(lastId,now()-15000)]:[];return Promise.resolve({done:false,value:Buffer.from('['+JSON.stringify({items,nextPageToken:'cursor-'+serial}))});}return new Promise(resolve=>{pendingTimer=timers.setTimeout(()=>{lastId='soak-'+(++serial);resolve({done:false,value:Buffer.from(','+JSON.stringify({items:[message(lastId,now())],nextPageToken:'cursor-'+serial}))});},60000);});},cancel(){cancelled++;timers.clearTimeout(pendingTimer);return Promise.resolve();}};}}}));
+ await h.c.select(video);await h.flush();for(let i=0;i<1440;i++)await h.advance(15000);
+ assert.ok(h.time>=21700000);assert.ok(h.requests.length>=60);assert.ok(cancelled>=60);assert.equal(h.c.status().transport,'stream');assert.ok(['connected','reconnecting'].includes(h.c.status().state));assert.ok(h.events.length>200);assert.equal(new Set(h.events.map(e=>e.id)).size,h.events.length);assert.ok(h.requests.slice(1).every(u=>u.searchParams.has('pageToken')));assert.ok(h.c.status().quotaUsed<8000);assert.ok(h.scheduled.size<=2);h.c.stop();await h.advance(300000);assert.equal(h.c.status().state,'stopped');
+});
+test('idle stream timeout also waits15 seconds before reconnecting',async()=>{
+ let cancelled=0;const h=streamHarness(()=>({ok:true,body:{getReader(){return {read:()=>new Promise(()=>{}),cancel(){cancelled++;return Promise.resolve();}};}}}),{jitter:0});await h.c.select(video);await h.flush();await h.advance(90000);assert.equal(cancelled,1);assert.equal(h.c.status().state,'reconnecting');await h.advance(14999);assert.equal(h.requests.length,1);await h.advance(1);assert.equal(h.requests.length,2);h.c.stop();
+});
