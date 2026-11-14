@@ -1,6 +1,6 @@
 # Verificación del lector de chat — 2026-11-14
 
-Estado: **código, pruebas locales y autorización de lectura verificados; chat real e ingestión pendientes**. Rama `codex/youtube-live-chat`, basada en `codex/elevenlabs-youtube-onboarding`; main permanece intacto.
+Estado: **código, autorización e ingestión real de YouTube verificadas; recepción de un comentario registrada, efecto real pendiente de confirmar**. Rama `codex/youtube-live-chat`, basada en `codex/elevenlabs-youtube-onboarding`; main permanece intacto.
 
 ## Comprobaciones ejecutadas
 
@@ -41,3 +41,16 @@ OBS 33.0.1 mantuvo perfil/escena **LivesIA YouTube / Mina YouTube**, 30 FPS y em
 No se inició una transmisión. Likes y suscriptores reales siguen pendientes; sus botones continúan siendo simulaciones. Los comentarios YouTube tienen FX y autor, sin TTS. Recursos de Minecraft permanecen locales/ignorados y el permiso de comercialización no se da por resuelto.
 
 El formato HTTP autenticado del chat, latencia y comportamiento de comandos reales en OBS se aceptan mediante un ensayo no listado autorizado; comprobar la cuenta/canal no sustituye ese ensayo. Los contadores de voz permanecieron en cero tras preparar esta sesión. El contador de cuota es local y se reinicia con el proceso. OAuth externo en Prueba requiere renovar consentimiento al caducar, según la [configuración y sus fuentes](YOUTUBE_CHAT_SETUP.md).
+
+
+## Ensayos reales del 2026-11-14
+
+El propietario pegó personalmente la clave de envío y autorizó un ensayo no listado de hasta cinco minutos. OBS envió la mina a 720×1280/30; Studio mostró EN VIVO y señal Excelente. Se observó 0 (0.0%) de fotogramas perdidos y aproximadamente 8 Mbps. OBS dejó de enviar señal alrededor de 4min37s; después se confirmó manualmente «La transmisión finalizó» en Studio. La detención automática no cerró la sala inmediatamente: comprobar siempre ambos lados.
+
+El lector pasó por `connected` con transporte `stream` y registró un comentario al cierre, sin descartes ni duplicados. Studio mostró RAIN en el chat. Esto acredita recepción, pero no confirma que el autor y efecto aparecieran en OBS: el propietario sigue probándolo. Al finalizar, el lector indicó `ended`/`youtube_ended`; se detuvo explícitamente antes de seleccionar otra sala.
+
+Muestra local `LivesIA-2026-11-14_14-10-19.mkv`, fuera de Git en `%LOCALAPPDATA%/LivesIA/recordings-youtube/`: 83.900s, H.264 720×1280/30 y AAC44.1kHz estéreo. FFmpeg decodificó ambos flujos completos con `-xerror`, salida0; pico de audio −27.217dBFS y RMS −65.283dBFS. Hay señal de audio local, de nivel bajo y con silencios; la escucha del espectador y la sincronía siguen pendientes. No hubo nuevas solicitudes TTS. YouTube sugirió reducir el bitrate actual de ~8Mbps; no se cambió durante el ensayo.
+
+Posteriormente el propietario pidió dejar abierto otro LIVE no listado para probarlo personalmente, sustituyendo el límite anterior. Studio creó una sala nueva; la API confirmó `unlisted`/`live`, inicio/parada automáticos activados. Se reconectó la salida de OBS y se seleccionó explícitamente el video nuevo en el lector. El contador de comentarios es acumulado del proceso: partir de1 no acredita comentarios nuevos de esta segunda sala. Emisión dejada activa por solicitud del propietario; grabación detenida. El enlace se entregó en privado, sin guardarlo en Git. Evidencia visual local: `artifacts/youtube-preparation/youtube-ensayo-en-vivo.png` y `youtube-no-listado-prueba-abierta.png`.
+
+Siguiente aceptación: propietario envía comandos nuevos cuando el lector esté conectado, confirma efecto y atribución en la mina y escucha remota. No dar por verificadas las14acciones, latencia ni120min reales por estas muestras. Para terminar: detener OBS, confirmar cierre en Studio y detener el lector local.
