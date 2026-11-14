@@ -68,3 +68,9 @@ test('YouTube entity and impact canvas credits explicitly preserve chat source a
  calls.length=0;painter.explosion({...entry,stage:'impact',age:.2,duration:1},90,90,0,false);
  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · Ana'));
 });
+
+test('YouTube canvas preserves all44 printable author characters including angle brackets',()=>{
+ const {calls,painter}=recorder(),actor=('<Ana> '+'L'.repeat(38)).slice(0,44),entry={kind:'tnt',stage:'fuse',x:2,y:4,size:.8,age:.2,duration:1,actor,source:'youtube'};
+ painter.projectile(entry,90,90,0,false);painter.explosion(entry,90,90,0,false);
+ assert.equal(calls.filter(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · '+actor).length,2);
+});
