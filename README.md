@@ -1,5 +1,7 @@
 # 🐍 Serpiente Infinita LIVE — MVP original
 
+**YouTube: integración de comentarios en revisión.** El [lector oficial y su configuración OAuth](docs/block-wars/YOUTUBE_CHAT_SETUP.md) incorporan selección explícita del LIVE, protección contra historial/duplicados y origen YouTube para los 14 comandos. Las pruebas usan datos ficticios; no se ha verificado un comentario real ni iniciado una transmisión. Likes y suscriptores reales continúan pendientes; los comentarios no solicitan voz de ElevenLabs.
+
 Juego interactivo vertical para TikTok LIVE: autopiloto de serpiente por laberintos aleatorios, interacciones por chat/likes/regalos, overlay para OBS y panel separado de pruebas. Construido con JavaScript/Canvas y servidor local Node.js; la narración opcional usa el SDK oficial de ElevenLabs en el servidor. No se introducen contraseñas de TikTok en el juego.
 
 ## Requisitos

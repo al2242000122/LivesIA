@@ -56,7 +56,7 @@ Server routes:
 
 OAuth module `lib/youtube-auth.js` exports `createYouTubeAuth({env,fetchImpl,now,...fixtures})`, whose public runtime interface is `getAccessToken({signal})` and safe `status()`. Missing explicit auth-file configuration remains disabled, including in server tests. Local helper `scripts/connect-youtube.cjs` owns initial PKCE/state/loopback authorization and private credential storage.
 
-## Task1 — OAuth and private local configuration
+## Task 1 — OAuth and private local configuration
 
 **Ownership:** auth worker: new auth module/helper/tests and package/lock if an official auth dependency is used. Root owns Cloud UI and permission requests.
 
@@ -68,7 +68,7 @@ OAuth module `lib/youtube-auth.js` exports `createYouTubeAuth({env,fetchImpl,now
 - [ ] Tests assert a forged callback cannot exchange a code or overwrite credentials. Tests never use the owner's file; recursive temp cleanup verifies its absolute target stays under its own temp root.
 - [ ] Run auth tests, syntax, dependency audit and report exact runtime interface to root. Do not create credentials, authorize a real account or commit shared work.
 
-## Task2 — Official chat reader and bounded stream parser
+## Task 2 — Official chat reader and bounded stream parser
 
 **Ownership:** reader worker: `lib/youtube-chat.js`, optional focused parser module, `tests/youtube-chat.test.cjs` and parser fixtures/tests only.
 
@@ -81,7 +81,7 @@ OAuth module `lib/youtube-auth.js` exports `createYouTubeAuth({env,fetchImpl,now
 - [ ] Assert history/duplicates emit0events, selected fresh `RAIN` emits exactly one opaque typed event, wrong channel emits0events, and concurrent selections never mix authors/chats.
 - [ ] Run reader/parser tests, syntax and report counters/limits/status schema. Do not call a real authenticated API or commit shared work.
 
-## Task3 — Preserve source through transport, rules, engine and UI
+## Task 3 — Preserve source through transport, rules, engine and UI
 
 **Ownership:** source/UI worker: integrations/events.js, integrations/transport.js, games/block-wars/{rules,engine,experience,app,audio,control,index.html,control.html} and their focused existing tests. Root owns lib/contracts.js and server routes.
 
@@ -93,7 +93,7 @@ OAuth module `lib/youtube-auth.js` exports `createYouTubeAuth({env,fetchImpl,now
 - [ ] Add `onYouTubeState` handling and clear viewer labels for waiting/disconnected states. Expose selection/status in the operator panel, keeping it outside OBS capture. Never claim real likes/subscribers or invent viewers.
 - [ ] Run source/rules/engine/experience/UI/audio/Snake regressions. Use fixture sources, no actual keys or network. Coordinate callback/state shape with root; do not commit shared work.
 
-## Task4 — Root server integration and final verification
+## Task 4 — Root server integration and final verification
 
 **Ownership:** root: server.js, lib/contracts.js, new server integration tests, docs/Cloud setup and final commit/PR.
 

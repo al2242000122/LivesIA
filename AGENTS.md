@@ -1,5 +1,11 @@
 # AGENTS.md — LivesIA / Serpiente Infinita LIVE
 
+## Chat YouTube en revisión — 2026-11-13
+
+Trabajo aislado `codex/youtube-live-chat`; no modificar main. `lib/youtube-auth.js` y asistente `scripts/connect-youtube.cjs` usan OAuth sólo `youtube.readonly`, estado aleatorio/PKCE y archivos privados fuera de todo Git. No abrir ni imprimir `.env.local`, JSON de cliente o autorización. La variable explícita `YOUTUBE_AUTH_FILE` habilita el proveedor; tests siempre fixtures y entorno sin credenciales reales. Cloud proyecto/API habilitados, cliente Desktop creado con aprobación; cuenta aún pendiente de autorización (modo Prueba sin usuario registrado al primer intento). No afirmar chat real por estos pasos.
+
+Lector oficial en `lib/youtube-chat.js`, parser array HTTP incremental separado: primera historia descartada, HMAC efímero, TTL15s, dedupe2048, respuesta1MiB/300s/200callbacks, reconexión15–60s, cuota local8000/díaPacífico en memoria. Rotar conserva cursor; sin cursor se descarta historia de nuevo. Server SSE `youtube_comment`/`youtube_state`; controles HTTP no pueden fingir fuente. Los comentarios YouTube nunca narran; likes/subs reales siguen sin implementar. Ver [configuración](docs/block-wars/YOUTUBE_CHAT_SETUP.md); emisión no listada y120minOBS requieren aprobación/prueba separadas.
+
 ## Propósito y alcance
 Este repositorio contiene el MVP de **Serpiente Infinita LIVE**, un videojuego original de serpiente que juega automáticamente en laberintos generados por procedimiento. Su salida vertical se captura con OBS para transmisiones de TikTok LIVE. Los espectadores pueden afectar la partida mediante eventos gratuitos (likes, follow, chat) y regalos *cuando existan eventos reales*. El siguiente agente/Codex debe convertir el prototipo en un producto robusto sin romper las funciones actuales ni afirmar monetización o conexión verificadas cuando aún no lo estén.
 

@@ -1,5 +1,7 @@
 # YouTube LIVE: preparación del primer ensayo
 
+**Chat oficial en revisión:** [YOUTUBE_CHAT_SETUP.md](YOUTUBE_CHAT_SETUP.md) describe el nuevo lector de comentarios, la autorización privada y sus límites. Google Cloud y YouTube Data API v3 están habilitados; el propietario autorizó crear el cliente OAuth de escritorio. La cuenta todavía no está autorizada y no se ha recibido chat real. Las referencias históricas a «chat sin implementar» de abajo corresponden al ensayo anterior. Likes y suscriptores reales siguen pendientes.
+
 Actualización: 2026-11-13. Estado: **preparación local implementada, acceso a la sala de control LIVE comprobado; ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
 
 El13de noviembre se abrió la sala autenticada del canal y se completó la bienvenida seleccionando software de transmisión. Se guardaron título, descripción, categoría Videojuegos y **No listado**; el propietario confirmó público general, no creado específicamente para niños. Studio mostró el ensayo sin señal («No hay datos») en `/video/i0fOJAzWJqA/livestreaming`. No se mostró ni copió la clave de transmisión. El comportamiento de inicio automático queda por comprobar antes de enviar señal desde OBS.
