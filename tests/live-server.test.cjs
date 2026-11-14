@@ -9,6 +9,16 @@ test('audio commands are typed, bounded and exclusive to Block Wars',()=>{
   for(const settings of [{},{muted:'false'},{volume:1.1},{volume:-1},{volume:NaN},{narration:1},{apiKey:'private'}])assert.equal(validateCommand({...command,settings}),null);
   assert.equal(validateCommand({...command,target:'snake'}),null);
 });
+
+test('music, Minecraft FX and voice have independent bounded mix controls',()=>{
+  const base={type:'bw_audio',target:'block-wars'};
+  const settings={musicEnabled:true,musicVolume:.18,fxVolume:.8,voiceVolume:.65};
+  assert.deepEqual(validateCommand({...base,settings})?.settings,settings);
+  for(const key of ['musicVolume','fxVolume','voiceVolume']){
+    for(const value of [-.01,1.01,NaN,'1',null])assert.equal(validateCommand({...base,settings:{[key]:value}}),null,key);
+  }
+  assert.equal(validateCommand({...base,settings:{musicEnabled:'yes'}}),null);
+});
 test('speech health is local, unconfigured speech fails without any provider request',async t=>{
   const server=await start(t,{ELEVENLABS_API_KEY:'',ELEVENLABS_VOICE_ID:''});
   const status=await server.request('/api/block-wars/speech/status');assert.equal(status.status,200);

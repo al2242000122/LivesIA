@@ -16,9 +16,11 @@
   let voiceAvailable=false,narrationRequested=true;
   const audio=BlockWarsAudio.createAudio({narrationEnabled:false,onStatus(status){
     element('audio-enable').hidden=Boolean(status.enabled);
-    element('audio-status').textContent=status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
+    const music=status.musicStatus==='playing'?' · MÚSICA EN BUCLE':status.musicStatus==='unavailable'?' · MÚSICA NO DISPONIBLE':'';
+    element('audio-status').textContent=(status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
+      status.fxAssetStatus==='unavailable'?'FALTAN SONIDOS LOCALES DE MINECRAFT':
       status.paused?'AUDIO EN PAUSA':status.lastStatus==='voice_error'||status.lastStatus==='voice_timeout'?'SONIDOS ACTIVOS · VOZ NO DISPONIBLE':
-      voiceAvailable&&narrationRequested?(youtube?'SONIDOS + VOZ LIKES/SUBS · PRUEBA':'SONIDOS + VOZ CONFIGURADA · ENSAYAR'):'SONIDOS ACTIVOS · VOZ PENDIENTE';
+      voiceAvailable&&narrationRequested?(youtube?'MINECRAFT + VOZ LIKES/SUBS · PRUEBA':'MINECRAFT + VOZ CONFIGURADA · ENSAYAR'):'SONIDOS MINECRAFT')+music;
   }});
   const experience=BlockWarsExperience.createExperience(engine,rules,audio,text=>{element('notice').textContent=text;},{platform:youtube?'youtube':'local'});
   element('audio-enable').addEventListener('click',()=>audio.enable());
@@ -47,6 +49,7 @@
         if(typeof command.settings?.muted==='boolean')audio.mute(command.settings.muted);
         if(typeof command.settings?.volume==='number')audio.setVolume(command.settings.volume);
         if(typeof command.settings?.narration==='boolean'){narrationRequested=command.settings.narration;speechHealth();}
+        if(command.settings){const mix={};for(const key of ['musicEnabled','musicVolume','fxVolume','voiceVolume'])if(Object.hasOwn(command.settings,key))mix[key]=command.settings[key];if(Object.keys(mix).length)audio.setMix?.(mix);}
         break;
       case 'bw_settings':
         if(!command.settings)return;
@@ -111,6 +114,16 @@
       if(original){painter.clearRect(0,0,16,16);painter.drawImage(original,0,0,16,16,0,0,16,16);continue;}
       const pixels=painter.createImageData(16,16);pixels.data.set(textures.tnt(icon.dataset.icon).pixels);painter.putImageData(pixels,0,0);
     }
+    const commandArt={tnt:'tnt',rain:'tnt',thunder:'diamond',storm:'rain',creeper:'creeper',meteor:'magma',fire:'fire',tsunami:'water',
+      spin:'diamond_pickaxe',fast:'gold_pickaxe',mega:'tnt',nuke:'tnt',arrow:'arrow',big:'netherite_pickaxe'};
+    for(const icon of document.querySelectorAll?.('canvas[data-command-icon]')||[]){
+      const name=commandArt[icon.dataset.commandIcon],image=globalThis.BlockWarsTextures?.source('sprite',name);
+      if(!image)continue;
+      const painter=icon.getContext('2d');painter.imageSmoothingEnabled=false;painter.clearRect(0,0,16,16);
+      // The creeper icon is its face UV, never the full flattened skin.
+      if(name==='creeper')painter.drawImage(image,8,8,8,8,0,0,16,16);
+      else painter.drawImage(image,0,0,16,16,0,0,16,16);
+    }
   }
   paintIcons();
   globalThis.BlockWarsTextures?.loadOriginals().then(result=>{
@@ -124,7 +137,8 @@
   function frame(now){
     if(stopped)return;
     const elapsed=last?Math.max(0,Math.min(.25,(now-last)/1000)):0;last=now;accumulator+=elapsed;
-    let steps=0;while(accumulator>=.05&&steps<5){experience.update(.05);accumulator-=.05;steps++;}if(steps===5)accumulator=0;
+    const step=1/60,maxSteps=15;
+    let steps=0;while(accumulator+1e-9>=step&&steps<maxSteps){experience.update(step);accumulator=Math.max(0,accumulator-step);steps++;}if(steps===maxSteps)accumulator=0;
     renderer.draw(engine.state,{time:now/1000,reducedMotion});frames++;
     if(now-fpsAt>=1000){fps=Math.round(frames*1000/(now-fpsAt));frameMs=frames?(now-fpsAt)/frames:0;fpsAt=now;frames=0;}
     if(now-hudAt>=150){updateHud();hudAt=now;}

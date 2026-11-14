@@ -22,7 +22,7 @@
     rainThreshold:5,boomThreshold:3,pickVoteThreshold:3,pickWindowMs:30000,maxEffectsPerFlush:8,maxActors:2000,maxDedupe:4000,
     actorTtlMs:1800000,dedupeTtlMs:300000,maxLikeDelta:1000000,maxNotifications:6};
   const RANGES={likeThreshold:[5,1000],teamCooldownMs:[60000,3600000],mineCooldownMs:[15000,3600000],boomCooldownMs:[30000,3600000],
-    followCooldownMs:[1000,3600000],effectCooldownMs:[1000,3600000],actorEffectCooldownMs:[1000,3600000],rainThreshold:[1,1000],boomThreshold:[1,1000],pickVoteThreshold:[1,1000],pickWindowMs:[1000,60000],
+    followCooldownMs:[1000,3600000],effectCooldownMs:[500,3600000],actorEffectCooldownMs:[1000,3600000],rainThreshold:[1,1000],boomThreshold:[1,1000],pickVoteThreshold:[1,1000],pickWindowMs:[1000,60000],
     maxEffectsPerFlush:[1,8],maxActors:[1,10000],maxDedupe:[1,20000],actorTtlMs:[60000,86400000],dedupeTtlMs:[1000,86400000],
     maxLikeDelta:[1,1000000],maxNotifications:[1,20]};
   const COUNTER_CAP=Number.MAX_SAFE_INTEGER;
@@ -41,7 +41,9 @@
   function sourceMetrics(){return {likes:0,follows:0,comments:0,commands:0,duplicates:0,ignored:0,rejected:0,tnt:0,effects:0};}
   function createRules(engine,options){
     if(!engine||typeof engine.action!=='function'||!engine.state)throw new TypeError('An engine is required');
-    let settings=config(options===undefined?{}:options,DEFAULTS),clock=0,lastSweep=-Infinity,round=engine.state.round,pickWindow=-1;
+    const rapid=engine.state.layout==='endless';
+    const defaults=rapid?{...DEFAULTS,effectCooldownMs:500,actorEffectCooldownMs:1000}:DEFAULTS;
+    let settings=config(options===undefined?{}:options,defaults),clock=0,lastSweep=-Infinity,round=engine.state.round,pickWindow=-1;
     const actors=new Map(),dedupe=new Map(),rainVoters=new Map();
     const buckets=Object.fromEntries(SOURCES.map(source=>[source,{progress:0,pending:0}]));
     const metrics={bySource:Object.fromEntries(SOURCES.map(source=>[source,sourceMetrics()])),rejected:0};
@@ -170,8 +172,8 @@
     function comment(command,user,key,identified,effect){
       if(effect){
         if(clock-user.effectAt<settings.actorEffectCooldownMs)return outcome(false,'actor_cooldown',settings.actorEffectCooldownMs-(clock-user.effectAt));
-        const wait=effectWait(effect,user.team);if(wait>0)return outcome(false,'engine_cooldown',wait);
-        if(busy(effect))return outcome(false,'engine_busy');
+        const wait=rapid?0:effectWait(effect,user.team);if(wait>0)return outcome(false,'engine_cooldown',wait);
+        if(!rapid&&busy(effect))return outcome(false,'engine_busy');
         if(!act({type:effect,team:user.team||'neutral'}))return outcome(false,unavailable()||'engine_busy');
         lastEffectAt=clock;user.effectAt=clock;notify('effect','Evento gratuito: '+EVENTS[effect].label,user.team);return true;
       }

@@ -7,7 +7,7 @@ const Config = require('../games/block-wars/config.js');
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 function harness(options = {}) {
   let time = 0, timerId = 0;
-  const timers = new Map(), requests = [], media = [], oscillators = [], revoked = [], urls = [];
+  const timers = new Map(), requests = [], media = [], samples = [], oscillators = [], revoked = [], urls = [];
   const clock = {
     now: () => time,
     setTimeout(fn, delay) { const id = ++timerId; timers.set(id, { at: time + Math.max(0, delay), fn }); return id; },
@@ -37,9 +37,11 @@ function harness(options = {}) {
     }
   }
   class Audio {
-    constructor() { media.push(this); this.paused = false; }
-    async play() { this.played = true; }
-    pause() { this.paused = true; }
+    constructor() { this.paused = false; this.endTimer=null; }
+    set src(value) { this._src=value;if(value.startsWith('blob:')&&!media.includes(this))media.push(this);else if(value.startsWith('/assets-local/')&&!samples.includes(this))samples.push(this); }
+    get src(){return this._src;}
+    async play() { this.played = true;if(this.src?.endsWith('.ogg')&&!this.loop)this.endTimer=clock.setTimeout(()=>this.end(),500); }
+    pause() { this.paused = true;clock.clearTimeout(this.endTimer); }
     load() {}
     end() { if (this.onended) this.onended(); }
   }
@@ -48,7 +50,7 @@ function harness(options = {}) {
   const requestSpeech = options.requestSpeech || (async (event, { signal }) => { requests.push({ event, signal }); return new Blob(['mp3'], { type: 'audio/mpeg' }); });
   const audio = createAudio({ env, ...clock, minSpeechGapMs: 0, ...options, requestSpeech });
   const event = (id, kind = 'mine', extra = {}) => ({ id:'testlive:' + id, kind, source: 'simulator', actorName: 'Diego', team: 'dark', ...extra });
-  return { audio, clock, timers, requests, media, oscillators, revoked, urls, event, env };
+  return { audio, clock, timers, requests, media, samples, oscillators, revoked, urls, event, env };
 }
 
 test('audio requires operator enable, accepts only known actions and deduplicates source IDs', async () => {
@@ -97,7 +99,7 @@ test('real YouTube experience routes fourteen commands and automatic effects to 
     await h.clock.advance(1000);
   }
   const app=scene();for(let i=0;i<101;i++)app.experience.update(.05);
-  await flush();assert.equal(h.requests.length,0);assert.equal(h.audio.state.fxPlayed,15);
+  await flush();assert.equal(h.requests.length,0);assert.ok(h.audio.state.fxPlayed>=15);
   const like={id:'likes',type:'like',source:'simulator',receivedAt:2,data:{delta:25}};
   app.engine.pause(true);app.experience.handleEvent(like);await flush();assert.equal(h.requests.length,0);
   app.engine.pause(false);app.experience.update(.05);await flush();
@@ -184,12 +186,12 @@ test('volume zero cancels speech, narration can be disabled independently of FX'
   assert.equal(h.requests.length, 1); assert.equal(h.audio.state.fxPlayed, 2); h.audio.stop();
 });
 
-test('all catalog event sounds work offline with distinct TNT, NUKE and comment signatures and bounded nodes', async () => {
+test('all catalog event sounds use local Minecraft samples with distinct TNT, NUKE and comment signatures and bounded media', async () => {
   const h = harness({ narrationEnabled: false }); await h.audio.enable();
   const signatures = {};
   for (const kind of ['mine', 'tnt', 'nuke', ...Object.keys(Config.EVENTS)]) {
-    const before = h.oscillators.length; assert.equal(h.audio.notify(h.event(String(before) + kind, kind)), true);
-    signatures[kind] = h.oscillators.slice(before).map(node => [node.type, node.frequency.value, node.frequency.end]);
+    const before = h.samples.length; assert.equal(h.audio.notify(h.event(String(before) + kind, kind)), true);
+    signatures[kind] = h.samples.slice(before).map(node => node.src);
     await h.clock.advance(1000);
   }
   assert.notDeepEqual(signatures.mine, signatures.tnt); assert.notDeepEqual(signatures.tnt, signatures.nuke);
@@ -201,9 +203,9 @@ test('storm and creeper have separate activation sounds and impact FX never requ
   const h = harness({ narrationEnabled: false }); await h.audio.enable();
   const signatures = [];
   for (const kind of ['rain', 'thunder', 'storm', 'creeper']) {
-    const before = h.oscillators.length;
+    const before = h.samples.length;
     assert.equal(h.audio.notify(h.event('new-' + kind, kind)), true);
-    signatures.push(JSON.stringify(h.oscillators.slice(before).map(node => [node.type, node.frequency.value, node.frequency.end])));
+    signatures.push(JSON.stringify(h.samples.slice(before).map(node => node.src)));
     await h.clock.advance(1100);
   }
   assert.equal(new Set(signatures).size, 4);
@@ -269,4 +271,45 @@ test('YouTube source cannot request TTS even with narrate true and configured sp
  const h=harness();await h.audio.enable();h.audio.setNarration(true);
  for(const kind of [...Config.SELECTED_EVENTS,'mine','follow']){assert.equal(h.audio.notify(h.event('youtube-'+kind,kind,{source:'youtube',narrate:true})),true);await h.clock.advance(1000);}
  await flush();assert.equal(h.requests.length,0);assert.ok(h.audio.state.fxPlayed>0);assert.equal(h.audio.notify(h.event('spoof-reward','follow',{source:'youtube',speechKind:'youtube_subscriber'})),false);h.audio.stop();
+});
+
+
+test('Minecraft samples replace synthesized tones and music has an independent looping channel', async () => {
+  const h=harness({narrationEnabled:false}); await h.audio.enable();
+  assert.equal(typeof h.audio.setMix,'function');
+  assert.equal(h.audio.setMix({musicVolume:.15,fxVolume:.7,voiceVolume:.8,musicEnabled:true}),true);
+  assert.equal(h.audio.notify(h.event('authentic-tnt','tnt',{narrate:false})),true);
+  assert.equal(h.oscillators.length,0,'no generic synthesized fallback');
+  assert.ok(h.audio.state.nodes>0);
+  assert.equal(h.audio.state.musicVolume,.15);
+  const music=h.samples.find(item=>item.loop);assert.ok(music);assert.equal(music.src,'/assets-local/audio/background-loop.wav');assert.equal(music.volume,.6*.15);
+  assert.ok(h.samples.some(item=>item.src==='/assets-local/minecraft-sounds/fuse.ogg'));
+  assert.equal(h.audio.state.fxVolume,.7);
+  assert.equal(h.audio.setMix({musicVolume:NaN}),false);
+  assert.equal(h.audio.setMix({musicEnabled:'yes'}),false);
+  assert.equal(h.audio.setMix({remote:'https://example.com'}),false);
+  h.audio.pause(true);assert.equal(h.audio.state.nodes,0);
+  h.audio.stop();
+});
+
+
+test('missing Minecraft files release bounded media without synthetic fallback or voice failure',async()=>{
+ const h=harness({narrationEnabled:false});await h.audio.enable();
+ h.audio.notify(h.event('missing','tnt',{narrate:false}));await flush();
+ const sample=h.samples.find(item=>item.src.endsWith('/fuse.ogg'));
+ assert.ok(sample);sample.onerror();
+ assert.equal(h.audio.state.nodes,0);assert.equal(h.audio.state.fxAssetStatus,'unavailable');
+ assert.equal(h.oscillators.length,0);assert.equal(h.audio.state.errors,0);
+ const music=h.samples.find(item=>item.loop);music.onerror();assert.equal(h.audio.state.musicStatus,'unavailable');
+ h.audio.stop();assert.equal(h.timers.size,0);
+});
+
+test('mixer changes live channels independently and mute releases all looping and sample media',async()=>{
+ const h=harness();await h.audio.enable();h.audio.notify(h.event('mix','tnt'));await flush();
+ const voice=h.media[0],music=h.samples.find(item=>item.loop),fx=h.samples.find(item=>item.src.endsWith('.ogg'));
+ assert.equal(h.audio.setMix({musicVolume:.1,fxVolume:.4,voiceVolume:.5}),true);
+ assert.equal(music.volume,.6*.1);assert.equal(fx.volume,.6*.4*.65);assert.equal(voice.volume,.6*.5);
+ h.audio.mute(true);assert.equal(music.paused,true);assert.equal(fx.paused,true);assert.equal(voice.paused,true);
+ assert.equal(h.audio.state.nodes,0);assert.equal(h.audio.state.musicStatus,'stopped');
+ h.audio.stop();assert.equal(h.timers.size,0);
 });

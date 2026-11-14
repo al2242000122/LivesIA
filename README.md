@@ -112,3 +112,6 @@ Comprobar con `npm test`, `npm run check` y `npm run test:endless-soak` (seis ho
 - [Backlog para Codex](docs/block-wars/CODEX_BACKLOG.md)
 
 **Nota:** no se deben confundir follows gratuitos con subs pagadas. TikTok no remunera directamente cada like o vista; se requiere elegibilidad para LIVE y Gifts si en el futuro se habilitan regalos.
+
+
+Ajuste Minecraft para ensayo: [audio y ritmo del LIVE](docs/block-wars/MINECRAFT_LIVE_ENERGY.md), con simulación60Hz, comandos500msglobal/1sporpersona, efectos simultáneos acotados, sonidos originales locales y música separada en bucle. No añade monetización.

@@ -92,8 +92,9 @@
     function update(dt){
       if(Number.isFinite(dt)&&dt>0)state.elapsed+=dt;
       for(const key of ['lastActivation','lastFeedback'])if(state[key]&&state.elapsed>=state[key].until)state[key]=null;
-      const count=engine.state.eventCount;
+      const count=engine.state.eventCount,contacts=engine.state.body?.collisions||0;
       engine.update(dt);
+      if((engine.state.body?.collisions||0)>contacts)audio.impact?.('mine');
       // Engine IDs repeat on deterministic reset; audio IDs must stay unique across resets/reloads.
       if(engine.state.eventCount>count&&engine.state.lastEvent)announce(engine.state.lastEvent.kind,engine.state.lastEvent.team,{source:'automatic',engineActionId:engine.state.lastEvent.actionId});
       for(const effect of engine.state.effects||[]){

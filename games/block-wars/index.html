@@ -6,30 +6,30 @@
   <div id="event-banner" class="bw-event-banner" hidden aria-live="polite"></div>
   <section class="bw-interactions" aria-label="Cómo participar gratis">
     <div><canvas data-icon="tnt" width="16" height="16" aria-hidden="true"></canvas><strong id="interaction-trigger" class="bw-cyan">LIKES</strong><em>=</em><strong class="bw-red">TNT</strong></div>
-    <div><span class="bw-chat-icon" aria-hidden="true">✦</span><strong id="interaction-chat-label" class="bw-red">CHAT</strong><em>=</em><strong id="interaction-events-label" class="bw-cyan">EVENTOS</strong></div>
+    <div><canvas data-command-icon="spin" width="16" height="16" aria-hidden="true"></canvas><strong id="interaction-chat-label" class="bw-red">CHAT</strong><em>=</em><strong id="interaction-events-label" class="bw-cyan">EVENTOS</strong></div>
     <small id="like-progress">25 likes por TNT · participación gratis</small>
   </section>
   <header class="bw-match"><h1>DARK <i>VS</i> <span>LIGHT</span></h1><p id="scoreline">◆ DARK 0 · ✦ LIGHT 0</p></header>
   <section id="activation-card" class="bw-activation" hidden aria-live="polite" aria-label="Última acción activada"><small id="activation-source"></small><strong id="activation-title"></strong><span id="activation-actor"></span></section>
   <p id="command-feedback" class="bw-command-feedback" hidden role="status"></p>
   <aside class="bw-command-menu" aria-label="Los catorce comandos seleccionados"><h2 id="command-heading">COMANDOS</h2><ol id="command-list">
-      <li id="menu-tnt" class="event-tnt"><span aria-hidden="true">▣</span><b>TNT</b></li>
-      <li id="menu-rain" class="event-rain"><span aria-hidden="true">▦</span><b>RAIN</b></li>
-      <li id="menu-thunder" class="event-thunder"><span aria-hidden="true">ϟ</span><b>THUNDER</b></li>
-      <li id="menu-storm" class="event-storm"><span aria-hidden="true">▨</span><b>STORM</b></li>
-      <li id="menu-creeper" class="event-creeper"><span aria-hidden="true">▥</span><b>CREEPER</b></li>
-      <li id="menu-meteor" class="event-meteor"><span aria-hidden="true">✹</span><b>METEOR</b></li>
-      <li id="menu-fire" class="event-fire"><span aria-hidden="true">♨</span><b>FIRE</b></li>
-      <li id="menu-tsunami" class="event-tsunami"><span aria-hidden="true">≈</span><b>TSUNAMI</b></li>
-      <li id="menu-spin" class="event-spin"><span aria-hidden="true">⟳</span><b>SPIN</b></li>
-      <li id="menu-fast" class="event-fast"><span aria-hidden="true">»</span><b>FAST</b></li>
-      <li id="menu-mega" class="event-mega"><span aria-hidden="true">▣</span><b>MEGA</b></li>
-      <li id="menu-nuke" class="event-nuke"><span aria-hidden="true">☢</span><b>NUKE</b></li>
-      <li id="menu-arrow" class="event-arrow"><span aria-hidden="true">➶</span><b>ARROW</b></li>
-      <li id="menu-big" class="event-big"><span aria-hidden="true">↗</span><b>BIG</b></li>
+      <li id="menu-tnt" class="event-tnt"><canvas data-command-icon="tnt" width="16" height="16" aria-hidden="true"></canvas><b>TNT</b></li>
+      <li id="menu-rain" class="event-rain"><canvas data-command-icon="rain" width="16" height="16" aria-hidden="true"></canvas><b>RAIN</b></li>
+      <li id="menu-thunder" class="event-thunder"><canvas data-command-icon="thunder" width="16" height="16" aria-hidden="true"></canvas><b>THUNDER</b></li>
+      <li id="menu-storm" class="event-storm"><canvas data-command-icon="storm" width="16" height="16" aria-hidden="true"></canvas><b>STORM</b></li>
+      <li id="menu-creeper" class="event-creeper"><canvas data-command-icon="creeper" width="16" height="16" aria-hidden="true"></canvas><b>CREEPER</b></li>
+      <li id="menu-meteor" class="event-meteor"><canvas data-command-icon="meteor" width="16" height="16" aria-hidden="true"></canvas><b>METEOR</b></li>
+      <li id="menu-fire" class="event-fire"><canvas data-command-icon="fire" width="16" height="16" aria-hidden="true"></canvas><b>FIRE</b></li>
+      <li id="menu-tsunami" class="event-tsunami"><canvas data-command-icon="tsunami" width="16" height="16" aria-hidden="true"></canvas><b>TSUNAMI</b></li>
+      <li id="menu-spin" class="event-spin"><canvas data-command-icon="spin" width="16" height="16" aria-hidden="true"></canvas><b>SPIN</b></li>
+      <li id="menu-fast" class="event-fast"><canvas data-command-icon="fast" width="16" height="16" aria-hidden="true"></canvas><b>FAST</b></li>
+      <li id="menu-mega" class="event-mega"><canvas data-command-icon="mega" width="16" height="16" aria-hidden="true"></canvas><b>MEGA</b></li>
+      <li id="menu-nuke" class="event-nuke"><canvas data-command-icon="nuke" width="16" height="16" aria-hidden="true"></canvas><b>NUKE</b></li>
+      <li id="menu-arrow" class="event-arrow"><canvas data-command-icon="arrow" width="16" height="16" aria-hidden="true"></canvas><b>ARROW</b></li>
+      <li id="menu-big" class="event-big"><canvas data-command-icon="big" width="16" height="16" aria-hidden="true"></canvas><b>BIG</b></li>
     </ol><small id="command-instruction">RAIN O !RAIN · MISMO EFECTO · GRATIS</small></aside>
   <section id="timer-card" class="bw-timer" aria-label="Cuenta regresiva de eventos"><strong id="timer-caption">PRÓXIMO EVENTO GRATIS</strong><b id="next-event">60.0s</b><div class="bw-time-track"><i id="time-fill"></i></div></section>
   <div class="bw-tool-readout" id="tool-readout">PICO MADERA · 0.6 b/s</div>
   <section class="bw-audio-gate" aria-label="Audio del ensayo"><button id="audio-enable" type="button">ACTIVAR SONIDO</button><small id="audio-status" role="status">AUDIO: ACTIVAR EN OBS → INTERACTUAR</small></section>
   <footer class="bw-footer"><span id="source">DEMO · AUTÓNOMO</span><span>∞ PROFUNDIDAD <b id="round">0004</b> · SESIÓN <b id="clock">00:00</b></span><small id="relay">RELAY DESCONECTADO · LIVE SIN VERIFICAR</small><small id="asset-status">CARGANDO TEXTURAS LOCALES</small><p id="notice" aria-live="polite">Elige equipo con !dark o !light · Todo gratis</p><small class="bw-attribution">PROYECTO NO OFICIAL · NO APROBADO NI ASOCIADO CON MOJANG O MICROSOFT</small></footer>
-</main><script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/physics.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/textures.js"></script><script src="/block-wars/effects-render.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/audio.js"></script><script src="/block-wars/experience.js"></script><script src="/block-wars/app.js"></script></body></html>
+</main><script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/physics.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/textures.js"></script><script src="/block-wars/effects-render.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/audio-assets.js"></script><script src="/block-wars/audio.js"></script><script src="/block-wars/experience.js"></script><script src="/block-wars/app.js"></script></body></html>

@@ -80,7 +80,10 @@
           const px=Math.floor(offset+x*cell);paint('tile',block.material,px,py,cell,(x*7+y*13)%4);crack(block,px,py,cell);
         }
       }
-      effects.weather(state.weather,time,reduced,state.paused);
+      const weather=state.weatherEvents||[state.weather].filter(Boolean);
+      const strongest=weather.find(entry=>entry.kind==='storm')||weather[0];
+      effects.weather(strongest,time,reduced,state.paused);
+      for(let i=0;i<weather.length;i++)if(weather[i]!==strongest)effects.label(weather[i],W/2,112+i*28);
       effects.hazards(state.hazards,cell,offset,view.cameraY);
       for(const effect of state.effects||[])effects.explosion(effect,cell,offset,view.cameraY,reduced);
       for(const entity of state.entities||[])effects.projectile(entity,cell,offset,view.cameraY,reduced);

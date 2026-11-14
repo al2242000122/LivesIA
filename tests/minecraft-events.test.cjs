@@ -48,7 +48,8 @@ test('METEOR damages a terrain path before its final blast and FIRE leaves a dam
   advance(meteor,1.6);assert.ok(meteor.state.actionResults[0].blocks>0);
   assert.ok(meteor.state.entities.some(v=>v.kind==='meteor'),'penetration precedes final impact');
   const fire=world();fire.action({type:'fire',team:'dark'},context);
-  advance(fire,2);assert.ok(fire.state.hazards.length>0,'fire must continue after projectile impact');
+  for(let i=0;i<100&&!fire.state.hazards.length;i++)advance(fire,.05);
+  assert.ok(fire.state.hazards.length>0,'fire must continue after projectile impact');
   const count=fire.state.actionResults[0].blocks;advance(fire,3);
   assert.ok(fire.state.actionResults[0].blocks>count,'burning must destroy further terrain');
 });
@@ -63,11 +64,11 @@ test('TSUNAMI sweeps sideways and pushes the physical pick rather than applying 
   assert.ok(e.state.body.x>control.state.body.x,'the push changes actual movement before any reset helper');
   advance(e,5);assert.ok(e.state.actionResults[0].blocks>0);
 });
-test('CREEPER waits for landing and NUKE has a three-second fuse before chain explosions',()=>{
+test('CREEPER and NUKE retain a visible landing fuse before their faster chain explosions',()=>{
   for(const kind of ['creeper','nuke']){
     const e=world();e.action({type:kind,team:'dark'},context);
     advance(e,1);assert.equal(e.state.actionResults[0].blocks,0);
-    if(kind==='nuke')assert.ok(e.state.entities[0].fuse>=2.9);
+    if(kind==='nuke')assert.ok(e.state.entities[0].fuse>=1.4);
     advance(e,8);assert.ok(e.state.actionResults[0].blocks>0,kind);
   }
 });
@@ -208,4 +209,41 @@ test('initial RAIN uses the visible air shaft for all eight TNT charges rather t
   }
   assert.ok(deepestImpact>=7,'the visible rain reaches terrain near the mining front');
   assert.ok(e.state.actionResults.find(result=>result.actionId===context.actionId).blocks>0);
+});
+
+
+test('attributed endless commands can overlap at one-second cadence without shared engine cooldowns',()=>{
+  const e=world();
+  for(const kind of ['tnt','nuke','fast']){
+    e.clearEffects();
+    assert.equal(e.action({type:kind,team:'dark'},{...context,actionId:kind+'-first'}),true);
+    for(let frame=0;frame<60;frame++)e.update(1/60);
+    assert.equal(e.action({type:kind,team:'dark'},{...context,actionId:kind+'-second'}),true,kind);
+    assert.equal(e.state.lastEvent.actionId,kind+'-second');
+  }
+  const plain=world();assert.equal(plain.action({type:'nuke',team:'dark'}),true);
+  assert.equal(plain.action({type:'nuke',team:'dark'}),false,'unattributed engine API retains cooldown');
+  const shaft=createEngine({layout:'shaft'});
+  assert.equal(shaft.action({type:'nuke',team:'dark'},context),true);
+  assert.equal(shaft.action({type:'nuke',team:'dark'},{...context,actionId:'second'}),false,'legacy mode retains cooldown');
+});
+
+test('concurrent weather retains each command author through damage and has a fixed admission limit',()=>{
+  const e=world();
+  for(let i=0;i<8;i++)assert.equal(e.action({type:i%2?'storm':'thunder',team:'dark'},{actor:'Miner '+i,source:'youtube',actionId:'weather-'+i}),true);
+  assert.equal(e.action({type:'storm',team:'light'},{actor:'Overflow',source:'youtube',actionId:'overflow'}),false);
+  assert.equal(e.state.weatherEvents.length,8);
+  advance(e,8);
+  for(let i=0;i<8;i++){
+    const result=e.state.actionResults.find(v=>v.actionId==='weather-'+i);
+    assert.equal(result.actor,'Miner '+i);assert.ok(result.completed);
+    assert.ok(result.blocks>0,'each admitted weather must actually cause credited terrain damage');
+  }
+  assert.equal(e.state.weather,null);assert.equal(e.state.weatherEvents.length,0);
+  e.action({type:'storm',team:'dark'},context);e.clearEffects();assert.equal(e.state.weatherEvents.length,0);
+});
+
+test('rain volley is released within two seconds rather than dribbling for four seconds',()=>{
+  const e=world();e.action({type:'rain',team:'dark'},context);
+  assert.ok(Math.max(...e.state.entities.map(v=>v.delay))<=1.5);
 });

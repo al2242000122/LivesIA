@@ -80,7 +80,9 @@
   element('resume').addEventListener('click',()=>send({type:'bw_pause',paused:false}));
   element('emergency').addEventListener('click',()=>send({type:'bw_emergency'}));
   element('audio-form').addEventListener('submit',event=>{
-    event.preventDefault();send({type:'bw_audio',settings:{muted:element('audio-muted').checked,volume:Number(element('audio-volume').value)/100,narration:element('audio-narration').checked}});
+    event.preventDefault();send({type:'bw_audio',settings:{muted:element('audio-muted').checked,volume:Number(element('audio-volume').value)/100,narration:element('audio-narration').checked,
+      musicEnabled:element('audio-music').checked,musicVolume:Number(element('music-volume').value)/100,
+      fxVolume:Number(element('fx-volume').value)/100,voiceVolume:Number(element('voice-volume').value)/100}});
   });
   const names={wood:'MADERA',stone:'PIEDRA',gold:'ORO',diamond:'DIAMANTE',netherite:'NETHERITA'};
   function compare(){
@@ -103,8 +105,8 @@
       if(!response.ok)throw new Error('health unavailable');
       const health=await response.json();
       element('speech-health').textContent=health.enabled?'ElevenLabs configurado · '+health.charactersUsed+' / '+health.characterLimit+' caracteres por hora · Reproducción real pendiente de ensayo.':
-        'Voz pendiente: '+(!health.keyConfigured?'falta clave local. ':!health.voiceConfigured?'falta voz elegida. ':'revisa configuración. ')+'Los sonidos propios funcionan sin ElevenLabs.';
-    }catch{element('speech-health').textContent='Estado de voz no disponible. Los sonidos propios funcionan sin ElevenLabs.';}
+        'Voz pendiente: '+(!health.keyConfigured?'falta clave local. ':!health.voiceConfigured?'falta voz elegida. ':'revisa configuración. ')+'Los sonidos locales de Minecraft funcionan sin ElevenLabs.';
+    }catch{element('speech-health').textContent='Estado de voz no disponible. Los sonidos locales de Minecraft funcionan sin ElevenLabs.';}
     try{
       const response=await fetch('/api/block-wars/telemetry',{cache:'no-store'});
       if(!response.ok)throw new Error('telemetry unavailable');
