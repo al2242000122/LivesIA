@@ -112,3 +112,41 @@ for(const overwrite of [false,true]) test(`timeout during private write prevents
  if(overwrite) assert.equal(await fs.readFile(target,'utf8'),original);
  else await assert.rejects(fs.stat(target),{code:'ENOENT'});
 });
+test('official Desktop legacy auth_uri declaration still uses fixed v2 authorization endpoint',async t=>{
+ const {root}=await fixture(t);
+ const clientFile=path.join(root,'desktop.json');
+ await fs.writeFile(clientFile,JSON.stringify({installed:{client_id:'fixture.apps.googleusercontent.com',project_id:'fixture-project',auth_uri:'https://accounts.google.com/o/oauth2/auth',token_uri:TOKEN_URL,auth_provider_x509_cert_url:'https://www.googleapis.com/oauth2/v1/certs',client_secret:'fixture-secret',redirect_uris:['http://localhost']}}));
+ const flow=await startYouTubeAuthorization({clientFile,authFile:path.join(root,'new.json')});
+ t.after(()=>flow.close());
+ const page=await (await fetch(flow.localUrl)).text();
+ const auth=new URL(page.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&'));
+ assert.equal(auth.origin+auth.pathname,AUTH_URL);
+ flow.close();await assert.rejects(flow.done,{message:'youtube_auth_cancelled'});
+});
+test('setup CLI diagnostics distinguish fixed safe codes and suppress unknown errors',()=>{
+ const {diagnosticCode}=require('../scripts/connect-youtube.cjs');
+ for(const code of ['youtube_auth_usage','youtube_auth_path','youtube_auth_client','youtube_auth_exists','youtube_auth_timeout']) assert.equal(diagnosticCode({code,message:'private fixture value'}),code);
+ assert.equal(diagnosticCode({code:'PRIVATE_SECRET',message:'private fixture value'}),'youtube_auth_setup');
+ assert.equal(diagnosticCode(new Error('private fixture value')),'youtube_auth_setup');
+});
+test('setup CLI reports missing client and invalid output path without file paths',async t=>{
+ const {root,authFile}=await fixture(t);
+ const {spawnSync}=require('node:child_process');
+ for(const [client,output,expected] of [
+  [path.join(root,'secret-name.json'),path.join(root,'new.json'),'youtube_auth_client'],
+  [path.join(root,'secret-name.json'),'relative-secret-path.json','youtube_auth_path'],
+  [path.join(root,'secret-name.json'),authFile,'youtube_auth_exists']
+ ]) {
+  const result=spawnSync(process.execPath,['scripts/connect-youtube.cjs',client,output],{encoding:'utf8'});
+  assert.equal(result.status,1);assert.ok(result.stderr.includes(`(${expected})`));
+  assert.ok(!result.stderr.includes('secret-name'));assert.ok(!result.stderr.includes(root));assert.ok(!result.stderr.includes('relative-secret-path'));assert.equal(result.stdout,'');
+ }
+});
+test('untrusted client authorization endpoint declarations are rejected',async t=>{
+ const {root}=await fixture(t);
+ for(const auth_uri of ['https://evil.invalid/o/oauth2/auth','https://accounts.google.com/o/oauth2/auth?evil=1','http://accounts.google.com/o/oauth2/auth']) {
+  const clientFile=path.join(root,'bad-client.json');
+  await fs.writeFile(clientFile,JSON.stringify({installed:{client_id:'fixture-id',client_secret:'fixture-secret',auth_uri,token_uri:TOKEN_URL,redirect_uris:['http://localhost']}}));
+  await assert.rejects(startYouTubeAuthorization({clientFile,authFile:path.join(root,'new.json')}),{code:'youtube_auth_client'});
+ }
+});
