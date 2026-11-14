@@ -15,7 +15,8 @@
     const alias=command.startsWith('!')?command.slice(1):command;
     return Object.prototype.hasOwnProperty.call(EFFECT_ALIASES,alias)?EFFECT_ALIASES[alias]:null;
   }
-  const SOURCES=['simulator','tikfinity'];
+  const SOURCES=['simulator','tikfinity','youtube'];
+  const CREDIT_SOURCES=['simulator','tikfinity'];
   const PICKS={ '!madera':'wood','!piedra':'stone','!oro':'gold','!diamante':'diamond','!netherita':'netherite' };
   const DEFAULTS={likeThreshold:25,teamCooldownMs:60000,mineCooldownMs:15000,boomCooldownMs:30000,followCooldownMs:60000,effectCooldownMs:10000,actorEffectCooldownMs:15000,
     rainThreshold:5,boomThreshold:3,pickVoteThreshold:3,pickWindowMs:30000,maxEffectsPerFlush:8,maxActors:2000,maxDedupe:4000,
@@ -42,9 +43,9 @@
     if(!engine||typeof engine.action!=='function'||!engine.state)throw new TypeError('An engine is required');
     let settings=config(options===undefined?{}:options,DEFAULTS),clock=0,lastSweep=-Infinity,round=engine.state.round,pickWindow=-1;
     const actors=new Map(),dedupe=new Map(),rainVoters=new Map();
-    const buckets={simulator:{progress:0,pending:0},tikfinity:{progress:0,pending:0}};
-    const metrics={bySource:{simulator:sourceMetrics(),tikfinity:sourceMetrics()},rejected:0};
-    const state={likes:0,likeProgress:0,likesRemainder:0,likeThreshold:settings.likeThreshold,pendingTnt:0,likeProgressBySource:{simulator:0,tikfinity:0},
+    const buckets=Object.fromEntries(SOURCES.map(source=>[source,{progress:0,pending:0}]));
+    const metrics={bySource:Object.fromEntries(SOURCES.map(source=>[source,sourceMetrics()])),rejected:0};
+    const state={likes:0,likeProgress:0,likesRemainder:0,likeThreshold:settings.likeThreshold,pendingTnt:0,likeProgressBySource:Object.fromEntries(SOURCES.map(source=>[source,0])),
       membershipCounts:{dark:0,light:0},teams:{dark:{members:0,votes:voteCounts(),pickWinner:null},light:{members:0,votes:voteCounts(),pickWinner:null}},
       rainVotes:0,rainThreshold:settings.rainThreshold,boomCharge:0,boomThreshold:settings.boomThreshold,pickWindowMs:settings.pickWindowMs,
       effectCooldownMs:settings.effectCooldownMs,actorEffectCooldownMs:settings.actorEffectCooldownMs,nextEffectInMs:0,notifications:[],lastMessage:'',trackedActors:0,trackedDedupe:0,trackedVotes:0,
@@ -57,9 +58,9 @@
     }
     function refresh(){
       state.nextEffectInMs=Math.max(0,settings.effectCooldownMs-(clock-lastEffectAt));
-      state.likes=add(metrics.bySource.simulator.likes,metrics.bySource.tikfinity.likes);
-      state.likeProgress=buckets.simulator.progress+buckets.tikfinity.progress;state.likesRemainder=state.likeProgress;
-      state.pendingTnt=buckets.simulator.pending+buckets.tikfinity.pending;
+      state.likes=SOURCES.reduce((total,source)=>add(total,metrics.bySource[source].likes),0);
+      state.likeProgress=SOURCES.reduce((total,source)=>total+buckets[source].progress,0);state.likesRemainder=state.likeProgress;
+      state.pendingTnt=SOURCES.reduce((total,source)=>total+buckets[source].pending,0);
       for(const source of SOURCES)state.likeProgressBySource[source]=buckets[source].progress;
       state.trackedActors=actors.size;state.trackedDedupe=dedupe.size;state.trackedVotes=rainVoters.size;
       for(const team of ['dark','light'])state.teams[team].members=state.membershipCounts[team];
@@ -92,14 +93,14 @@
     function flush(){
       sync(clock);if(!ready())return 0;
       let budget=settings.maxEffectsPerFlush,accepted=0;
-      for(let i=0;i<2&&budget;i++){
-        const source=SOURCES[(drainFirst+i)%2],bucket=buckets[source],count=Math.min(budget,bucket.pending);
+      for(let i=0;i<CREDIT_SOURCES.length&&budget;i++){
+        const source=CREDIT_SOURCES[(drainFirst+i)%CREDIT_SOURCES.length],bucket=buckets[source],count=Math.min(budget,bucket.pending);
         if(count&&act({type:'tnt',team:'neutral',count},{source,community:true,trigger:'like'})){
           bucket.pending-=count;budget-=count;accepted+=count;metrics.bySource[source].tnt=add(metrics.bySource[source].tnt,count);
           notify('tnt','TNT comunitaria activada');
         }
       }
-      drainFirst=1-drainFirst;refresh();return accepted;
+      drainFirst=(drainFirst+1)%CREDIT_SOURCES.length;refresh();return accepted;
     }
     function outcome(accepted,reason,retryAfterMs=0,kind=state.lastOutcome.kind){
       state.lastOutcome={accepted,kind,reason,retryAfterMs:Math.max(0,Math.ceil(retryAfterMs))};return accepted;
@@ -124,6 +125,7 @@
       outcome(false,'invalid',0,null);
       if(!event||typeof event!=='object'||!SOURCES.includes(event.source)||!Number.isSafeInteger(event.receivedAt)||event.receivedAt<0||!event.data||typeof event.data!=='object')return reject();
       const source=event.source,m=metrics.bySource[source];sync(event.receivedAt);
+      if(source==='youtube'&&event.type!=='comment')return reject(source);
       if(event.type==='gift'||event.type==='subscribe_paid'){m.ignored=add(m.ignored,1);return outcome(false,'ignored');}
       if(!['like','follow','comment'].includes(event.type))return reject(source);
       if(event.id!==undefined&&event.id!==null){
@@ -147,7 +149,7 @@
       const identified=typeof hash==='string'&&hash.length>0,key=source+':'+(identified?'user:'+hash:'anonymous');
       if(event.type==='comment'){
         m.comments=add(m.comments,1);
-        if(typeof event.data.text!=='string'||event.data.text.length>256)return reject(source);
+        if(typeof event.data.text!=='string'||event.data.text.length>500)return reject(source);
         const command=event.data.text.trim().toLowerCase().replace(/\s+/g,' '),effect=effectType(command);
         if(!effect&&!['!dark','!light','!mine','!boom','!voterain','!pico',...Object.keys(PICKS)].includes(command))return outcome(false,'unknown');
         outcome(false,'pending',0,effect||command.slice(1));
@@ -191,7 +193,7 @@
         if(rainVoters.size>=settings.maxActors)return outcome(false,'capacity');
         rainVoters.set(key,true);state.rainVotes++;
         if(state.rainVotes>=settings.rainThreshold){
-          if(act({type:'rain',team:'neutral'},{source:key.startsWith('simulator:')?'simulator':'tikfinity',community:true})){rainTriggered=true;notify('rain','Lluvia comunitaria activada');}
+          if(act({type:'rain',team:'neutral'},{source:key.split(':')[0],community:true})){rainTriggered=true;notify('rain','Lluvia comunitaria activada');}
           else{rainVoters.delete(key);state.rainVotes--;return outcome(false,unavailable()||'engine_busy');}
         }
         return true;
@@ -204,7 +206,7 @@
       }
       if(command==='!boom'){
         if(clock-user.boomAt<settings.boomCooldownMs)return outcome(false,'actor_cooldown',settings.boomCooldownMs-(clock-user.boomAt));
-        if(state.boomCharge+1>=settings.boomThreshold){if(!act({type:'tnt',team:user.team},{source:key.startsWith('simulator:')?'simulator':'tikfinity',community:true}))return outcome(false,unavailable()||'engine_busy');state.boomCharge=0;notify('tnt','Carga comunitaria activada',user.team);}
+        if(state.boomCharge+1>=settings.boomThreshold){if(!act({type:'tnt',team:user.team},{source:key.split(':')[0],community:true}))return outcome(false,unavailable()||'engine_busy');state.boomCharge=0;notify('tnt','Carga comunitaria activada',user.team);}
         else state.boomCharge++;
         user.boomAt=clock;return true;
       }

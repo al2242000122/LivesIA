@@ -5,7 +5,7 @@ const {connect}=require('../integrations/transport.js');
 function environment(){
   const sockets=[],streams=[],timers=new Map();
   class WS {constructor(){sockets.push(this);}close(){this.onclose?.();}}
-  class SSE {static CLOSED=2;constructor(){this.readyState=0;streams.push(this);}close(){this.readyState=2;}}
+  class SSE {static CLOSED=2;constructor(){this.readyState=0;this.listeners={};streams.push(this);}addEventListener(type,listener){this.listeners[type]=listener;}close(){this.readyState=2;}}
   const env={WebSocket:WS,EventSource:SSE,setTimeout:(fn,delay)=>{const id={};timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id)};
   const tick=()=>{const [id,timer]=[...timers][0];timers.delete(id);timer.fn();return timer.delay;};
   return {env,sockets,streams,timers,tick};
@@ -49,4 +49,14 @@ test('terminal SSE retries once while native CONNECTING retry stays native',()=>
   f.streams[0].onerror();assert.equal(f.timers.size,0);
   f.streams[0].readyState=2;f.streams[0].onerror();f.streams[0].onerror();assert.equal(f.timers.size,1);
   f.tick();assert.equal(f.streams.length,2);connection.stop();
+});
+
+test('dedicated YouTube channels isolate Snake, reject simulator spoofing and clear stale connection',()=>{
+ const f=environment(),events=[],states=[];const c=connect({target:'block-wars',youtubeEnabled:true,env:f.env,onEvent:e=>events.push(e),onYouTubeState:s=>states.push(s)});
+ const stream=f.streams[0],event={type:'comment',source:'youtube',id:'yt:'+'a'.repeat(32),receivedAt:1,actor:{displayName:'Ana',stableHash:'b'.repeat(32)},data:{text:'TNT'}};
+ assert.equal(f.sockets.length,0);stream.onmessage({data:JSON.stringify({...event,target:'block-wars'})});assert.equal(events.length,0);
+ stream.listeners.youtube_comment({data:JSON.stringify(event)});assert.equal(events[0].actor.stableHash,event.actor.stableHash);assert.equal(events[0].source,'youtube');
+ stream.listeners.youtube_state({data:JSON.stringify({state:'connected',token:'must-not-leak',received:3})});assert.deepEqual(states.at(-1),{state:'connected',received:3});
+ stream.onerror();assert.equal(states.at(-1).state,'reconnecting');c.stop();
+ const snake=environment();connect({target:'snake',youtubeEnabled:true,env:snake.env});assert.deepEqual(Object.keys(snake.streams[0].listeners),[]);
 });

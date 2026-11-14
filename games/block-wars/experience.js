@@ -10,7 +10,7 @@
     const name=value.normalize('NFKC').replace(/\s+/g,' ').trim();
     return name&&/^[\p{L}\p{N}\p{M} _-]+$/u.test(name)?name.slice(0,32):'un minero';
   }
-  function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':'EVENTO DE LA MINA';}
+  function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'CHAT YOUTUBE':'EVENTO DE LA MINA';}
   function createExperience(engine,rules,audio,onNotice=()=>{},options={}){
     const youtube=options.platform==='youtube';
     let context=null,sequence=0,impactSeen=new WeakSet();
@@ -25,7 +25,7 @@
     }
     function announce(kind,team,origin,id=nextId()){
       if(!audible.has(kind))return;
-      const source=['simulator','tikfinity'].includes(origin?.source)?origin.source:'automatic';
+      const source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
       const name=source==='automatic'?'':origin?.actorName||'';
       const subscriberDemo=youtube&&kind==='follow'&&source==='simulator';
       const label=config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:subscriberDemo?'SUSCRIPTOR DE PRUEBA':'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
@@ -36,8 +36,8 @@
       const message=sourceLabel(source)+' · '+by+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
       publish({...activation,accepted:true,reason:'activated',retryAfterMs:0},message);
       const sound={id,kind,team:team||'neutral',actorName:name,source};
-      if(youtube){
-        // Only simulator rewards have a verified local meaning. No real YouTube bridge exists yet.
+      if(youtube||source==='youtube'){
+        // Real comments retain FX; only simulator rewards may request speech.
         const speechKind=subscriberDemo?'youtube_subscriber':source==='simulator'&&kind==='tnt'&&origin?.trigger==='like'?'like_milestone':null;
         sound.narrate=Boolean(speechKind);
         if(speechKind)sound.speechKind=speechKind;
@@ -46,8 +46,8 @@
     }
     engine.action=function(action,metadata){
       // Deferred community credits retain their source without borrowing a spectator's name.
-      const origin=metadata?.community&&['simulator','tikfinity'].includes(metadata.source)?{source:metadata.source,actorName:'',trigger:metadata.trigger}:context;
-      const id=nextId(),source=['simulator','tikfinity'].includes(origin?.source)?origin.source:'automatic';
+      const origin=metadata?.community&&['simulator','tikfinity','youtube'].includes(metadata.source)?{source:metadata.source,actorName:metadata.source==='youtube'?context?.actorName||'':'',trigger:metadata.trigger}:context;
+      const id=nextId(),source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
       const accepted=perform(action,{actor:source==='automatic'?'':origin?.actorName||'',source,actionId:id});
       if(accepted)announce(context?.follow?'follow':action.type,action.team,origin,id);
       return accepted;
@@ -80,8 +80,8 @@
     }
     function handleEvent(event){
       const command=typeof event?.data?.text==='string'?event.data.text.trim().toLowerCase():'';
-      const community=event?.type==='like'||['!boom','!voterain'].includes(command);
-      const origin={source:event?.source,follow:event?.type==='follow',actorName:community?'':actorName(event?.actor?.displayName)};
+      const community=event?.type==='like'||event?.source!=='youtube'&&['!boom','!voterain'].includes(command);
+      const origin={source:event?.source,follow:event?.type==='follow',actorName:community?'':event?.source==='youtube'&&typeof event?.actor?.displayName==='string'?event.actor.displayName.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').slice(0,44):actorName(event?.actor?.displayName)};
       const previous=state.lastActivation;
       const accepted=scoped(origin,()=>rules.handle(event));
       if((event?.type==='comment'||event?.type==='follow')&&previous===state.lastActivation)feedback(rules.state.lastOutcome,origin);

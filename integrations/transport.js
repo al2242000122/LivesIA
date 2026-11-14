@@ -7,7 +7,14 @@
   function connect(options={}){
     const env=options.env||root,target=options.target||'snake';
     const adapter=options.adapter||LiveEvents.createAdapter();
-    const state={relay:options.relayEnabled===false?'disabled':'connecting',controls:'connecting',source:'none',verified:false,metrics:adapter.metrics};
+    const youtubeEnabled=options.youtubeEnabled===true&&target==='block-wars';
+    const youtubeStates=new Set(['unconfigured','idle','waiting_live','synchronizing','connected','reconnecting','ended','error','quota_exhausted','stopped']);
+    function youtubeState(input){
+      if(!input||!youtubeStates.has(input.state))return;
+      const safe={state:input.state,received:Number.isSafeInteger(input.received)&&input.received>=0?input.received:0};
+      try{options.onYouTubeState?.(safe);}catch{state.callbackErrors=(state.callbackErrors||0)+1;}
+    }
+    const state={relay:options.relayEnabled===false||youtubeEnabled?'disabled':'connecting',controls:'connecting',source:'none',verified:false,metrics:adapter.metrics};
     let stopped=false,ws=null,sse=null,wsTimer=null,sseTimer=null,wsAttempt=0,sseAttempt=0;
     function emitStatus(){if(!stopped)options.onStatus?.({...state});}
     function deliver(event){
@@ -25,7 +32,7 @@
       }
     }
     function openWebSocket(){
-      if(stopped||options.relayEnabled===false)return;
+      if(stopped||options.relayEnabled===false||youtubeEnabled)return;
       state.relay='connecting';emitStatus();
       let socket;
       try{socket=new env.WebSocket('ws://127.0.0.1:21213/');ws=socket;}
@@ -40,19 +47,23 @@
       state.controls='connecting';emitStatus();
       let stream;
       try{stream=new env.EventSource(`/api/stream?target=${encodeURIComponent(target)}`);sse=stream;}
-      catch{state.controls='offline';emitStatus();retry('sse');return;}
+      catch{state.controls='offline';if(youtubeEnabled)youtubeState({state:'reconnecting'});emitStatus();retry('sse');return;}
+      if(youtubeEnabled){
+        stream.addEventListener('youtube_comment',packet=>{if(!stopped&&sse===stream)deliver(adapter.normalizeYouTube(packet.data));});
+        stream.addEventListener('youtube_state',packet=>{if(stopped||sse!==stream||typeof packet.data!=='string'||packet.data.length>4096)return;try{youtubeState(JSON.parse(packet.data));}catch{}});
+      }
       stream.onopen=()=>{if(stopped||sse!==stream)return;sseAttempt=0;state.controls='connected';emitStatus();};
       stream.onmessage=packet=>{
         if(stopped||sse!==stream||typeof packet.data!=='string'||packet.data.length>16384)return;
         let raw;try{raw=JSON.parse(packet.data);}catch{return;}
-        if(!raw||typeof raw!=='object'||Array.isArray(raw)||(raw.target||'snake')!==target)return;
+        if(!raw||typeof raw!=='object'||Array.isArray(raw)||(raw.target||'snake')!==target||raw.source==='youtube')return;
         if(['pause','reset','frenzy','bw_action','bw_settings','bw_pause','bw_reset','bw_emergency','bw_audio'].includes(raw.type)){
           try{options.onControl?.(raw);}catch{state.callbackErrors=(state.callbackErrors||0)+1;}
         }else deliver(adapter.normalize(raw,'simulator'));
       };
       stream.onerror=()=>{
         if(stopped||sse!==stream)return;
-        state.controls='offline';emitStatus();
+        state.controls='offline';if(youtubeEnabled)youtubeState({state:'reconnecting'});emitStatus();
         if(stream.readyState===env.EventSource.CLOSED)retry('sse');
       };
     }
