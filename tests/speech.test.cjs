@@ -46,6 +46,8 @@ test('speech uses the official fixed endpoint and Spanish template instead of us
   assert.equal(request.method, 'POST');
   assert.equal(request.redirect, 'error');
   assert.equal(request.headers['xi-api-key'], configured.ELEVENLABS_API_KEY);
+  assert.equal(request.headers['x-fern-sdk-name'], '@elevenlabs/elevenlabs-js');
+  assert.equal(request.headers['x-fern-sdk-version'], '2.78.0');
   const body = JSON.parse(request.body);
   assert.equal(body.model_id, 'eleven_flash_v2_5');
   assert.match(body.text, /NUKE de Ana María/);
@@ -195,6 +197,9 @@ test('late provider responses are cancelled after the client has disconnected', 
   const { speech } = fixture({ fetchImpl: () => new Promise(resolve => { respond = resolve; }) });
   const controller = new AbortController();
   const pending = speech.synthesize(payload(), { signal: controller.signal });
+  // SDK serialization is asynchronous; disconnect after the transport actually starts.
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(typeof respond,'function');
   controller.abort();
   assert.equal((await pending).statusCode, 499);
   respond(new Response(new ReadableStream({ cancel() { cancelled = true; } }), { headers: { 'content-type': 'audio/mpeg' } }));
@@ -229,4 +234,28 @@ test('audio is bounded by actual bytes as well as Content-Length and must be non
     assert.equal(result.audio, undefined);
     assert.equal(speech.status().inFlight, 0);
   }
+});
+
+test('SDK transport makes one attempt on retryable statuses and cancels unbounded error bodies', async () => {
+  for(const status of [429,500,503]){
+    let calls=0,cancelled=false;
+    const {speech}=fixture({fetchImpl:async()=>{
+      calls++;
+      return new Response(new ReadableStream({cancel(){cancelled=true;}}),{status});
+    }});
+    const result=await speech.synthesize(payload());
+    assert.equal(result.statusCode,status===429?429:502);
+    assert.equal(calls,1);assert.equal(cancelled,true);
+  }
+});
+
+test('SDK transport rejects redirects without following a foreign endpoint', async () => {
+  const {speech,calls}=fixture({fetchImpl:async(url,options)=>{
+    calls.push([url,options]);
+    assert.equal(options.redirect,'error');
+    return new Response(null,{status:302,headers:{location:'https://foreign.invalid/voice'}});
+  }});
+  const result=await speech.synthesize(payload());
+  assert.equal(result.statusCode,502);assert.equal(calls.length,1);
+  assert.ok(!JSON.stringify(result).includes('foreign.invalid'));
 });

@@ -6,9 +6,13 @@ Implementación local: el servidor convierte **acciones confirmadas del juego** 
 
 ## Preparar la cuenta y la voz
 
+**Configuración recomendada por CLI:** el propietario autorizó `npx -y @elevenlabs/cli@latest onboard init`. Se ejecutó CLI1.11.0, se aprobó personalmente el acceso en el navegador y la CLI guardó una clave en `.env.local`, ignorado por Git. Nunca abrir o imprimir ese archivo para verificarlo: usar `onboard check`. El [registro de integración](ELEVENLABS_ONBOARDING.md) explica el SDK y los pendientes reales. No crear otra clave si la existente es válida.
+
 1. En tu cuenta de ElevenLabs, elige una voz con permiso de uso y prueba su pronunciación en español. Copia su **Voice ID**; el nombre visible de la voz no sirve como ID. No clonar voces sin autorización.
-2. Crea una clave para Text to Speech con el menor alcance y límite de consumo disponibles en tu cuenta. Revisa ahí tu cuota y condiciones antes del ensayo; este proyecto no compra un plan.
-3. Introduce la clave únicamente en la terminal local del servidor. **No compartirla en el chat, panel, URL, capturas, Git ni archivos del proyecto.** No se requiere SDK ni `npm install`.
+2. Usa el onboarding oficial para conectar la cuenta, revisando los permisos antes de autorizar. Revisa ahí tu cuota y condiciones antes del ensayo; este proyecto no compra un plan.
+3. **No compartir claves en el chat, panel, URL, capturas ni Git.** El SDK oficial se instala mediante `npm ci` desde el lock. `npm start` carga `.env.local` sólo en el servidor; este arranque requiere Node20.12+ si existe ese archivo. El navegador no recibe credenciales.
+
+La entrada oculta siguiente se conserva como alternativa manual cuando se suministra una clave propia mediante variables de proceso; no es necesaria para repetir la autorización por CLI ya completada. No copiar la clave del archivo al chat.
 
 Desde una terminal local visible, en la raíz de LivesIA. Primero detener el servidor anterior con `Ctrl+C` en su propia ventana; el lanzador rechaza un puerto ocupado y no cierra procesos ajenos. La clave se solicita ocultamente, sólo se conserva en memoria del proceso y el entorno anterior se restaura al terminar:
 
@@ -85,6 +89,6 @@ node --test tests/speech.test.cjs
 
 La experiencia recibe internamente `{platform:'youtube'}` como quinto argumento y pasa al audio `narrate` y, sólo para las dos recompensas, `speechKind`. No amplía los cinco campos HTTP ni permite frases libres. Las metas de likes nunca pronuncian el nombre de un espectador. Las suscripciones de ensayo no se aceptan desde TikFinity ni desde el temporizador.
 
-Al habilitar la voz se envían a ElevenLabs la frase resultante y, cuando corresponda, el nombre público normalizado. No se envían el chat completo, ID de TikTok ni telemetría de la partida. El audio permanece en memoria durante la respuesta. La ruta fija es HTTPS de ElevenLabs, con redirecciones bloqueadas; el solicitante no puede elegir host o URL. El servidor devuelve MP3 o un error fijo y nunca reenvía mensajes privados del proveedor. La latencia, el volumen y la captura OBS todavía deben medirse con la voz y equipo elegidos.
+Al habilitar la voz se envían a ElevenLabs la frase resultante y, cuando corresponda, el nombre público normalizado, Voice ID y modelo configurados. El SDK añade cabeceras públicas de nombre/versión, runtimeNode y User-Agent. No se envían el chat completo, ID de TikTok ni telemetría de la partida. El audio permanece en memoria durante la respuesta. La ruta fija es HTTPS de ElevenLabs, con redirecciones bloqueadas y reintentos desactivados; el solicitante no puede elegir host o URL. El servidor devuelve MP3 o un error fijo y nunca reenvía mensajes privados del proveedor. La latencia, el volumen y la captura OBS todavía deben medirse con la voz y equipo elegidos.
 
 Referencias oficiales consultadas el 2026-11-11: [Stream speech](https://elevenlabs.io/docs/api-reference/text-to-speech/stream), [Streaming Text to Speech](https://elevenlabs.io/docs/eleven-api/guides/how-to/text-to-speech/streaming). El endpoint acepta el formato `mp3_44100_128`; el modelo inicial es Flash v2.5. La disponibilidad de voces, cuotas y planes se comprueba en la cuenta del propietario.

@@ -1,5 +1,5 @@
 'use strict';
-/** Local-only event relay + static server. Node >= 20; no npm packages required. */
+/** Local-only relay/static server. Install locked server-side speech SDK with npm ci. */
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
