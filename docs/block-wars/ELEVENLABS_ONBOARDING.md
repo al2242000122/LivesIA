@@ -29,6 +29,6 @@ npx -y @elevenlabs/cli@latest onboard check --answered --env-path .env.local
 
 El onboarding no acredita por sí solo que una narración se haya escuchado en OBS. Antes de iniciar la aplicación con voz o enviar una solicitud TTS de ensayo, el flujo de la CLI requiere aprobar la prueba concreta. Después hay que comprobar pronunciación, latencia, fuente única, volumen relativo de FX/voz y cancelación al silenciar/emergencia. No se inicia una emisión por ejecutar la comprobación del onboarding.
 
-Las grabaciones previas de OBS sólo incluyen FX; ver [evidencia](OBS_YOUTUBE_REHEARSAL_2026-11-13.md). No afirmar voz real, chat integrado o estabilidad prolongada antes de medirlos.
+Tras la aprobación explícita del propietario, la prueba CLI devolvió200 y se grabaron los dos avisos reales de likes/suscriptor simulado en OBS:2solicitudes del juego,121caracteres reservados, mezcla con pico−8.14dBFS y decodificación completa sin errores. Ver [prueba real](ELEVENLABS_OBS_REHEARSAL_2026-11-13.md). El [ensayo anterior](OBS_YOUTUBE_REHEARSAL_2026-11-13.md) sólo incluía FX. El chat integrado y la estabilidad prolongada siguen pendientes.
 
 Fuentes oficiales: [onboarding y autenticación](https://elevenlabs.io/docs/api-reference/authentication), [inicio con CLI](https://elevenlabs.io/docs/eleven-api/quickstart), [SDK](https://github.com/elevenlabs/elevenlabs-js), [carga local de Node](https://nodejs.org/en/blog/release/v20.12.0). Skills oficiales descargadas a una carpeta temporal, fuera del repositorio, según la instrucción de la CLI.

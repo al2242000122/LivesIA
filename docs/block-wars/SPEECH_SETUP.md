@@ -2,6 +2,8 @@
 
 **Alcance inicial YouTube, confirmado por el propietario el 2026-11-13:** voz sólo para metas comunitarias de likes y suscriptores gratuitos; los comandos y eventos automáticos conservan sus FX sin narración. El ensayo identifica todas las recompensas como «Prueba». Todavía no existe un conector de eventos reales de YouTube: estos avisos son simulaciones, no una detección de likes o suscripciones del canal. En TikTok, follow y suscripción pagada siguen siendo distintos.
 
+**Prueba real autorizada:** la CLI y los dos avisos funcionaron con la cuenta del propietario; OBS capturó la mezcla y FFmpeg decodificó la grabación completa. Pico−8.14dBFS;2solicitudes del juego y121caracteres reservados. Ver [evidencia y límites](ELEVENLABS_OBS_REHEARSAL_2026-11-13.md). La selección subjetiva de voz, la latencia precisa y el ensayo prolongado continúan pendientes.
+
 Implementación local: el servidor convierte **acciones confirmadas del juego** en frases cortas en español. No acepta texto libre, comentarios completos, URLs, SSML, un modelo o una voz enviados por el navegador. Conserva el juego infinito y Snake. La voz no habilita regalos ni suscripciones pagadas, y configurar credenciales no verifica una conexión real con TikTok ni una emisión en OBS.
 
 ## Preparar la cuenta y la voz

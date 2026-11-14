@@ -4,7 +4,7 @@ Actualización: 2026-11-13. Estado: **preparación local implementada, acceso a 
 
 El13de noviembre se abrió la sala autenticada del canal y se completó la bienvenida seleccionando software de transmisión. Se guardaron título, descripción, categoría Videojuegos y **No listado**; el propietario confirmó público general, no creado específicamente para niños. Studio mostró el ensayo sin señal («No hay datos») en `/video/i0fOJAzWJqA/livestreaming`. No se mostró ni copió la clave de transmisión. El comportamiento de inicio automático queda por comprobar antes de enviar señal desde OBS.
 
-OBS portable cargó **LivesIA YouTube / Mina YouTube** mediante el acceso directo local «Mina Infinita YouTube». Se grabaron y decodificaron completos dos ensayos de147.133s y122.100s: H.264720×1280/30FPS y AAC44.1kHz estéreo. Se elevaron únicamente los FX; el pico de la segunda muestra fue−21.57dBFS, sin saturación en esa muestra. La voz real y su mezcla siguen pendientes. [Evidencia](OBS_YOUTUBE_REHEARSAL_2026-11-13.md).
+OBS portable cargó **LivesIA YouTube / Mina YouTube** mediante el acceso directo local «Mina Infinita YouTube». Se grabaron y decodificaron completos dos ensayos de147.133s y122.100s: H.264720×1280/30FPS y AAC44.1kHz estéreo. Se elevaron únicamente los FX; el pico de la segunda muestra fue−21.57dBFS, sin saturación en esa muestra. [Evidencia](OBS_YOUTUBE_REHEARSAL_2026-11-13.md). Después, el propietario autorizó [la prueba real de ElevenLabs en OBS](ELEVENLABS_OBS_REHEARSAL_2026-11-13.md): ambos avisos se capturaron, mezcla−8.14dBFS y decodificación completa sin errores. La latencia precisa y el ensayo prolongado siguen pendientes.
 
 ## Qué está preparado
 
