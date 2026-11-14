@@ -264,3 +264,9 @@ test('oversized streaming speech is cancelled before creating playable media', a
   const audio = createAudio({ env: h.env, ...h.clock }); await audio.enable(); audio.notify(h.event('a')); await flush();
   assert.equal(cancelled, true); assert.equal(reads, 2); assert.equal(h.urls.length, 0); assert.equal(audio.state.errors, 1); audio.stop();
 });
+
+test('YouTube source cannot request TTS even with narrate true and configured speech',async()=>{
+ const h=harness();await h.audio.enable();h.audio.setNarration(true);
+ for(const kind of [...Config.SELECTED_EVENTS,'mine','follow']){assert.equal(h.audio.notify(h.event('youtube-'+kind,kind,{source:'youtube',narrate:true})),true);await h.clock.advance(1000);}
+ await flush();assert.equal(h.requests.length,0);assert.ok(h.audio.state.fxPlayed>0);assert.equal(h.audio.notify(h.event('spoof-reward','follow',{source:'youtube',speechKind:'youtube_subscriber'})),false);h.audio.stop();
+});

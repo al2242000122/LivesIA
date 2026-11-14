@@ -32,7 +32,7 @@
   // OBS rehearsal peaked at -33.5 dBFS. Raise FX alone; eight notes stay <= 0.8 before master volume.
   const FX_NOTE_GAIN = 0.1;
   const EVENT_TTL = 8000, DEDUPE_TTL = 120000, MAX_SEEN = 256, ERROR_BACKOFF = 30000;
-  const SOURCES = new Set(['simulator','tikfinity','automatic']);
+  const SOURCES = new Set(['simulator','tikfinity','youtube','automatic']);
   const KINDS = new Set([...Object.keys(Config.EVENTS), ...Object.keys(Config.BUFFS), 'mine', 'follow']);
   const SPEECH_REWARDS = Object.freeze({like_milestone:'tnt',youtube_subscriber:'follow'});
 
@@ -49,7 +49,7 @@
       .replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);
     const priority = input.kind === 'nuke' ? 3 : ['mega','jackpot','meteor','black_hole'].includes(input.kind) ? 2 : input.kind === 'follow' ? 1 : 0;
     return {id:input.id,kind:input.kind,actorName,team:input.team || 'neutral',source:input.source,at,priority,
-      narrate:input.narrate !== false,speechKind:input.speechKind || input.kind};
+      narrate:input.source !== 'youtube' && input.narrate !== false,speechKind:input.speechKind || input.kind};
   }
 
   function createAudio(options = {}) {

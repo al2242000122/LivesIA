@@ -3,13 +3,31 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const {validateCommand,validateTelemetry}=require('./lib/contracts.js');
+const {validateCommand,validateTelemetry,validateYouTubeSelection,validateYouTubeStop}=require('./lib/contracts.js');
 const {createSpeech,validatePayload}=require('./lib/speech.js');
+const {createYouTubeAuth}=require('./lib/youtube-auth.js');
+const {createYouTubeChat}=require('./lib/youtube-chat.js');
 const speech=createSpeech();
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.PORT) || 4173;
 const MAX_BODY_BYTES = 4096, MAX_CLIENTS = 16, COMMANDS_PER_SECOND = 30;
 const clients = new Set();
+const youtubeAuth=createYouTubeAuth();
+let youtube;
+function youtubeStatus(){
+  const auth=youtubeAuth.status();
+  return {...youtube.status(),auth,...(!auth.configured?{state:'unconfigured'}:{})};
+}
+function broadcastYouTube(kind,payload){
+  const output=`event: ${kind}\ndata: ${JSON.stringify(payload)}\n\n`;
+  for(const client of clients)if(client.gameTarget==='block-wars')writeEvent(client,output);
+}
+youtube=createYouTubeChat({
+  expectedChannelId:process.env.YOUTUBE_EXPECTED_CHANNEL_ID||'UCRJQkWn3h-uh8LCu6WERU2Q',
+  getAccessToken:options=>youtubeAuth.getAccessToken(options),
+  onEvent:event=>broadcastYouTube('youtube_comment',event),
+  onState:()=>{if(youtube)broadcastYouTube('youtube_state',youtubeStatus());}
+});
 const files = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/control': ['control.html', 'text/html; charset=utf-8'],
@@ -112,11 +130,26 @@ const server = http.createServer((req, res) => {
     res.gameTarget=target;
     res.on('close', () => clients.delete(res));
     res.on('error', () => clients.delete(res));
-    writeEvent(res, ': connected\n\n');
+    writeEvent(res, ': connected\n\n'+(target==='block-wars'?`event: youtube_state\ndata: ${JSON.stringify(youtubeStatus())}\n\n`:''));
     return;
   }
   if (req.method === 'GET' && route === '/api/status') return send(res, 200, {gameWindows: clients.size});
   if (req.method === 'POST' && route === '/api/command') return receiveJson(req,res,validateCommand,event=>({ok:true,receivers:broadcast(event)}));
+  if(req.method==='GET'&&route==='/api/youtube/status')return send(res,200,youtubeStatus());
+  if(req.method==='GET'&&route==='/api/youtube/broadcasts'){
+    if(!youtubeAuth.status().configured)return send(res,503,{error:'YouTube requiere autorización local'});
+    youtube.broadcasts().then(broadcasts=>send(res,200,{broadcasts})).catch(()=>send(res,502,{error:'No se pudo consultar YouTube'}));
+    return;
+  }
+  if(req.method==='POST'&&route==='/api/youtube/select'){
+    return receiveJson(req,res,validateYouTubeSelection,selection=>{
+      if(!youtubeAuth.status().configured)return {unconfigured:true};
+      return youtube.select(selection.videoId).then(ok=>({ok,state:youtubeStatus()}));
+    },result=>send(res,result.unconfigured?503:200,result.unconfigured?{error:'YouTube requiere autorización local'}:result));
+  }
+  if(req.method==='POST'&&route==='/api/youtube/stop'){
+    return receiveJson(req,res,validateYouTubeStop,()=>{youtube.stop();return {ok:true,state:youtubeStatus()};});
+  }
   if(req.method==='GET'&&route==='/api/block-wars/speech/status')return send(res,200,speech.status());
   if(req.method==='POST'&&route==='/api/block-wars/speech'){
     const controller=new AbortController();res.once('close',()=>controller.abort());
@@ -149,8 +182,8 @@ server.maxConnections = 64;
 const heartbeat = setInterval(() => {
   for (const client of clients) writeEvent(client, ': heartbeat\n\n');
 }, 25000);
-server.on('close', () => clearInterval(heartbeat));
-server.on('error', error => { clearInterval(heartbeat); console.error(`No se pudo iniciar el servidor (${error.code}).`); process.exitCode = 1; });
+server.on('close', () => {clearInterval(heartbeat);youtube.stop();});
+server.on('error', error => { clearInterval(heartbeat);youtube.stop();console.error(`No se pudo iniciar el servidor (${error.code}).`); process.exitCode = 1; });
 server.listen(PORT, HOST, () => {
   console.log(`\nLivesIA · Ensayo local\nJuego:   http://${HOST}:${PORT}/\nControl: http://${HOST}:${PORT}/control\nBlock Wars: http://${HOST}:${PORT}/block-wars\nPanel Block Wars: http://${HOST}:${PORT}/block-wars/control\nDetener: Ctrl+C\n`);
 });

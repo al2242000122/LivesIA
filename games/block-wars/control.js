@@ -8,6 +8,36 @@
     element('follow-demo').textContent='+ Suscriptor gratuito · PRUEBA';
     element('voice-policy').textContent+=' En YouTube la voz sólo ensaya metas de likes y nuevos suscriptores gratuitos. Los comandos y eventos automáticos conservan sonidos y efectos, sin narración. Ningún botón confirma actividad real de YouTube.';
   }
+  const youtubeLabels={unconfigured:'Sin configurar',idle:'Sin transmisión seleccionada',waiting_live:'Esperando transmisión',synchronizing:'Sincronizando',connected:'Transporte de chat conectado',reconnecting:'Reconectando',ended:'Transmisión terminada',error:'Chat no disponible',quota_exhausted:'Cuota agotada',stopped:'Chat detenido'};
+  const youtubeRequests=new Set();
+  async function youtubeRequest(path,body){
+    const controller=typeof AbortController==='function'?new AbortController():null;
+    if(controller)youtubeRequests.add(controller);
+    const timeout=controller?setTimeout(()=>controller.abort(),8000):null;
+    try{
+      const options=body===undefined?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+      if(controller)options.signal=controller.signal;
+      const response=await fetch('/api/youtube/'+path,options);
+      if(!response.ok)throw new Error('YouTube local no disponible');return await response.json();
+    }finally{if(timeout!==null)clearTimeout(timeout);if(controller)youtubeRequests.delete(controller);}
+  }
+  async function youtubeStatus(){
+    if(!youtube||disposed)return;
+    try{const status=await youtubeRequest('status');if(!disposed)element('youtube-status').textContent=(youtubeLabels[status.state]||'Estado no disponible')+' · Espectadores: no disponible · Likes y suscriptores reales: no disponibles.';}
+    catch{if(!disposed)element('youtube-status').textContent='Chat desconectado o sin configurar. Espectadores: no disponible.';}
+  }
+  if(youtube){
+    element('youtube-refresh').addEventListener('click',async()=>{
+      const button=element('youtube-refresh');button.disabled=true;
+      try{const result=await youtubeRequest('broadcasts');if(disposed)return;
+        const select=element('youtube-video');select.replaceChildren();const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Selecciona explícitamente una transmisión';select.append(placeholder);
+        if(!Array.isArray(result.broadcasts))throw new Error('invalid');
+        for(const item of result.broadcasts.slice(0,50)){if(!item||!/^[A-Za-z0-9_-]{11}$/.test(item.id)||typeof item.title!=='string')continue;const option=document.createElement('option');option.value=item.id;option.textContent=item.title.replace(/[\u0000-\u001f\u007f-\u009f]/g,'').slice(0,140);select.append(option);}select.value='';
+      }catch{message('No se pudieron consultar tus transmisiones. Revisa la configuración local.',true);}finally{button.disabled=false;}
+    });
+    element('youtube-select-form').addEventListener('submit',async event=>{event.preventDefault();const videoId=element('youtube-video').value;if(!/^[A-Za-z0-9_-]{11}$/.test(videoId)){message('Selecciona una transmisión propia.',true);return;}try{await youtubeRequest('select',{videoId});await youtubeStatus();}catch{message('No se pudo seleccionar la transmisión propia.',true);}});
+    element('youtube-stop').addEventListener('click',async()=>{try{await youtubeRequest('stop',{});await youtubeStatus();}catch{message('No se pudo detener el chat local.',true);}});
+  }
   const feedback=element('feedback');
   let pollTimer,disposed=false;
   function message(text,error){feedback.textContent=text;feedback.dataset.error=String(Boolean(error));}
@@ -67,6 +97,7 @@
   }
   element('efficiency').addEventListener('change',compare);compare();
   async function poll(){
+    await youtubeStatus();
     try{
       const response=await fetch('/api/block-wars/speech/status',{cache:'no-store'});
       if(!response.ok)throw new Error('health unavailable');
@@ -83,11 +114,11 @@
         element('read-fps').textContent=data.fps+' FPS';
         element('read-round').textContent=data.mode==='endless'?Math.floor(data.depth)+' bloques / '+Math.floor(data.elapsed/60)+' min':String(data.round)+' / '+Math.ceil(data.remaining)+'s';
         element('read-queue').textContent=data.queue+' / '+data.particles;
-        element('read-source').textContent=({simulator:'DEMO',tikfinity:'RELAY',mixed:'DEMO + RELAY',none:'AUTÓNOMO'})[data.source]||'Sin dato';
+        element('read-source').textContent=({simulator:'DEMO',tikfinity:'RELAY',youtube:'CHAT YOUTUBE',mixed:'FUENTES MIXTAS',none:'AUTÓNOMO'})[data.source]||'Sin dato';
         element('telemetry-status').textContent=(data.paused?'PAUSADO':'EN EJECUCIÓN')+' · '+(data.reducedMotion?'Movimiento reducido':'Movimiento normal')+' · Último dato hace '+Math.ceil(data.ageMs/1000)+'s · LIVE sin verificar · Espectadores: no disponible.';
       }
     }catch(error){element('telemetry-status').textContent='Diagnóstico local no disponible. Comprueba servidor y pestaña del juego.';}
     if(!disposed)pollTimer=setTimeout(poll,3000);
   }
-  poll();addEventListener('pagehide',()=>{disposed=true;clearTimeout(pollTimer);},{once:true});
+  poll();addEventListener('pagehide',()=>{disposed=true;clearTimeout(pollTimer);for(const controller of youtubeRequests)controller.abort();youtubeRequests.clear();},{once:true});
 })();

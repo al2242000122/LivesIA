@@ -61,15 +61,15 @@ test('operator emergency cancels the deferred community backlog before resuming'
   app.tick(10);app.tick(100);
   assert.equal(app.engine.state.queue.length,0);
 });
-test('YouTube scene blocks TikFinity events and labels all interaction as local rehearsal',()=>{
+test('YouTube scene blocks TikFinity while preserving simulator rewards and truthful chat status',()=>{
   const app=harness('youtube');
   assert.equal(app.transport.relayEnabled,false);
   app.transport.onEvent({type:'like',source:'tikfinity',id:'yt-no-tikfinity',receivedAt:1,data:{delta:25}});
   assert.equal(app.engine.state.entities.length,0);
   app.transport.onEvent({type:'like',source:'simulator',id:'yt-simulator',receivedAt:2,data:{delta:25}});
   assert.ok(app.engine.state.entities.length>0);app.tick(6000);
-  assert.match(app.nodes.get('source').textContent,/YOUTUBE.*ENSAYO/);
-  assert.match(app.nodes.get('relay').textContent,/CHAT.*SIN CONECTAR/);
+  assert.match(app.nodes.get('source').textContent,/YOUTUBE.*ESPERANDO COMENTARIOS/);
+  assert.match(app.nodes.get('relay').textContent,/SINCRONIZANDO CHAT/);
   assert.match(app.nodes.get('like-progress').textContent,/NO CONTROLAN/);
   assert.equal(app.sounds[0].speechKind,'like_milestone');
   const command=harness('youtube');
@@ -112,4 +112,13 @@ test('the server and shared event adapter retain the fictitious comment author d
   const event=createAdapter({now:()=>100,salt:'fixture'}).normalize(wire,'simulator');
   const app=harness();app.transport.onEvent(event);app.tick(10);app.tick(200);
   assert.equal(app.nodes.get('activation-actor').textContent,'Minera Ana');
+});
+
+test('YouTube activation UI preserves author/source and clears connected status on reconnect',()=>{
+  const app=harness('youtube');assert.equal(app.transport.youtubeEnabled,true);
+  app.transport.onYouTubeState({state:'connected'});app.tick(200);
+  assert.match(app.nodes.get('relay').textContent,/TRANSPORTE DE CHAT CONECTADO/);
+  app.transport.onEvent({type:'comment',source:'youtube',id:'yt:'+'a'.repeat(32),receivedAt:1,actor:{stableHash:'b'.repeat(32),displayName:'Ana'},data:{text:'THUNDER'}});app.tick(400);
+  assert.equal(app.nodes.get('activation-source').textContent,'CHAT YOUTUBE');assert.equal(app.nodes.get('activation-actor').textContent,'Ana');assert.equal(app.sounds[0].narrate,false);
+  app.transport.onYouTubeState({state:'reconnecting'});app.tick(600);assert.match(app.nodes.get('relay').textContent,/DESCONECTADO/);
 });

@@ -1,5 +1,11 @@
 # Especificación técnica — Block Wars LIVE
 
+## Integración YouTube en revisión (2026-11-13)
+
+La fuente `youtube` sólo transporta comentarios mediante el lector oficial del servidor y SSE dedicado. El contrato de telemetría de 9 o 12 campos acepta ahora `source:youtube`, además de los valores anteriores. No admite identidades, mensajes o credenciales. `/api/command` continúa imponiendo simulación; no puede afirmar origen YouTube.
+
+`GET /api/youtube/status` devuelve estado seguro; `GET /api/youtube/broadcasts` consulta manualmente emisiones propias; `POST /api/youtube/select` exige exactamente `{videoId}` de 11 caracteres ASCII y `POST /api/youtube/stop` exactamente `{}`. Conservan las guardas de origen, Host, JSON, bytes y tasa. Seleccionar no inicia ni detiene emisiones. [Autorización y límites](YOUTUBE_CHAT_SETUP.md). La recepción autenticada y OBS con comentarios reales siguen pendientes.
+
 **Estado:** diseño de referencia; adaptador, motor y panel ya ejecutables localmente. Ver REFERENCE_IMPLEMENTED.md y VERIFICATION.md para alcance medido. Preservar el prototipo de serpiente.
 
 ## Contrato vigente del modo infinito

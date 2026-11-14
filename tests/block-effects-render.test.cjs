@@ -60,3 +60,17 @@ test('giant charges above the viewport retain a visible TNT preview, owner and r
     assert.ok(preview&&preview[4]>=0&&preview[4]+preview[5]<=1280,'preview stays inside canvas');
   }
 });
+
+test('YouTube entity and impact canvas credits explicitly preserve chat source and author',()=>{
+ const {calls,painter}=recorder(),entry={kind:'tnt',stage:'fuse',x:2,y:4,size:.8,age:.5,actor:'Ana',source:'youtube',actionId:'local-action'};
+ painter.projectile(entry,90,90,1,false);
+ assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · Ana'));
+ calls.length=0;painter.explosion({...entry,stage:'impact',age:.2,duration:1},90,90,0,false);
+ assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · Ana'));
+});
+
+test('YouTube canvas preserves all44 printable author characters including angle brackets',()=>{
+ const {calls,painter}=recorder(),actor=('<Ana> '+'L'.repeat(38)).slice(0,44),entry={kind:'tnt',stage:'fuse',x:2,y:4,size:.8,age:.2,duration:1,actor,source:'youtube'};
+ painter.projectile(entry,90,90,0,false);painter.explosion(entry,90,90,0,false);
+ assert.equal(calls.filter(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · '+actor).length,2);
+});

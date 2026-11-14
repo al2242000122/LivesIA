@@ -7,9 +7,12 @@
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
   function createPainter(ctx,paint,width,height){
     function credit(entry){
-      const actor=String(entry.actor||'LA COMUNIDAD').replace(/[\x00-\x1f\x7f<>]/g,'').slice(0,32);
+      const actor=entry.source==='youtube'?
+        Array.from(String(entry.actor||'LA COMUNIDAD').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'')).slice(0,44).join(''):
+        String(entry.actor||'LA COMUNIDAD').replace(/[\x00-\x1f\x7f<>]/g,'').slice(0,32);
       return entry.source==='automatic'?'EVENTO DE LA MINA':
-        entry.source==='simulator'||entry.source==='operator'?'PRUEBA · '+actor:actor;
+        entry.source==='simulator'||entry.source==='operator'?'PRUEBA · '+actor:
+        entry.source==='youtube'?'CHAT YOUTUBE · '+actor:actor;
     }
     function label(entry,x,y){
       if(!entry.source&&!entry.actor)return;
@@ -149,7 +152,7 @@
     }
     function explosion(effect,cell,offset,cameraY,reduced){
       const p=clamp(effect.age/effect.duration,0,1),x=offset+(effect.x+.5)*cell,y=(effect.y+.5-cameraY)*cell;
-      if(effect.kind==='thunder'){ctx.save();ctx.globalAlpha=1-p;lightning(x,y,cell,reduced);ctx.restore();return;}
+      if(effect.kind==='thunder'){ctx.save();ctx.globalAlpha=1-p;lightning(x,y,cell,reduced);ctx.restore();if(effect.source==='youtube')label(effect,x,y-cell-32);return;}
       const radius=cell*(effect.kind==='nuke'?5:effect.kind==='mega'?3:1.4);
       ctx.save();ctx.globalAlpha=(1-p)*.8;
       const colors=effect.kind==='storm'?['#bfe7ff','#7fb4d7']:['#eeeeeb','#bbbcb8','#747670'];
@@ -157,7 +160,7 @@
         const angle=i*Math.PI*2/12,distance=radius*(reduced?.35:p),size=cell*(.3+(i%3)*.15)*(1-p*.7);
         ctx.fillStyle=colors[i%colors.length];ctx.fillRect(x+Math.cos(angle)*distance-size/2,y+Math.sin(angle)*distance-size/2,size,size);
       }
-      ctx.restore();
+      ctx.restore();if(effect.source==='youtube')label(effect,x,y-cell-32);
     }
     function toolAura(buffs,x,y,cell,time,reduced){
       if(buffs.fast>0){
