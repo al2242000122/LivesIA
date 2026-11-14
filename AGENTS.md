@@ -4,7 +4,7 @@
 Este repositorio contiene el MVP de **Serpiente Infinita LIVE**, un videojuego original de serpiente que juega automáticamente en laberintos generados por procedimiento. Su salida vertical se captura con OBS para transmisiones de TikTok LIVE. Los espectadores pueden afectar la partida mediante eventos gratuitos (likes, follow, chat) y regalos *cuando existan eventos reales*. El siguiente agente/Codex debe convertir el prototipo en un producto robusto sin romper las funciones actuales ni afirmar monetización o conexión verificadas cuando aún no lo estén.
 
 ## Estado del proyecto (MVP; no verificado en una transmisión real)
-- Tecnología: HTML/CSS/JavaScript (Canvas 2D) y Node.js 20+ sin dependencias npm.
+- Tecnología: HTML/CSS/JavaScript (Canvas2D), Node.js20+ y SDK oficial ElevenLabs en el servidor para narración opcional. El arranque con `.env.local` requiere Node20.12+.
 - `server.js`: HTTP en `127.0.0.1:4173`, sirve los archivos y conecta el panel de pruebas al juego por SSE. Rutas: `/`, `/control`, `/styles.css`, `/game.js`, `/api/stream`, `/api/status` y `/api/command`.
 - `index.html`: escenario de 720 × 1280 para captura en OBS; el tablero interno es Canvas 600 × 744.
 - `styles.css`: apariencia del LIVE y del panel del creador.
@@ -15,7 +15,7 @@ Este repositorio contiene el MVP de **Serpiente Infinita LIVE**, un videojuego o
 
 ## Cómo ejecutar y comprobar
 1. Instalar Node.js 20 o posterior.
-2. En la raíz: `node server.js` (no ejecutar `npm install`; no hay dependencias).
+2. En la raíz: `npm ci --ignore-scripts` y `npm start`. El arranque carga `.env.local` sólo en servidor, si existe. `node server.js` conserva el arranque directo con variables de proceso y se usa en pruebas para no cargar credenciales reales.
 3. Abrir `http://127.0.0.1:4173/` y `http://127.0.0.1:4173/control`.
 4. Mantener la página del juego abierta y pulsar botones en el panel; comprobar que aparecen efectos, cambia el marcador y la página sigue respondiendo.
 5. OBS: Fuente de navegador con URL `http://127.0.0.1:4173/`, resolución **720 × 1280**. No capturar `/control` en el LIVE.
@@ -90,6 +90,10 @@ Controles de audio `bw_audio` deben estar también en la lista de controles de `
 
 ## Comandos Minecraft seleccionados
 
+**Voz real probada en OBS (2026-11-13):** el propietario aprobó CLItest y dos avisos. `onboard test`200/nextdone; app2TTS/121caracteres reservados/errornull para likes y suscriptor ficticio. RAIN dejó contador2. OBS grabó154.766s,decodificacióncompleta0,H264720×1280/30,AAC44.1kstereo,pico−8.14dBFS. Clave/VoiceID sólo envlocal ignorado; nunca abrir/imprimir. Ver `ELEVENLABS_OBS_REHEARSAL_2026-11-13.md`. No afirmar chat YouTube real, latencia medida ni120min por este ensayo. Servidor local quedó activo; grabación/emisión detenidas.
+
+**ElevenLabs CLI autorizado (2026-11-13):** el propietario solicitó `npx -y @elevenlabs/cli@latest onboard init` y aprobó personalmente el navegador. CLI1.11.0 guardó una clave en `.env.local` ignorado por Git. Nunca abrir/imprimir ese archivo: verificar con `onboard check`. SDK2.78.0 MIT fijado en lock, sólo servidor; sin agentesLLM nuevos. `scripts/start.cjs` carga env local con `process.loadEnvFile` y después el servidor. Tests usan server.js directo/fixtures ficticias, nunca la clave real. Conservar límites de presupuesto, plazo8s total, audio2MiB, reintentos0 y endpointHTTPS fijo. El flujo CLI exige aprobación de la prueba concreta antes de arrancar app con voz/enviar TTS. Ver `ELEVENLABS_ONBOARDING.md`.
+
 **Ensayo YouTube guardado y OBS comprobado (2026-11-13):** el propietario confirmó público general. El ensayo de Studio se guardó como No listado/Videojuegos, sin señal. El acceso directo local «Mina Infinita YouTube» carga OBS con `--portable` y el perfil/colección/escena correctos; abrir sólo el exe había cargado «Sin título». Dos grabaciones completas de147.133s/122.100s se decodificaron con FFmpeg. FX ajustados a0.1por nota; pico posterior−21.57dBFS en esa muestra. Ver `OBS_YOUTUBE_REHEARSAL_2026-11-13.md`. Voz real, mezcla con voz, ingestión, chat y120min reales siguen pendientes; las notas de preparación anteriores reflejan pasos históricos.
 
 **Acceso YouTube comprobado (2026-11-13):** la sesión autenticada abrió la sala LIVE del canal y completó la bienvenida para software de transmisión. No se envió señal ni se reveló/copió clave. El formulario del ensayo tiene título, descripción, Videojuegos y No listado preparados pero sin guardar, pendiente de clasificación de público por el propietario. Studio asignó inicialmente Público: antes de conectar OBS guardar/verificar visibilidad e inicio automático. Ver `YOUTUBE_LIVE_SETUP.md`; OAuth/chat, voz real y ensayo OBS continúan pendientes.
@@ -102,6 +106,6 @@ La atribución se pasa en un segundo argumento interno a `engine.action`, separa
 
 ## Verificación de la fase de estabilización
 
-Sin instalar dependencias: `npm run check`, `npm test` y `npm run test:soak` (dos horas virtuales por defecto; `SOAK_HOURS=6` para seis). `node --check` sustituye diagnósticos IDE cuando no están disponibles. Las pruebas unitarias ejecutan el script real del juego con DOM/Canvas/tiempo/transporte dobles; la integración HTTP/SSE usa procesos reales. Ninguna de ellas acredita un LIVE ni una sesión OBS prolongada. Ver `docs/AUDIT_PHASE_1.md` para contrato, evidencias y pendientes.
+Tras `npm ci --ignore-scripts`: `npm run check`, `npm test` y `npm run test:soak` (dos horas virtuales por defecto; `SOAK_HOURS=6` para seis). `node --check` sustituye diagnósticos IDE cuando no están disponibles. Las pruebas unitarias ejecutan el script real del juego con DOM/Canvas/tiempo/transporte dobles; la integración HTTP/SSE usa procesos reales. Ninguna de ellas acredita un LIVE ni una sesión OBS prolongada. Ver `docs/AUDIT_PHASE_1.md` para contrato, evidencias y pendientes.
 
 Una demora superior a una ronda puede ocultar reinicios dobles en las pruebas de tiempo: para comprobar reinicio tras game over usar también demoras menores de 180 s (p. ej. 5 s). Los mensajes sobredimensionados de prueba deben contener JSON válido para cubrir la guarda de longitud.

@@ -2,14 +2,19 @@
   "name": "livesia",
   "version": "0.1.0",
   "private": true,
-  "description": "Serpiente Infinita LIVE local, sin dependencias npm",
-  "engines": {"node": ">=20"},
+  "description": "Serpiente Infinita LIVE local con narración opcional de ElevenLabs",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/start.cjs",
     "test": "node scripts/test.cjs",
     "test:soak": "node --expose-gc tests/soak.cjs",
     "test:block-soak": "node --expose-gc tests/block-soak.cjs",
     "test:endless-soak": "node tests/endless-soak.cjs",
     "check": "node scripts/check.cjs"
+  },
+  "dependencies": {
+    "@elevenlabs/elevenlabs-js": "2.78.0"
   }
 }

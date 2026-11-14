@@ -1,6 +1,6 @@
 # 🐍 Serpiente Infinita LIVE — MVP original
 
-Juego interactivo vertical para TikTok LIVE: autopiloto de serpiente por laberintos aleatorios, interacciones por chat/likes/regalos, overlay para OBS y panel separado de pruebas. Construido desde cero con JavaScript/Canvas y un servidor local Node.js; **sin dependencias npm**, sin necesidad de instalar paquetes ni introducir contraseñas de TikTok en el juego.
+Juego interactivo vertical para TikTok LIVE: autopiloto de serpiente por laberintos aleatorios, interacciones por chat/likes/regalos, overlay para OBS y panel separado de pruebas. Construido con JavaScript/Canvas y servidor local Node.js; la narración opcional usa el SDK oficial de ElevenLabs en el servidor. No se introducen contraseñas de TikTok en el juego.
 
 ## Requisitos
 
@@ -14,7 +14,7 @@ Juego interactivo vertical para TikTok LIVE: autopiloto de serpiente por laberin
 
 1. Descomprime la carpeta.
 2. Abre una terminal en la carpeta que contiene `server.js`.
-3. Ejecuta `node server.js`.
+3. Instala el lock con `npm ci --ignore-scripts` y ejecuta `npm start`. Este arranque carga el archivo local `.env.local`, si existe, con Node20.12+; no se debe abrir ni compartir ese archivo. `node server.js` conserva el arranque directo con variables del proceso, sin cargarlo.
 4. Abre `http://127.0.0.1:4173/` para ver el juego y `http://127.0.0.1:4173/control` para probar botones.
 5. En OBS, **Fuentes → Navegador**, URL `http://127.0.0.1:4173/`, ancho **720**, alto **1280**. Conviene desactivar la suspensión de la fuente cuando no está visible, si quieres que la partida permanezca activa en cambios de escena.
 6. Si tu cuenta puede transmitir, abre TikTok LIVE Studio/OBS según el flujo que tengas habilitado, y configura la escena vertical. No expongas el panel de control en el LIVE.
@@ -86,7 +86,7 @@ El [montaje del primer ensayo LIVE](docs/block-wars/FIRST_LIVE_SETUP.md) incluye
 
 También hay [preparación independiente para YouTube LIVE](docs/block-wars/YOUTUBE_LIVE_SETUP.md): perfil **LivesIA YouTube** y vista `/block-wars?platform=youtube`, con TikFinity desactivado y simulaciones identificadas. El canal y teléfono están verificados; el13de noviembre se comprobó acceso a la sala de control LIVE. La señal del codificador y el chat real siguen pendientes. Sus likes y suscriptores todavía no disparan efectos. En TikTok, [LIVE Studio está instalado y la solicitud de acceso sigue en revisión](docs/block-wars/TIKTOK_LIVE_ACCESS.md).
 
-En el ensayo YouTube, ElevenLabs se reserva inicialmente a metas de likes y suscriptores gratuitos de prueba; los14comandos destacados y el temporizador conservan sus sonidos sin voz. `scripts/start-youtube-voice.ps1` prepara la entrada oculta local de credenciales sin guardarlas ni emitir. La voz real y la mezcla en OBS requieren prueba; ver [configuración](docs/block-wars/SPEECH_SETUP.md).
+En el ensayo YouTube, ElevenLabs se reserva inicialmente a metas de likes y suscriptores gratuitos de prueba; los14comandos destacados y el temporizador conservan sus sonidos sin voz. El [onboarding oficial](docs/block-wars/ELEVENLABS_ONBOARDING.md) guardó una clave local ignorada por Git. Los dos avisos reales quedaron [capturados y medidos en OBS](docs/block-wars/ELEVENLABS_OBS_REHEARSAL_2026-11-13.md); el chat real y el ensayo prolongado siguen pendientes. Se conserva `scripts/start-youtube-voice.ps1` como alternativa de entrada oculta sin archivos. [Configuración](docs/block-wars/SPEECH_SETUP.md).
 
 Block Wars LIVE ya funciona localmente: **excavación infinita**, con un pico que cae, rebota y choca contra los bloques. El daño ocurre por contacto; el terreno nuevo aparece sin detener la partida ni reiniciar el puntaje al llegar al fondo. Incluye seguimiento de la mina, cinco picos y encantamientos, equipos DARK vs LIGHT y25likes por TNT. Los [14 comandos seleccionados](docs/block-wars/MINECRAFT_COMMANDS.md) tienen efectos Minecraft, autor visible y respuestas de activación/rechazo; se conservan los anteriores en un catálogo interno de20efectos. Los regalos pagados están deshabilitados. Serpiente Infinita conserva sus rutas y funciones.
 
