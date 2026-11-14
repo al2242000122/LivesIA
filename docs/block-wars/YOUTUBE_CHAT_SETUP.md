@@ -27,6 +27,8 @@ El único alcance solicitado es `https://www.googleapis.com/auth/youtube.readonl
 
 El proyecto no busca credenciales automáticamente en Descargas ni en perfiles del navegador. Sin `YOUTUBE_AUTH_FILE` explícito, el chat permanece sin configurar. Las pruebas usan archivos ficticios temporales; no ejecutar `npm test` con credenciales de cuenta en variables heredadas.
 
+En modo externo **Prueba**, Google limita la autorización y su token de renovación a siete días para este alcance. Antes de futuros ensayos hay que revisar el acceso y repetir la autorización personalmente cuando caduque; el lector debe detenerse con estado de acceso no disponible. No cambiar a producción ni ampliar permisos para evitar ese control sin una revisión separada. [Limitaciones oficiales de autorización en pruebas](https://support.google.com/cloud/answer/15549945?hl=en), consultadas el2026-11-14.
+
 ## Elegir la emisión
 
 Usar `/block-wars/control?platform=youtube`, mantener ese panel fuera de OBS y consultar manualmente las emisiones propias. Elegir el video de forma explícita; nunca se selecciona automáticamente el primero. Seleccionar un video sólo inicia su lector: no crea, publica, inicia ni detiene una emisión de YouTube.

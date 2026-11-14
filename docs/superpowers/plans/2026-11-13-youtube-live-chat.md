@@ -60,38 +60,38 @@ OAuth module `lib/youtube-auth.js` exports `createYouTubeAuth({env,fetchImpl,now
 
 **Ownership:** auth worker: new auth module/helper/tests and package/lock if an official auth dependency is used. Root owns Cloud UI and permission requests.
 
-- [ ] Read official installed-app OAuth/PKCE/loopback/refresh documentation. Pin compatible library version, review license, lifecycle scripts and advisory audit.
-- [ ] Write fixture tests for missing config, valid refresh, coalesced refresh, expiry, denied/invalid scope, redirect rejection and error secrecy.
-- [ ] Verify those tests fail before implementation.
-- [ ] Implement read-only OAuth using fixed Google endpoints, request time/byte limits, no raw provider errors, no secrets in logs or browser routes.
-- [ ] Initial authorization binds127.0.0.1 with random state and PKCE; validate callback method/path/Host/state and bound code length; close after one exchange or timeout. Credential JSON is private and outside Git, atomically written.
-- [ ] Tests assert a forged callback cannot exchange a code or overwrite credentials. Tests never use the owner's file; recursive temp cleanup verifies its absolute target stays under its own temp root.
-- [ ] Run auth tests, syntax, dependency audit and report exact runtime interface to root. Do not create credentials, authorize a real account or commit shared work.
+- [x] Read official installed-app OAuth/PKCE/loopback/refresh documentation. Pin compatible library version, review license, lifecycle scripts and advisory audit.
+- [x] Write fixture tests for missing config, valid refresh, coalesced refresh, expiry, denied/invalid scope, redirect rejection and error secrecy.
+- [x] Verify those tests fail before implementation.
+- [x] Implement read-only OAuth using fixed Google endpoints, request time/byte limits, no raw provider errors, no secrets in logs or browser routes.
+- [x] Initial authorization binds127.0.0.1 with random state and PKCE; validate callback method/path/Host/state and bound code length; close after one exchange or timeout. Credential JSON is private and outside Git, atomically written.
+- [x] Tests assert a forged callback cannot exchange a code or overwrite credentials. Tests never use the owner's file; recursive temp cleanup verifies its absolute target stays under its own temp root.
+- [x] Run auth tests, syntax, dependency audit and report exact runtime interface to root. Do not create credentials, authorize a real account or commit shared work.
 
 ## Task 2 — Official chat reader and bounded stream parser
 
 **Ownership:** reader worker: `lib/youtube-chat.js`, optional focused parser module, `tests/youtube-chat.test.cjs` and parser fixtures/tests only.
 
-- [ ] Write failing tests using actual official response field shapes for owner broadcasts, video/channel verification and absent activeLiveChatId.
-- [ ] Implement fixed-endpoint GETs with partial fields, cancellation, bounded responses, explicit video selection and quota accounting; no network during tests.
-- [ ] Discover chat only from the verified selected video. Before it is active, show waiting state and poll discovery slowly; existence of a broadcast chat ID alone is insufficient.
-- [ ] Implement incremental HTTP JSON-array framing for `https://youtube.googleapis.com/youtube/v3/liveChat/messages/stream`; do not assume SSE/NDJSON. Test UTF8/chunk/escape boundaries, oversized frames, excessive depth and provider error objects.
-- [ ] Discard first history batch; retain cursor/dedupe across reconnects. On selection change, abort old work and reject all callbacks from the old generation. Drop stale/future-invalid messages, non-comment types, malformed names/IDs, and overflow rather than queuing delayed commands.
-- [ ] Fallback to official `liveChatMessages.list` if framing/stream transport is unsupported. Respect both15s local minimum and `pollingIntervalMillis`; stop on terminal quota/auth/chat-disabled/end states. Use bounded exponential backoff with jitter for transient errors.
-- [ ] Assert history/duplicates emit0events, selected fresh `RAIN` emits exactly one opaque typed event, wrong channel emits0events, and concurrent selections never mix authors/chats.
-- [ ] Run reader/parser tests, syntax and report counters/limits/status schema. Do not call a real authenticated API or commit shared work.
+- [x] Write failing tests using actual official response field shapes for owner broadcasts, video/channel verification and absent activeLiveChatId.
+- [x] Implement fixed-endpoint GETs with partial fields, cancellation, bounded responses, explicit video selection and quota accounting; no network during tests.
+- [x] Discover chat only from the verified selected video. Before it is active, show waiting state and poll discovery slowly; existence of a broadcast chat ID alone is insufficient.
+- [x] Implement incremental HTTP JSON-array framing for `https://youtube.googleapis.com/youtube/v3/liveChat/messages/stream`; do not assume SSE/NDJSON. Test UTF8/chunk/escape boundaries, oversized frames, excessive depth and provider error objects.
+- [x] Discard first history batch; retain cursor/dedupe across reconnects. On selection change, abort old work and reject all callbacks from the old generation. Drop stale/future-invalid messages, non-comment types, malformed names/IDs, and overflow rather than queuing delayed commands.
+- [x] Fallback to official `liveChatMessages.list` if framing/stream transport is unsupported. Respect both15s local minimum and `pollingIntervalMillis`; stop on terminal quota/auth/chat-disabled/end states. Use bounded exponential backoff with jitter for transient errors.
+- [x] Assert history/duplicates emit0events, selected fresh `RAIN` emits exactly one opaque typed event, wrong channel emits0events, and concurrent selections never mix authors/chats.
+- [x] Run reader/parser tests, syntax and report counters/limits/status schema. Do not call a real authenticated API or commit shared work.
 
 ## Task 3 — Preserve source through transport, rules, engine and UI
 
 **Ownership:** source/UI worker: integrations/events.js, integrations/transport.js, games/block-wars/{rules,engine,experience,app,audio,control,index.html,control.html} and their focused existing tests. Root owns lib/contracts.js and server routes.
 
-- [ ] Add failing regressions for a typed YouTube comment across transport→rules→engine→activation/impact UI, while Snake ignores it.
-- [ ] Add a strict YouTube normalizer; accept only the server SSE comment channel. Preserve opaque actor/message digests. Simulator HTTP controls cannot claim that source.
-- [ ] Replace source ternaries and hard-coded two-source totals/drains with explicit source maps/iteration; preserve previous-source fairness and all existing behavior.
-- [ ] Preserve source/name/action ID through delayed entities, weather and impacts. Do not convert YouTube to automatic or TikFinity.
-- [ ] All YouTube comment actions have `narrate:false` and retain FX, even with real TTS configured. New TTS reward kinds remain simulator-only.
-- [ ] Add `onYouTubeState` handling and clear viewer labels for waiting/disconnected states. Expose selection/status in the operator panel, keeping it outside OBS capture. Never claim real likes/subscribers or invent viewers.
-- [ ] Run source/rules/engine/experience/UI/audio/Snake regressions. Use fixture sources, no actual keys or network. Coordinate callback/state shape with root; do not commit shared work.
+- [x] Add failing regressions for a typed YouTube comment across transport→rules→engine→activation/impact UI, while Snake ignores it.
+- [x] Add a strict YouTube normalizer; accept only the server SSE comment channel. Preserve opaque actor/message digests. Simulator HTTP controls cannot claim that source.
+- [x] Replace source ternaries and hard-coded two-source totals/drains with explicit source maps/iteration; preserve previous-source fairness and all existing behavior.
+- [x] Preserve source/name/action ID through delayed entities, weather and impacts. Do not convert YouTube to automatic or TikFinity.
+- [x] All YouTube comment actions have `narrate:false` and retain FX, even with real TTS configured. New TTS reward kinds remain simulator-only.
+- [x] Add `onYouTubeState` handling and clear viewer labels for waiting/disconnected states. Expose selection/status in the operator panel, keeping it outside OBS capture. Never claim real likes/subscribers or invent viewers.
+- [x] Run source/rules/engine/experience/UI/audio/Snake regressions. Use fixture sources, no actual keys or network. Coordinate callback/state shape with root; do not commit shared work.
 
 ## Task 4 — Root server integration and final verification
 
