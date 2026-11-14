@@ -27,10 +27,10 @@ Limitación del entorno: dos comprobaciones OBS mediante `powershell.exe` lanzad
 
 ## Pendiente para el LIVE
 
-1. Acceso a la sala LIVE comprobado el13de noviembre en la sesión autenticada. Se preparó el formulario del ensayo, pendiente de la clasificación de público por el propietario y de guardar/verificar No listado. La sala muestra «No hay datos»; no se envió señal.
+1. Acceso a la sala LIVE comprobado el13de noviembre. Ensayo guardado y comprobado como No listado y Videojuegos; público general según el propietario. La sala muestra «No hay datos»; no se envió señal.
 2. Conectar la lectura autorizada del chat de YouTube y validar comentarios reales, deduplicación y reconexión. Actualmente todos los botones son simulaciones.
 3. Elegir la voz, introducir la clave localmente y escuchar el primer ensayo. La conexión del plugin ElevenLabs no configura la clave del servidor.
-4. Abrir **LivesIA YouTube / Mina YouTube**, verificar la fuente vertical y grabar una muestra nueva con voz/FX. El ensayo anterior tuvo FX bajos; su medición no acredita la mezcla nueva.
+4. **LivesIA YouTube / Mina YouTube** ya se abrió y se verificaron dos grabaciones completas con FX. Pico de la segunda muestra−21.57dBFS tras calibrar los FX por separado. Falta añadir voz real y revisar la mezcla. Ver [registro OBS](OBS_YOUTUBE_REHEARSAL_2026-11-13.md).
 5. Completar120minutos reales en OBS y revisar recuperación, audio, frames y recursos. Los ensayos virtuales previos no sustituyen esta comprobación.
 6. Revisar la vista previa y los recursos antes de autorizar la emisión. No se inició una transmisión ni se configuraron pagos.
 

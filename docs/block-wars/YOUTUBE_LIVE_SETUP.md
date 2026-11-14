@@ -2,7 +2,9 @@
 
 Actualización: 2026-11-13. Estado: **preparación local implementada, acceso a la sala de control LIVE comprobado; ingestión y chat real pendientes**. Con confirmación explícita del propietario se creó [Mina Infinita LIVE](https://www.youtube.com/@MinaInfinitaLIVE), aceptando las condiciones indicadas en el formulario. No se conectó OAuth ni se emitió.
 
-El13de noviembre se abrió la sala autenticada del canal y se completó la bienvenida seleccionando software de transmisión. Studio mostró un ensayo sin señal («No hay datos») en `/video/i0fOJAzWJqA/livestreaming`. Se prepararon título, descripción, categoría Videojuegos y visibilidad No listado en el formulario de edición, **sin guardar todavía**: falta que el propietario indique si el contenido está creado específicamente para niños. La visibilidad inicial que asignó Studio fue Público; no conectar el codificador hasta guardar y comprobar la visibilidad del ensayo y el comportamiento de inicio automático. No se mostró ni copió la clave de transmisión.
+El13de noviembre se abrió la sala autenticada del canal y se completó la bienvenida seleccionando software de transmisión. Se guardaron título, descripción, categoría Videojuegos y **No listado**; el propietario confirmó público general, no creado específicamente para niños. Studio mostró el ensayo sin señal («No hay datos») en `/video/i0fOJAzWJqA/livestreaming`. No se mostró ni copió la clave de transmisión. El comportamiento de inicio automático queda por comprobar antes de enviar señal desde OBS.
+
+OBS portable cargó **LivesIA YouTube / Mina YouTube** mediante el acceso directo local «Mina Infinita YouTube». Se grabaron y decodificaron completos dos ensayos de147.133s y122.100s: H.264720×1280/30FPS y AAC44.1kHz estéreo. Se elevaron únicamente los FX; el pico de la segunda muestra fue−21.57dBFS, sin saturación en esa muestra. La voz real y su mezcla siguen pendientes. [Evidencia](OBS_YOUTUBE_REHEARSAL_2026-11-13.md).
 
 ## Qué está preparado
 

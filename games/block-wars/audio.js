@@ -29,6 +29,8 @@
     fire:[['sawtooth',650,180,0.2]], arrow:[['square',1700,500,0.07]], tsunami:[['triangle',200,55,0.35]]
   });
   const MAX_PENDING = 2, MAX_NODES = 8, MAX_AUDIO_BYTES = 2 * 1024 * 1024;
+  // OBS rehearsal peaked at -33.5 dBFS. Raise FX alone; eight notes stay <= 0.8 before master volume.
+  const FX_NOTE_GAIN = 0.1;
   const EVENT_TTL = 8000, DEDUPE_TTL = 120000, MAX_SEEN = 256, ERROR_BACKOFF = 30000;
   const SOURCES = new Set(['simulator','tikfinity','automatic']);
   const KINDS = new Set([...Object.keys(Config.EVENTS), ...Object.keys(Config.BUFFS), 'mine', 'follow']);
@@ -88,7 +90,7 @@
           const at = context.currentTime + delay;
           nodes.add(item); osc.type = type; osc.frequency.setValueAtTime(start,at);
           osc.frequency.exponentialRampToValueAtTime(end,at + duration);
-          gain.gain.setValueAtTime(0.035,at);
+          gain.gain.setValueAtTime(FX_NOTE_GAIN,at);
           gain.gain.exponentialRampToValueAtTime(0.0001,at + duration);
           osc.connect(gain); gain.connect(master); osc.onended = () => releaseNode(item,false);
           osc.start(at); osc.stop(at + duration);
