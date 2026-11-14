@@ -8,7 +8,7 @@
   function createPainter(ctx,paint,width,height){
     function credit(entry){
       const actor=entry.source==='youtube'?
-        String(entry.actor||'LA COMUNIDAD').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').slice(0,44):
+        Array.from(String(entry.actor||'LA COMUNIDAD').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'')).slice(0,44).join(''):
         String(entry.actor||'LA COMUNIDAD').replace(/[\x00-\x1f\x7f<>]/g,'').slice(0,32);
       return entry.source==='automatic'?'EVENTO DE LA MINA':
         entry.source==='simulator'||entry.source==='operator'?'PRUEBA · '+actor:

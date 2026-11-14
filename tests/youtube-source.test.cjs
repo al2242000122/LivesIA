@@ -2,6 +2,14 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const Events=require('../integrations/events.js'), Config=require('../games/block-wars/config.js');
 const {createEngine}=require('../games/block-wars/engine.js'),{createRules}=require('../games/block-wars/rules.js'),{createExperience}=require('../games/block-wars/experience.js');
 const wire=(text='TNT')=>({type:'comment',source:'youtube',id:'yt:'+'a'.repeat(32),receivedAt:1,actor:{displayName:'Ana',stableHash:'b'.repeat(32)},data:{text}});
+
+test('YouTube codepoint name limits survive adapter and attributed action',()=>{
+ for(const name of ['a'.repeat(43)+'🌻','😀'.repeat(23)]){
+  const e=wire();e.actor.displayName=name;const normalized=Events.createAdapter().normalizeYouTube(e);assert.ok(normalized);
+  const engine=createEngine({layout:'endless',seed:1}),experience=createExperience(engine,createRules(engine),{notify(){}});
+  assert.equal(experience.handleEvent(normalized),true);assert.equal(engine.state.lastEvent.actor,name);assert.equal(experience.state.lastActivation.actorName,name);
+ }
+});
 test('strict YouTube adapter preserves opaque identity and rejects extra fields or fake rewards',()=>{const a=Events.createAdapter();assert.deepEqual(a.normalizeYouTube(wire()),wire());assert.equal(a.normalizeYouTube(wire()),null);for(const patch of [{type:'like'},{paid:true},{actor:{displayName:'Ana',stableHash:'x'}}])assert.equal(a.normalizeYouTube({...wire(),...patch}),null);assert.equal(a.normalize(wire(),'youtube'),null);});
 test('all fourteen YouTube commands retain activation/engine provenance and suppress narration',()=>{for(const kind of Config.SELECTED_EVENTS){const engine=createEngine({layout:'endless',seed:1}),rules=createRules(engine),sounds=[],experience=createExperience(engine,rules,{notify:e=>sounds.push(e)});assert.equal(experience.handleEvent(wire(kind)),true,kind);const active=experience.state.lastActivation;assert.equal(active.source,'youtube',kind);assert.equal(active.actorName,'Ana',kind);assert.equal(sounds[0].narrate,false,kind);assert.equal(engine.state.lastEvent.source,'youtube',kind);assert.equal(engine.state.lastEvent.actionId,active.id,kind);}});
 const fs=require('node:fs'),vm=require('node:vm');

@@ -357,7 +357,8 @@
     const attribution=entry=>({actor:entry.actor||'',source:entry.source||'automatic',actionId:entry.actionId||''});
     function actionContext(input){
       const context=plain(input)?input:{};
-      const actor=typeof context.actor==='string'?context.actor.replace(context.source==='youtube'?/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g:/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069<>]/g,'').slice(0,context.source==='youtube'?44:32):'';
+      const cleanedActor=typeof context.actor==='string'?context.actor.replace(context.source==='youtube'?/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g:/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069<>]/g,''):'';
+      const actor=context.source==='youtube'?Array.from(cleanedActor).slice(0,44).join(''):cleanedActor.slice(0,32);
       const source=['simulator','tikfinity','youtube','automatic','operator'].includes(context.source)?context.source:'automatic';
       const supplied=typeof context.actionId==='string'&&/^[a-zA-Z0-9:_-]{1,80}$/.test(context.actionId)?context.actionId:null;
       return {actor,source,actionId:supplied||'engine-'+(++actionSequence)};

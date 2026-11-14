@@ -81,7 +81,7 @@
     function handleEvent(event){
       const command=typeof event?.data?.text==='string'?event.data.text.trim().toLowerCase():'';
       const community=event?.type==='like'||event?.source!=='youtube'&&['!boom','!voterain'].includes(command);
-      const origin={source:event?.source,follow:event?.type==='follow',actorName:community?'':event?.source==='youtube'&&typeof event?.actor?.displayName==='string'?event.actor.displayName.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').slice(0,44):actorName(event?.actor?.displayName)};
+      const origin={source:event?.source,follow:event?.type==='follow',actorName:community?'':event?.source==='youtube'&&typeof event?.actor?.displayName==='string'?Array.from(event.actor.displayName.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'')).slice(0,44).join(''):actorName(event?.actor?.displayName)};
       const previous=state.lastActivation;
       const accepted=scoped(origin,()=>rules.handle(event));
       if((event?.type==='comment'||event?.type==='follow')&&previous===state.lastActivation)feedback(rules.state.lastOutcome,origin);

@@ -50,10 +50,43 @@ test('provider framing maps quota, ended and disabled to terminal fixed codes',(
   const p=new JsonArrayFramer(()=>{});assert.throws(()=>p.push(Buffer.from(JSON.stringify({error:{code:403,errors:[{reason}]}}))),e=>e.code===code);
  }
 });
+
+test('HTTP403 error bodies retain terminal provider reasons',async()=>{
+ for(const [reason,code]of [['quotaExceeded','youtube_quota'],['liveChatEnded','youtube_ended'],['liveChatDisabled','youtube_disabled']]){
+  const c=createYouTubeChat({expectedChannelId:channel,getAccessToken:async()=> 'fixture',fetchImpl:async()=>new Response(JSON.stringify({error:{code:403,errors:[{reason}]}}),{status:403})});
+  await c.select(video);for(let i=0;i<20;i++)await new Promise(setImmediate);assert.equal(c.status().error,code);c.stop();
+ }
+});
 test('stalled fetch expires and cancels its late body without affecting current selection',async()=>{
- let resolveFetch,cancelled=0;const scheduled=[];const timers={setTimeout(fn,ms){const t={fn,ms};scheduled.push(t);return t;},clearTimeout(t){const n=scheduled.indexOf(t);if(n>=0)scheduled.splice(n,1);}};
- const c=createYouTubeChat({expectedChannelId:channel,getAccessToken:async()=> 'x',fetchImpl:()=>new Promise(r=>resolveFetch=r),timers});await c.select(video);await new Promise(setImmediate);
- const timer=scheduled.find(t=>t.ms===20000);assert.ok(timer);timer.fn();await new Promise(setImmediate);assert.equal(c.status().state,'error');resolveFetch({ok:true,body:{cancel(){cancelled++;return new Promise(()=>{});}}});await new Promise(setImmediate);assert.equal(cancelled,1);c.stop();
+ let resolveFetch,cancelled=0,signal;const scheduled=[];const timers={setTimeout(fn,ms){const t={fn,ms};scheduled.push(t);return t;},clearTimeout(t){const n=scheduled.indexOf(t);if(n>=0)scheduled.splice(n,1);}};
+ const c=createYouTubeChat({expectedChannelId:channel,getAccessToken:async()=> 'x',fetchImpl:(_,options)=>{signal=options.signal;return new Promise(r=>resolveFetch=r);},timers});await c.select(video);await new Promise(setImmediate);
+ const timer=scheduled.find(t=>t.ms===20000);assert.ok(timer);timer.fn();await new Promise(setImmediate);assert.equal(signal.aborted,true);assert.equal(c.status().state,'error');resolveFetch({ok:true,body:{cancel(){cancelled++;return new Promise(()=>{});}}});await new Promise(setImmediate);assert.equal(cancelled,1);c.stop();
+});
+
+test('selection and stop abort only the request belonging to their session',async()=>{
+ const signals=[];const c=createYouTubeChat({expectedChannelId:channel,getAccessToken:async()=> 'fixture',fetchImpl:(_,o)=>{signals.push(o.signal);return new Promise(()=>{});}});
+ await c.select(video);await new Promise(setImmediate);await c.select('zyxwvutsrqp');await new Promise(setImmediate);
+ assert.equal(signals.length,2);assert.equal(signals[0].aborted,true);assert.equal(signals[1].aborted,false);c.stop();assert.equal(signals[1].aborted,true);
+});
+
+test('HTTP error bodies are bounded, cancelled and never expose upstream text',async()=>{
+ for(const kind of ['large','stalled','malformed','401']){
+  let cancelled=0,signal;const scheduled=new Set(),timers={setTimeout(fn,ms){const t={fn,ms};scheduled.add(t);return t;},clearTimeout(t){scheduled.delete(t);}};
+  const c=createYouTubeChat({expectedChannelId:channel,timers,getAccessToken:async()=> 'fixture',fetchImpl:async(_,o)=>{signal=o.signal;return {ok:false,status:kind==='401'?401:403,body:{cancel(){cancelled++;},getReader(){let sent=false;return {read(){if(kind==='stalled')return new Promise(()=>{});if(sent)return Promise.resolve({done:true});sent=true;return Promise.resolve({done:false,value:Buffer.from(kind==='large'?'secret'.repeat(3000):'secret token invalid JSON')});},cancel(){cancelled++;return new Promise(()=>{});}};}}};}});
+  await c.select(video);await new Promise(setImmediate);if(kind==='stalled'){const t=[...scheduled].find(t=>t.ms===5000);assert.ok(t);t.fn();await new Promise(setImmediate);}
+  assert.equal(c.status().error,'youtube_auth_required');assert.equal(cancelled,1);assert.equal(signal.aborted,true);assert.equal(JSON.stringify(c.status()).includes('secret'),false);c.stop();
+ }
+});
+
+test('reader Unicode boundaries survive real adapter, experience, engine and canvas label',async()=>{
+ const Events=require('../integrations/events'),{createEngine}=require('../games/block-wars/engine'),{createRules}=require('../games/block-wars/rules'),{createExperience}=require('../games/block-wars/experience'),{createPainter}=require('../games/block-wars/effects-render');
+ for(const name of ['a'.repeat(43)+'🌻','😀'.repeat(23)]){
+  const h=harness(),item=message('unicode',119000);item.authorDetails.displayName=name;item.snippet.textMessageDetails.messageText='TNT';h.items.push([], [item]);await h.c.select(video);await h.flush();h.advance(19000);await h.flush();assert.equal(h.events.length,1);
+  const event=Events.createAdapter().normalizeYouTube(h.events[0]);assert.ok(event);const engine=createEngine({layout:'endless',seed:1}),experience=createExperience(engine,createRules(engine),{notify(){}});assert.equal(experience.handleEvent(event),true);assert.equal(experience.state.lastActivation.actorName,name);assert.equal(engine.state.lastEvent.actor,name);
+  const labels=[],ctx={save(){},restore(){},measureText(){return {width:300};},fillRect(){},fillText(t){labels.push(t);}};createPainter(ctx,()=>{},600,744).label(engine.state.lastEvent,100,100);assert.deepEqual(labels,['CHAT YOUTUBE · '+name]);h.c.stop();
+ }
+ const h=harness();const items=[message('45',119000),message('501',119000),message('500',119000)];items[0].authorDetails.displayName='😀'.repeat(45);items[1].snippet.textMessageDetails.messageText='😀'.repeat(501);items[2].snippet.textMessageDetails.messageText='😀'.repeat(500);h.items.push([],items);await h.c.select(video);await h.flush();h.advance(19000);await h.flush();assert.equal(h.events.length,1);const event=Events.createAdapter().normalizeYouTube(h.events[0]);assert.ok(event);assert.equal(event.data.text,'😀'.repeat(500));h.c.stop();
+ for(const [name,text]of [['😀'.repeat(45),'TNT'],['Ana','😀'.repeat(501)]])assert.equal(Events.createAdapter().normalizeYouTube({type:'comment',source:'youtube',id:'yt:'+'a'.repeat(32),receivedAt:1,actor:{displayName:name,stableHash:'b'.repeat(32)},data:{text}}),null);
 });
 test('stalled body expires and cancels without awaiting cancellation',async()=>{
  let cancelled=0;const scheduled=[];const timers={setTimeout(fn,ms){const t={fn,ms};scheduled.push(t);return t;},clearTimeout(t){const n=scheduled.indexOf(t);if(n>=0)scheduled.splice(n,1);}};
@@ -68,7 +101,7 @@ function streamHarness(streamFactory,{jitter=0.5}={}){
  let current=100000,nextId=0;const scheduled=new Map(),events=[],requests=[];
  const timers={setTimeout(fn,ms){const id=++nextId;scheduled.set(id,{fn,at:current+ms,ms});return id;},clearTimeout(id){scheduled.delete(id);}};
  const json=value=>({ok:true,body:new ReadableStream({start(c){c.enqueue(Buffer.from(JSON.stringify(value)));c.close();}})});
- const fetchImpl=async url=>{const u=new URL(url);if(u.pathname.endsWith('/channels'))return json({items:[{id:channel}]});if(u.pathname.endsWith('/videos'))return json({items:[{id:video,snippet:{channelId:channel},liveStreamingDetails:{activeLiveChatId:'chat',actualStartTime:'2026-01-01'}}]});requests.push(u);return streamFactory({index:requests.length,now:()=>current,timers});};
+ const fetchImpl=async (url,options)=>{const u=new URL(url);if(u.pathname.endsWith('/channels'))return json({items:[{id:channel}]});if(u.pathname.endsWith('/videos'))return json({items:[{id:video,snippet:{channelId:channel},liveStreamingDetails:{activeLiveChatId:'chat',actualStartTime:'2026-01-01'}}]});requests.push(u);return streamFactory({index:requests.length,now:()=>current,timers,signal:options.signal});};
  const c=createYouTubeChat({expectedChannelId:channel,now:()=>current,timers,random:()=>jitter,getAccessToken:async()=> 'fixture',fetchImpl,onEvent:e=>events.push(e)});
  const flush=async()=>{for(let i=0;i<20;i++)await new Promise(setImmediate);};
  return {c,events,requests,timers,scheduled,flush,get time(){return current;},async advance(ms){current+=ms;for(const [id,t]of [...scheduled])if(t.at<=current){scheduled.delete(id);t.fn();}await flush();}};
@@ -79,6 +112,12 @@ test('200 stream callback budget rotates preserving cursor and dedupe for next e
 });
 test('HTTP500 stream retries always wait15..60 seconds including jitter extremes',async()=>{
  for(const jitter of [0,1]){const h=streamHarness(()=>({ok:false,status:500,body:{cancel:async()=>{}}}),{jitter});await h.c.select(video);await h.flush();for(let i=0;i<9;i++){const wait=[...h.scheduled.values()].find(x=>x.ms>=15000&&x.ms<=60000);assert.ok(wait,'bounded retry wait');const before=h.requests.length;await h.advance(wait.ms-1);assert.equal(h.requests.length,before);await h.advance(1);assert.equal(h.requests.length,before+1);}h.c.stop();}
+});
+
+test('stalled streaming headers abort before a retry starts',async()=>{
+ const signals=[];let active=0,maxActive=0;
+ const h=streamHarness(({signal})=>{signals.push(signal);active++;maxActive=Math.max(maxActive,active);signal.addEventListener('abort',()=>active--,{once:true});return new Promise(()=>{});});
+ await h.c.select(video);await h.flush();assert.equal(active,1);await h.advance(20000);assert.equal(signals[0].aborted,true);assert.equal(active,0);await h.advance(14999);assert.equal(signals.length,1);await h.advance(1);assert.equal(signals.length,2);assert.equal(signals[1].aborted,false);assert.equal(maxActive,1);h.c.stop();assert.equal(active,0);
 });
 test('absolute stream lifetime rotates a whitespace trickle before six minute mark',async()=>{
  let cancelled=0;const h=streamHarness(({timers})=>({ok:true,body:{getReader(){let first=true;return {read(){if(first){first=false;return Promise.resolve({done:false,value:Buffer.from('[')});}return new Promise(resolve=>timers.setTimeout(()=>resolve({done:false,value:Buffer.from(' ')}),60000));},cancel(){cancelled++;return Promise.resolve();}};}}}));await h.c.select(video);await h.flush();for(let i=0;i<5;i++)await h.advance(60000);assert.equal(cancelled,1);await h.advance(15000);assert.equal(h.requests.length,2);h.c.stop();
