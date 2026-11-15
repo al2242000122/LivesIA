@@ -6,9 +6,26 @@ const {createPainter}=require('../games/block-wars/effects-render.js');
 function recorder(){
   const calls=[];
   const ctx=new Proxy({measureText:text=>({width:text.length*10})},{get:(object,key)=>object[key]||(object[key]=(...args)=>calls.push([key,...args]))});
+  const assignments=[];
+  const originalContext=ctx;
+  const tracked=new Proxy(originalContext,{set:(object,key,value)=>{assignments.push([key,value]);object[key]=value;return true;}});
   const paint=(...args)=>calls.push(['paint',...args]);
-  return {calls,painter:createPainter(ctx,paint,720,1280)};
+  return {calls,assignments,painter:createPainter(tracked,paint,720,1280)};
 }
+
+test('RAIN renders real mixed pickaxe sprites and NUKE variants have visibly different colors',()=>{
+  const {calls,assignments,painter}=recorder();
+  painter.projectile({kind:'rain',stage:'pickaxe',pickaxe:'gold',size:1.1,x:3,y:8,rotation:1,age:1,source:'youtube',actor:'Ana'},90,90,0,false);
+  assert.ok(calls.some(c=>c[0]==='paint'&&c[1]==='tool'&&c[2]==='gold'));
+  const colors=[];
+  for(let i=0;i<3;i++){
+    calls.length=0;assignments.length=0;painter.projectile({kind:'nuke',stage:'fall',variantIndex:i,x:3,y:6,size:3.6,rotation:.4,age:.2},90,90,0,false);
+    colors.push(assignments.filter(([key,value])=>key==='filter'&&value!=='none').map(([,value])=>value).join('|'));
+    assert.ok(assignments.some(([key,value])=>key==='fillStyle'&&['#ffc936','#37e8ff','#d56dff'][i]===value));
+    assert.ok(calls.some(c=>c[0]==='rotate'&&c[1]===.4));
+  }
+  assert.equal(new Set(colors).size,3,'all three charges use distinct hue filters');
+});
 async function originals(){
   class ImageStub{set src(url){this.url=url;[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,512];queueMicrotask(()=>this.onload());}}
   // Fixed-layout sprites require their original exact dimensions.
@@ -57,7 +74,7 @@ test('giant charges above the viewport retain a visible TNT preview, owner and r
     assert.ok(calls.some(call=>call[0]==='fillText'&&/MECHA 2.4s/.test(call[1])),kind);
     assert.ok(calls.some(call=>call[0]==='fillText'&&/PRUEBA · Ana/.test(call[1])),kind);
     const preview=calls.find(call=>call[0]==='paint'&&call[1]==='tnt');
-    assert.ok(preview&&preview[4]>=0&&preview[4]+preview[5]<=1280,'preview stays inside canvas');
+    const origin=calls.find(call=>call[0]==='translate');assert.ok(preview&&origin&&origin[1]>0&&origin[2]>0&&origin[2]+preview[5]<1280,'transformed preview stays inside canvas');
   }
 });
 

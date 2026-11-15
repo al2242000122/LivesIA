@@ -6,7 +6,7 @@ Selección aprobada por el propietario: propuestas 1–14. Estado: implementaci�
 
 El menú público muestra TNT, RAIN, THUNDER, STORM, CREEPER, METEOR, FIRE, TSUNAMI, SPIN, FAST, MEGA, NUKE, ARROW y BIG, en ese orden. Los automáticos de excavación infinita también eligen sólo estos comandos. El catálogo interno conserva los 18 anteriores y añade STORM/CREEPER: 20 efectos compatibles, sin retirar Snake, arena o shaft.
 
-Mayúsculas/minúsculas y el prefijo opcional `!` no cambian el efecto. `rain`, `!rain`, `TNT RAIN` y `TNTRAIN` seleccionan la misma lluvia de TNT. **Migración:** la antigua votación de `!rain` se conserva como `!voterain`, con un voto por identidad/ciclo y el mismo umbral. No mostrar ambas acciones como si aún compartieran el mismo comando.
+Mayúsculas/minúsculas y el prefijo opcional `!` no cambian el efecto. `rain`, `!rain`, `TNT RAIN` y `TNTRAIN` seleccionan la misma lluvia de picos en endless (TNT RAIN es un alias histórico). **Migración:** la antigua votación de `!rain` se conserva como `!voterain`, con un voto por identidad/ciclo y el mismo umbral. No mostrar ambas acciones como si aún compartieran el mismo comando.
 
 La acción aceptada recibe un ID local, una tarjeta con nombre moderado y origen, una señal sonora de activación y narración opcional. El motor conserva autor/origen/ID en sus entidades, impactos y zonas persistentes. La señal de impacto se reproduce al producirse el impacto, sin otra petición TTS. La tarjeta caduca a los 8 segundos; la etiqueta del proyectil conserva su autor mientras existe.
 
@@ -19,7 +19,7 @@ Estas mecánicas son personalizadas para la mina 2D; no equivalen a reglas vanil
 | Comando | Comportamiento en endless |
 | --- | --- |
 | TNT | Carga física que cae, rebota, descansa en terreno y consume su mecha antes de explotar. |
-| RAIN | Ocho TNT con salidas escalonadas cada 0.55 s; física, mecha e impactos independientes, con el mismo autor. |
+| RAIN | Ocho picos de cinco materiales, escalonados cada 0.16 s, con colisión, rebote y daño por contacto. Desaparecen a los 10 s desde la activación, incluido el escalonado. |
 | THUNDER | Lluvia original de Minecraft y tres pulsos eléctricos durante 4 s que destruyen columnas acotadas. |
 | STORM | Seis segundos de lluvia/viento; el viento modifica la velocidad del pico y el granizo de hielo provoca impactos destructivos. |
 | CREEPER | Sprite frontal de la skin original; cae, se apoya, enciende una mecha de 1.3 s y explota. |
@@ -28,8 +28,8 @@ Estas mecánicas son personalizadas para la mina 2D; no equivalen a reglas vanil
 | TSUNAMI | Ola de agua que cruza la mina, erosiona bloques por pulsos y empuja físicamente al pico cercano. |
 | SPIN | Giro acelerado y mayor trabajo de minería; el daño del pico sigue requiriendo contacto físico. |
 | FAST | Prisa visual, mayor fuerza y velocidad física; mantiene los subpasos de colisión. |
-| MEGA | TNT gigante con huella física acorde a su tamaño, mecha de 2 s y cráter mayor. |
-| NUKE | Supercarga TNT/redstone, mecha de 3 s y tres centros de explosión procesados con presupuesto común; enfriamiento global de 45 s de juego. |
+| MEGA | TNT de tamaño 2.8, mecha de 1.1 s tras tocar terreno y explosión de radio 4. |
+| NUKE | Tres TNT gigantes de tamaño 3.6 y colores oro, cian y violeta; salidas escalonadas cada 0.45 s, mecha individual de 1.6 s y explosiones independientes de radio 5.5 con presupuesto común. |
 | ARROW | Ráfaga de cuatro flechas desde dispensadores; cada impacto daña el bloque alcanzado. |
 | BIG | Aumenta el radio real de colisión del pico y amplía los golpes alrededor de bloques destruidos por contacto. |
 
@@ -37,9 +37,9 @@ Las cargas grandes necesitan una abertura acorde con su tamaño: no atraviesan p
 
 ## Rechazo y límites
 
-Se mantienen 10 s globales entre efectos de chat y 15 s por identidad, más el enfriamiento propio del motor. La respuesta distingue pausa, espera global, espera personal, enfriamiento del efecto, falta de equipo y motor ocupado. Cuando el tiempo es conocido se indica el restante observado; una acción rechazada no genera tarjeta de activación ni narración y no consume un cooldown nuevo.
+En endless se admiten comentarios cada 0.5 s globales y cada 1 s por identidad, con límites de capacidad para efectos simultáneos. La respuesta distingue pausa, espera global, espera personal, enfriamiento del efecto, falta de equipo y motor ocupado. Cuando el tiempo es conocido se indica el restante observado; una acción rechazada no genera tarjeta de activación ni narración y no consume un cooldown nuevo.
 
-Chat normal y duplicados no sustituyen la tarjeta vigente. Un efecto destructivo de chat espera a que dejen de existir los proyectiles, clima o fuego anteriores: **no hay una cola nueva de peticiones de espectadores** ni una promesa de ejecución posterior. La cola interna del motor procesa daño limitado; la cola de voz mantiene sus límites independientes.
+Chat normal y duplicados no sustituyen la tarjeta vigente. Los efectos de endless pueden solaparse mientras exista capacidad: **no hay una cola nueva de peticiones de espectadores** ni una promesa de ejecución posterior. La cola interna del motor procesa daño limitado; la cola de voz mantiene sus límites independientes.
 
 Pausa congela el motor y cancela audio pendiente. Emergencia limpia clima, proyectiles, fuego, cargas comunitarias y tarjetas. Reanudar no reproduce locuciones antiguas. Los IDs de voz automáticos son únicos por sesión y secuencia, aunque el motor se reinicie determinísticamente; la tarjeta conserva además su referencia al ID del motor.
 

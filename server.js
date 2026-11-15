@@ -42,8 +42,8 @@ const files = {
 };
 for(const filename of ['config','physics','engine','rules','textures','effects-render','render','audio-assets','audio','experience','app','control'])files[`/block-wars/${filename}.js`]=[`games/block-wars/${filename}.js`,'text/javascript; charset=utf-8'];
 // Only these fixed local PNG names are served. The downloaded client and provenance remain private.
-const {ORIGINAL_NAMES,EFFECT_NAMES}=require('./games/block-wars/textures.js');
-for(const name of [...ORIGINAL_NAMES,...Object.keys(EFFECT_NAMES)])files[`/block-wars/assets/${name}.png`]=[`assets-local/minecraft/${name}.png`,'image/png'];
+const {ORIGINAL_NAMES,EFFECT_NAMES,ITEM_NAMES}=require('./games/block-wars/textures.js');
+for(const name of [...ORIGINAL_NAMES,...Object.keys(EFFECT_NAMES),...Object.keys(ITEM_NAMES)])files[`/block-wars/assets/${name}.png`]=[`assets-local/minecraft/${name}.png`,'image/png'];
 const {SOUNDS,MUSIC_URL}=require('./games/block-wars/audio-assets.js');
 for(const name of Object.keys(SOUNDS))files[`/assets-local/minecraft-sounds/${name}.ogg`]=[`assets-local/minecraft-sounds/${name}.ogg`,'audio/ogg'];
 files[MUSIC_URL]=['assets-local/audio/background-loop.wav','audio/wav'];

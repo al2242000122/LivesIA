@@ -36,7 +36,7 @@
     }
     const effects=Effects.createPainter(ctx,paint,W,H);
     function sky(time,reduced){
-      const gradient=ctx.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#4196f8');gradient.addColorStop(.65,'#8ce6fa');gradient.addColorStop(1,'#d6ffff');
+      const gradient=ctx.createLinearGradient(0,0,0,H);gradient.addColorStop(0,'#0869e4');gradient.addColorStop(.65,'#35b4f3');gradient.addColorStop(1,'#a8e4f5');
       ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
       const clouds=[[130,170,160],[500,330,180],[230,540,150],[550,750,180],[230,1010,170],[620,1190,160]];
       for(let i=0;i<clouds.length;i++){

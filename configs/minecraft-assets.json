@@ -46,6 +46,14 @@
     "arrow": "assets/minecraft/textures/item/arrow.png",
     "dispenser": "assets/minecraft/textures/block/dispenser_front.png",
     "creeper": "assets/minecraft/textures/entity/creeper/creeper.png",
-    "rain": "assets/minecraft/textures/environment/rain.png"
+    "rain": "assets/minecraft/textures/environment/rain.png",
+    "item_diamond": "assets/minecraft/textures/item/diamond.png",
+    "item_coal": "assets/minecraft/textures/item/coal.png",
+    "item_iron_ingot": "assets/minecraft/textures/item/iron_ingot.png",
+    "item_gold_ingot": "assets/minecraft/textures/item/gold_ingot.png",
+    "item_copper_ingot": "assets/minecraft/textures/item/copper_ingot.png",
+    "item_redstone": "assets/minecraft/textures/item/redstone.png",
+    "item_lapis_lazuli": "assets/minecraft/textures/item/lapis_lazuli.png",
+    "item_emerald": "assets/minecraft/textures/item/emerald.png"
   }
 }

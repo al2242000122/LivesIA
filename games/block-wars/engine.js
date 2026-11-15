@@ -107,6 +107,7 @@
       state.weatherEvents=[];
       state.hazards=[];
       state.actionResults=[];
+      state.materialCounts=Object.fromEntries(Object.keys(MATERIALS).map(material=>[material,0]));
       state.elapsed=0;
       state.rowOffset=0;
       if(state.layout==='endless'){
@@ -249,12 +250,13 @@
       team.score=Math.min(LIMITS.maxScore,team.score+block.value*(1+bonus)*multiplier*buffBonus);
       team.blocks=Math.min(state.layout==='endless'?LIMITS.maxScore:state.width*state.height,team.blocks+1);
       state.blocks[index]=null;
+      state.materialCounts[block.material]=Math.min(LIMITS.maxScore,state.materialCounts[block.material]+1);
       remainingBlocks--;
       const result=context&&state.actionResults.find(entry=>entry.actionId===context.actionId);
       if(result)result.blocks=Math.min(LIMITS.maxScore,result.blocks+1);
       particleBurst(index%state.width,Math.floor(index/state.width),block.material);
       if (mined) wear(team);
-      unlock(team);
+      if(context?.stage!=='pickaxe')unlock(team);
     }
     function mine(id,dt,budget) {
       if(shaftReachedFloor)return;
@@ -355,7 +357,8 @@
         }
       }
     }
-    const attribution=entry=>({actor:entry.actor||'',source:entry.source||'automatic',actionId:entry.actionId||''});
+    const attribution=entry=>({actor:entry.actor||'',source:entry.source||'automatic',actionId:entry.actionId||'',
+      ...(entry.blastTier?{blastTier:entry.blastTier,variantIndex:entry.variantIndex,blastRadius:entry.blastRadius}:{})});
     function actionContext(input){
       const context=plain(input)?input:{};
       const cleanedActor=typeof context.actor==='string'?context.actor.replace(context.source==='youtube'?/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g:/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069<>]/g,''):'';
@@ -372,12 +375,24 @@
     function launchEndless(kind,id,x,y,sequence,context){
       const descriptor=EVENTS[kind],tuning=MC[kind]||{},projectile=MC.projectile,targetY=terrainBelow(x,y);
       const startY=Math.max(.5,Math.min(y-projectile.spawnHeight,state.body.y-projectile.spawnHeight));
+      const tier=MC.tiers[kind];
       const delay=sequence*(tuning.spawnInterval??projectile.spawnInterval);
       const entity={kind,team:id,x:x+.5,y:startY,startX:x+.5,startY,targetX:x+.5,targetY,
         age:0,duration:tuning.lifetime??projectile.lifetime,size:descriptor.size,rotation:0,
         radius:descriptor.size/2,vx:(sequence%2?1:-1)*projectile.driftSpeed,vy:0,
         fuse:tuning.fuse??projectile.fuse,
         delay,grounded:false,stage:'fall',...context};
+      if(tier){
+        entity.size=tier.size;entity.radius=tier.size/Math.SQRT2;
+        entity.blastTier=kind;entity.blastRadius=tier.radius;entity.variantIndex=sequence%tier.count;
+        entity.rotation=(sequence%2?1:-1)*.3;entity.angularVelocity=(sequence%2?1:-1)*projectile.rotationRate;
+        if(kind==='nuke')entity.x=(sequence+1)*state.width/(tier.count+1);
+      }
+      if(kind==='rain'){
+        entity.stage='pickaxe';entity.pickaxe=Object.keys(PICKAXES)[sequence%Object.keys(PICKAXES).length];
+        entity.radius=tuning.radius;entity.progress=0;entity.collisions=0;
+        entity.vx=(sequence%2?1:-1)*(physics.MIN_HORIZONTAL+sequence*.2);
+      }
       entity.x=Math.max(entity.radius,Math.min(state.width-entity.radius,entity.x));
       // The square sprite and its support footprint have the same physical size.
       if(['tnt','rain','creeper','mega','nuke'].includes(kind))chooseAirSpawn(entity);
@@ -434,19 +449,10 @@
         state.hazards.push({kind,team:entity.team,x:entity.x,y:entity.y+MC.fire.burnOffsetY,radius:MC.fire.burnRadius,
           remaining:MC.fire.burnSeconds,duration:MC.fire.burnSeconds,nextPulse:0,...meta});
       }
-      if(kind==='nuke'){
-        // A single bounded sweep is a chain, ordered around three TNT centers.
-        const x=entity.x-.5,y=entity.y-.5,centers=MC.nuke.chainOffsets.map(([dx,dy])=>({x:x+dx,y:y+dy}));
-        const radius=MC.nuke.chainRadius,indices=new Set();
-        for(const center of centers){
-          addEffect(kind,center.x,center.y,meta);
-          for(let row=0;row<state.height;row++)for(let col=0;col<state.width;col++){
-            if((col-center.x)**2+(row-center.y)**2<=radius*radius)indices.add(row*state.width+col);
-          }
-        }
-        if(state.entities.length+state.queue.length<LIMITS.maxQueue)state.queue.push({kind,team:entity.team,x,y,indices:[...indices],cursor:0,started:true,multiplier:1,...meta});
-      }else enqueue(kind,entity.team,entity.x-.5,entity.y-.5,undefined,meta);
+      const tier=MC.tiers[kind];
+      enqueue(kind,entity.team,entity.x-.5,entity.y-.5,tier?{radius:tier.radius,shape:'circle'}:undefined,meta);
     }
+
     function supportAcross(entity,fromY){
       let floor=state.height;
       const left=Math.max(0,Math.floor(entity.x-entity.radius+1e-6)),right=Math.min(state.width-1,Math.ceil(entity.x+entity.radius-1e-6)-1);
@@ -470,18 +476,28 @@
           if(supportAcross(entity,entity.y-entity.radius)<entity.y+entity.radius-1e-6){entity.x=previousX;entity.vx*=-1;}
           if(entity.x<=entity.radius||entity.x>=state.width-entity.radius)entity.vx*=-1;
           const floor=supportAcross(entity,entity.y+entity.radius),next=entity.y+entity.vy*h;
-          if(next+entity.radius>=floor){
+          let ceiling=-Infinity;
+          if(entity.vy<0){
+            const left=Math.max(0,Math.floor(entity.x-entity.radius+1e-6)),right=Math.min(state.width-1,Math.ceil(entity.x+entity.radius-1e-6)-1);
+            for(let row=Math.min(state.height-1,Math.floor(entity.y-entity.radius));row>=Math.max(0,Math.floor(next-entity.radius));row--){
+              for(let col=left;col<=right;col++)if(state.blocks[row*state.width+col])ceiling=Math.max(ceiling,row+1);
+            }
+          }
+          if(next-entity.radius<ceiling){
+            entity.y=ceiling+entity.radius+.001;entity.vy=Math.abs(entity.vy)*tuning.bounceRetention;
+          }else if(next+entity.radius>=floor){
             entity.y=floor-entity.radius-.001;
-            if(!entity.bounced&&entity.kind!=='creeper'){
-              entity.vy=-Math.max(tuning.minBounceSpeed,entity.vy*tuning.bounceRetention);entity.bounced=true;
+            entity.landed=true;
+            if((entity.bounces||0)<tuning.maxBounces&&entity.kind!=='creeper'&&entity.vy>tuning.minBounceSpeed){
+              entity.vy=-Math.max(tuning.minBounceSpeed,entity.vy*tuning.bounceRetention);entity.bounces=(entity.bounces||0)+1;
             }else{entity.vy=0;entity.grounded=true;entity.stage='fuse';}
           }else entity.y=next;
         }
       }
-      if(entity.grounded)entity.fuse=Math.max(0,entity.fuse-dt);
-      // Falling block sprites remain axis-aligned with their physical footprint.
-      entity.rotation=0;
-      return entity.grounded&&entity.fuse<=1e-10;
+      if(entity.landed)entity.fuse=Math.max(0,entity.fuse-dt);
+      // The circumscribed support radius encloses every corner at every angle.
+      entity.rotation=(entity.rotation+(entity.angularVelocity||0)*dt)%(Math.PI*2);
+      return entity.landed&&entity.fuse<=1e-10;
     }
     function advanceFlight(entity,dt,budget){
       const slices=Math.max(1,Math.ceil(Math.hypot(entity.vx,entity.vy)*dt/MC.projectile.maxFlightStep)),h=dt/slices;
@@ -502,6 +518,18 @@
       return entity.age>=entity.duration;
     }
     function advanceEndless(entity,dt,budget){
+      if(entity.stage==='pickaxe'){
+        entity.age+=dt;
+        if(entity.age>=entity.duration-1e-10)return 'spent';
+        if(entity.delay>0){entity.delay=Math.max(0,entity.delay-dt);return false;}
+        entity.progress=Math.min(LIMITS.maxProgress,entity.progress+PICKAXES[entity.pickaxe].baseSpeed*MC.rain.contactMultiplier*dt);
+        physics.step(entity,dt,state,index=>{
+          const block=state.blocks[index];if(!block||budget.remaining<=0||entity.progress<=0)return;
+          const amount=Math.min(block.hp,entity.progress);entity.progress-=amount;
+          damageAt(index,amount,entity,budget);
+        });
+        return false;
+      }
       if(entity.delay>0){entity.delay=Math.max(0,entity.delay-dt);return false;}
       entity.age+=dt;
       let done=false;
@@ -583,7 +611,7 @@
       const endless=state.layout==='endless',weather=endless&&['thunder','storm'].includes(kind);
       const rapid=endless&&['youtube','tikfinity','simulator'].includes(context?.source)&&
         typeof context?.actionId==='string'&&/^[a-zA-Z0-9:_-]{1,80}$/.test(context.actionId);
-      const entries=weather?0:endless&&kind==='arrow'?MC.arrow.volleyCount:arenaLegacy?(kind==='rain'?count*4:count):explosion?count*descriptor.count:count;
+      const entries=weather?0:endless&&kind==='arrow'?MC.arrow.volleyCount:endless&&kind==='nuke'?MC.tiers.nuke.count:arenaLegacy?(kind==='rain'?count*4:count):explosion?count*descriptor.count:count;
       if(weather&&(state.weatherEvents.length>=LIMITS.maxWeather||!rapid&&state.weather))return false;
       if(explosion && (state.queue.length+state.entities.length+entries>LIMITS.maxQueue ||
           kind==='nuke' && !rapid && state.nukeCooldown>1e-10)) return false;
