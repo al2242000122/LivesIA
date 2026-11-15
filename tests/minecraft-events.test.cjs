@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createEngine}=require('../games/block-wars/engine.js');
-const {EVENTS,SELECTED_EVENTS,LIMITS}=require('../games/block-wars/config.js');
+const {EVENTS,SELECTED_EVENTS,LIMITS,MINECRAFT_EFFECTS:MC}=require('../games/block-wars/config.js');
 function world(){
   const e=createEngine({seed:42,layout:'endless',eventInterval:180});
   for(let i=0;i<e.state.blocks.length;i++)e.state.blocks[i]=i<70?null:{material:'stone',hp:1.8,maxHp:1.8,value:2};
@@ -24,16 +24,16 @@ test('TNT falls onto actual terrain and waits for its fuse; its destruction belo
   assert.ok(grounded,'must touch a solid block');assert.ok(e.state.actionResults[0].blocks>0);
   assert.equal(e.state.actionResults[0].completed,true);
 });
-test('RAIN releases eight staggered pickaxe bodies and keeps one provenance through all impacts',()=>{
+test('RAIN releases twenty-four staggered pickaxe bodies and keeps one provenance through all impacts',()=>{
   const e=world();e.action({type:'rain',team:'light'},context);
-  assert.equal(e.state.entities.length,8);assert.equal(new Set(e.state.entities.map(v=>v.delay)).size,8);
+  assert.equal(e.state.entities.length,24);assert.equal(new Set(e.state.entities.map(v=>v.delay)).size,24);
   assert.ok(e.state.entities.every(v=>v.actor==='Ana'&&v.kind==='rain'));
   advance(e,10);assert.ok(e.state.actionResults[0].blocks>0);assert.equal(e.state.actionResults[0].completed,true);
 });
 test('THUNDER and STORM create distinct bounded weather with terrain damage; clearing cancels weather and burning zones',()=>{
   for(const kind of ['thunder','storm']){
     const e=world();e.action({type:kind,team:'dark'},context);assert.equal(e.state.weather.kind,kind);
-    advance(e,8);assert.ok(e.state.actionResults[0].blocks>0,kind);
+    advance(e,16);assert.ok(e.state.actionResults[0].blocks>0,kind);
     assert.equal(e.state.weather,null);assert.ok(e.state.entities.length+e.state.queue.length<=LIMITS.maxQueue);
     e.clearEffects();assert.equal(e.state.hazards.length,0);assert.equal(e.state.weather,null);
   }
@@ -119,7 +119,7 @@ test('each selected destructive command remains deterministic with reduced motio
     const a=createEngine({seed:56,layout:'endless',eventInterval:180}),b=createEngine({seed:56,layout:'endless',eventInterval:180,reducedMotion:true});
     for(const e of [a,b])assert.equal(e.action({type:kind,team:'dark'},{...context,actionId:kind}),true,kind+' must actually execute');
     for(let tick=0;tick<200;tick++)for(const e of [a,b]){
-      e.update(.05);assert.ok(e.state.actionResults.length<=64);assert.ok(e.state.hazards.length<=8);
+      e.update(.05);assert.ok(e.state.actionResults.length<=64);assert.ok(e.state.hazards.length<=MC.fire.maxHazards);
       assert.ok(e.state.entities.length+e.state.queue.length<=LIMITS.maxQueue);
       assert.equal(e.state.blocks.length,280);
     }
@@ -135,7 +135,7 @@ test('flooded commands have explicit accepted or rejected outcomes without growi
       accepted++;assert.equal(e.state.lastEvent.actionId,id);
     }else{rejected++;assert.equal(e.state.lastEvent,previous);}
     e.update(.05);
-    assert.ok(e.state.actionResults.length<=64);assert.ok(e.state.hazards.length<=8);
+    assert.ok(e.state.actionResults.length<=64);assert.ok(e.state.hazards.length<=MC.fire.maxHazards);
     assert.ok(e.state.entities.length+e.state.queue.length<=LIMITS.maxQueue);
   }
   assert.ok(accepted>=14);assert.ok(rejected>0);
@@ -191,10 +191,10 @@ test('endless periodic events use the fourteen selected effects while the legacy
   }
   assert.ok([...shaftSeen].some(kind=>!SELECTED_EVENTS.includes(kind)&&kind!=='turbo'),'legacy pool still includes unselected catalog effects');
 });
-test('initial RAIN uses the visible air shaft for all eight pickaxes rather than spawning above solid sidewalls',()=>{
+test('initial RAIN uses the visible air shaft for all twenty-four pickaxes rather than spawning above solid sidewalls',()=>{
   const e=createEngine({seed:42,layout:'endless',eventInterval:180});
   assert.equal(e.action({type:'rain',team:'dark'},context),true);
-  assert.equal(e.state.entities.length,8);
+  assert.equal(e.state.entities.length,24);
   for(const entity of e.state.entities){
     assert.ok(entity.y>=0,'each pickaxe starts visibly inside the world');
     assert.ok(entity.targetY>=8,'its fall is aimed at the mining front, not row-zero sidewalls');
@@ -222,7 +222,7 @@ test('attributed endless commands can overlap at one-second cadence without shar
     assert.equal(e.state.lastEvent.actionId,kind+'-second');
   }
   const plain=world();assert.equal(plain.action({type:'nuke',team:'dark'}),true);
-  assert.equal(plain.action({type:'nuke',team:'dark'}),false,'unattributed engine API retains cooldown');
+  assert.equal(plain.action({type:'nuke',team:'dark'}),true,'local endless actions can overlap too');
   const shaft=createEngine({layout:'shaft'});
   assert.equal(shaft.action({type:'nuke',team:'dark'},context),true);
   assert.equal(shaft.action({type:'nuke',team:'dark'},{...context,actionId:'second'}),false,'legacy mode retains cooldown');
@@ -230,11 +230,16 @@ test('attributed endless commands can overlap at one-second cadence without shar
 
 test('concurrent weather retains each command author through damage and has a fixed admission limit',()=>{
   const e=world();
-  for(let i=0;i<8;i++)assert.equal(e.action({type:i%2?'storm':'thunder',team:'dark'},{actor:'Miner '+i,source:'youtube',actionId:'weather-'+i}),true);
+  for(let i=0;i<LIMITS.maxWeather;i++)assert.equal(e.action({type:i%2?'storm':'thunder',team:'dark'},{actor:'Miner '+i,source:'youtube',actionId:'weather-'+i}),true);
   assert.equal(e.action({type:'storm',team:'light'},{actor:'Overflow',source:'youtube',actionId:'overflow'}),false);
-  assert.equal(e.state.weatherEvents.length,8);
-  advance(e,8);
-  for(let i=0;i<8;i++){
+  assert.equal(e.state.weatherEvents.length,LIMITS.maxWeather);
+  // Replenish a fixed terrain fixture so sixteen weather sources have targets:
+  // empty terrain cannot prove that an impact retains its individual author.
+  for(let frame=0;frame<320;frame++){
+    for(let i=70;i<e.state.blocks.length;i++)e.state.blocks[i]={material:'stone',hp:1.8,maxHp:1.8,value:2};
+    advance(e,.05);
+  }
+  for(let i=0;i<LIMITS.maxWeather;i++){
     const result=e.state.actionResults.find(v=>v.actionId==='weather-'+i);
     assert.equal(result.actor,'Miner '+i);assert.ok(result.completed);
     assert.ok(result.blocks>0,'each admitted weather must actually cause credited terrain damage');
@@ -251,7 +256,7 @@ test('rain volley is released within two seconds rather than dribbling for four 
 
 test('endless RAIN launches mixed physical pickaxes for exactly ten seconds including delays',()=>{
   const e=world();assert.equal(e.action({type:'rain',team:'dark'},context),true);
-  assert.equal(e.state.entities.length,8);
+  assert.equal(e.state.entities.length,24);
   assert.deepEqual(new Set(e.state.entities.map(v=>v.pickaxe)),new Set(['wood','stone','gold','diamond','netherite']));
   assert.ok(e.state.entities.every(v=>v.stage==='pickaxe'&&v.duration===10&&v.actor==='Ana'));
   const picks=e.state.entities.slice();
@@ -265,7 +270,7 @@ test('NUKE creates three giant independently rotated charges and higher blast ti
   const totals=[];
   for(const kind of ['tnt','mega','nuke']){
     const e=world();e.action({type:kind,team:'dark'},context);
-    assert.equal(e.state.entities.length,kind==='nuke'?3:1);
+    assert.equal(e.state.entities.length,3);
     if(kind==='nuke'){
       assert.deepEqual(e.state.entities.map(v=>v.variantIndex),[0,1,2]);
       assert.ok(new Set(e.state.entities.map(v=>v.x)).size>=2);

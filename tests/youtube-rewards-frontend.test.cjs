@@ -39,11 +39,11 @@ test('dedicated reward SSE rejects default-channel spoofing and strips reward st
   s.onerror();assert.notEqual(statuses.at(-1).rewards?.state,'active');c.stop();
   s.listeners.youtube_reward({data:JSON.stringify(reward(2))});assert.equal(events.length,1);
 });
-test('one official like makes one anonymous TNT and a public subscriber makes three attributed NUKE charges with original voice IDs',()=>{
-  const f=fixture();assert.equal(f.send(1),true);assert.equal(f.engine.state.entities.filter(e=>e.kind==='tnt').length,1);
-  assert.deepEqual(f.sounds[0],{id:reward().id,kind:'tnt',team:'neutral',actorName:'',source:'youtube',narrate:true,speechKind:'like_milestone'});
+test('one official like makes three anonymous NUKE charges and a public subscriber makes ten attributed charges with original voice IDs',()=>{
+  const f=fixture();assert.equal(f.send(1),true);assert.equal(f.engine.state.entities.filter(e=>e.actionId===reward().id&&e.kind==='nuke').length,3);
+  assert.deepEqual(f.sounds[0],{id:reward().id,kind:'nuke',team:'neutral',actorName:'',source:'youtube',narrate:true,speechKind:'like_milestone'});
   assert.equal(f.send(2,'subscriber'),true);assert.equal(f.sounds.length,1);f.advance(250);
-  const entities=f.engine.state.entities.filter(e=>e.kind==='nuke');assert.equal(entities.length,3);
+  const entities=f.engine.state.entities.filter(e=>e.actionId===reward(2).id&&e.kind==='nuke');assert.equal(entities.length,10);
   assert.ok(entities.every(e=>e.actor==='Ana 🌻 López'&&e.source==='youtube'&&e.actionId===reward(2).id));
   assert.equal(f.sounds[1].id,reward(2).id);assert.equal(f.sounds[1].speechKind,'youtube_subscriber');assert.equal(f.sounds[1].narrate,true);
   assert.equal(f.sounds[1].actorName,'Ana 🌻 López');assert.equal(f.experience.handleEvent(reward(2,'subscriber')),false);
@@ -65,7 +65,7 @@ test('pause, reset and emergency clear queued rewards and rejected engine action
 });
 test('audio and notice failures cannot interrupt accepted reward gameplay',()=>{
   const engine=createEngine({layout:'endless',seed:1}),experience=createExperience(engine,createRules(engine),{notify(){throw Error('audio');}},()=>{throw Error('UI');},{platform:'youtube',now:()=>1000});
-  assert.doesNotThrow(()=>experience.handleEvent(reward()));assert.equal(engine.state.entities.filter(e=>e.kind==='tnt').length,1);
+  assert.doesNotThrow(()=>experience.handleEvent(reward()));assert.equal(engine.state.entities.filter(e=>e.kind==='nuke').length,3);
 });
 test('official rewards stay disabled outside the YouTube scene and expire before initial dispatch',()=>{
   const engine=createEngine({layout:'endless',seed:1}),sounds=[];
@@ -78,7 +78,18 @@ test('a saturated engine retains a reward until capacity returns and activates i
   f.send(1);assert.equal(f.sounds.length,0);assert.equal(f.experience.state.rewardsDropped,0);assert.equal(f.experience.state.rewardQueue,1);
   f.engine.state.queue=[];f.advance(250);assert.equal(f.sounds.length,1);assert.equal(f.sounds[0].id,reward().id);
   assert.equal(f.experience.state.rewardQueue,0);assert.equal(f.experience.state.rewardsActivated,1);
-  f.advance(250);assert.equal(f.sounds.length,1);assert.equal(f.engine.state.entities.filter(e=>e.actionId===reward().id).length,1);
+  f.advance(250);assert.equal(f.sounds.length,1);assert.equal(f.engine.state.entities.filter(e=>e.actionId===reward().id).length,3);
+});
+test('subscriber celebration is accepted-only, independently lasts six seconds and clears on cancellation',()=>{
+  const f=fixture();f.send(1);assert.equal(f.experience.state.subscriberAlert,null);
+  f.send(2,'subscriber');assert.equal(f.experience.state.subscriberAlert,null,'queued rewards do not celebrate');
+  f.advance(250);const alert=f.experience.state.subscriberAlert;
+  assert.equal(alert.id,reward(2).id);assert.equal(alert.actorName,'Ana López');assert.equal(alert.until-alert.at,6);
+  f.experience.handleEvent({type:'comment',source:'youtube',id:'yt:'+'c'.repeat(32),receivedAt:1250,actor:{displayName:'Otro',stableHash:'c'.repeat(32)},data:{text:'SPIN'}});
+  assert.equal(f.experience.state.subscriberAlert,alert,'another accepted command does not remove the alert');
+  f.advance(5999);assert.equal(f.experience.state.subscriberAlert,alert);f.advance(1);assert.equal(f.experience.state.subscriberAlert,null);
+  const paused=fixture();paused.engine.pause(true);paused.send(1,'subscriber');assert.equal(paused.experience.state.subscriberAlert,null);
+  const cancelled=fixture();cancelled.send(1,'subscriber');cancelled.experience.cancelRewards();assert.equal(cancelled.experience.state.subscriberAlert,null);
 });
 test('future reward timestamps cannot reserve queue or adapter dedupe capacity',()=>{
   const f=fixture(),future=reward(1,'like',2001);

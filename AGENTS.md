@@ -142,3 +142,10 @@ Errores del proveedor invalidan permisos de voz. Al detener/cambiar fuente, limp
 
 
 **Carga en el ensayo (2026-11-14):** código7581552 cargado en la rama local de ensayo; sala propia confirmada no listada/live y dejada abierta. OBS mostró el bloque LIKE/SUB con lector activo, audio habilitado,60FPS y0fotogramas perdidos observados. El servidor confirmó rewards.state=active,error=null yningún evento nuevo/solicitudTTS todavía. No afirmar prueba real de alta/like/voz con esos contadores en cero. Evidencia local ignorada: artifacts/minecraft-energy/youtube-rewards-deployment.json y obs-youtube-rewards-live.png. Para restaurar OBS minimizado, app.pressKey('super+Up') funcionó mediante CUA cuando Raise/getApp no lo restauraban; después refrescar AX y coordenadas, sin detener emisión.
+
+
+## Frenesí endless y recompensas3/10 (2026-11-14)
+
+El propietario pidió TNT3, más duración/clima y comandos superpuestos sin espera de juego; LIKE→3cargasNUKE y SUBpúblico→10cargasNUKE totales. El motor acepta nuke.count1..10 sólo endless, sin ampliar el contrato HTTP; default3. Arena/shaft conservan descriptores/cooldowns/capacidad anteriores y BIG radio1.1; sólo endless usaBIG1.8. RAIN24picos siguen caducando a10s. Límites endless96entidades/cola,320partículas,64efectos,16climas; presupuestos40bloques/32explosiones por paso siguen acotados. No eliminar límites técnicos por la frase sin límite.
+
+Alerta propia de suscriptor Minecraft6s por reloj real, sólo al aceptar un alta pública real; textContent y nombre moderado, cancelación con fuente/pausa/reset; movimiento reducido sin animación. Captionactivo EVENT ACTIVE, inactivo NEXT EVENT; banner conserva nombre/autor. Los likes YouTube siguen anónimos: no existe identidad del liker en la API. Locuciones reales anuncian3/10cargas y conservan grants de un uso. Ver docs/block-wars/FRENZY_REFERENCE_2026-11-14.md.345tests/70sintaxis/6hvirtuales y cadencia3593de3600aprobadas. Al revisar esta fase, la sala anterior figuraba complete y OBS no emitía: no recrear/iniciar otroLIVE sin instrucción del propietario.

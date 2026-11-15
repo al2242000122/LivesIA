@@ -14,13 +14,13 @@ const gameIds=new Set([...fs.readFileSync(path.join(root,'games/block-wars/index
 function harness(platform='local'){
   const nodes=new Map(),listeners={},requests=[],sounds=[],mixes=[];
   const context2d=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
-  function node(id){if(!gameIds.has(id))throw new Error('Missing game markup ID: '+id);if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
-  let callbacks,frame,instance,updateCalls=0,cancelledRewardVoices=0;
+  function node(id){if(!gameIds.has(id))throw new Error('Missing game markup ID: '+id);if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},querySelector(){return{getAnimations(){return[{cancel(){},play(){alertRestarts++;}}];}};},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
+  let callbacks,frame,instance,updateCalls=0,cancelledRewardVoices=0,alertRestarts=0;
   const sandbox={console,location:{search:platform==='youtube'?'?platform=youtube':''},URLSearchParams,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
     BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(event){sounds.push(event);},setVolume(){},setMix(value){mixes.push(value);},setNarration(){},cancelYouTubeRewards(){cancelledRewardVoices++;},stop(){}};}},
     LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true,json:async()=>({enabled:false})});}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'games/block-wars/app.js'),'utf8'),sandbox,{filename:'app.js'});
-  return {nodes,requests,listeners,sounds,mixes,get engine(){return instance;},get updates(){return updateCalls;},get cancelledRewardVoices(){return cancelledRewardVoices;},get transport(){return callbacks;},tick(now){frame(now);}};
+  return {nodes,requests,listeners,sounds,mixes,get engine(){return instance;},get updates(){return updateCalls;},get alertRestarts(){return alertRestarts;},get cancelledRewardVoices(){return cancelledRewardVoices;},get transport(){return callbacks;},tick(now){frame(now);}};
 }
 
 test('mining HUD replaces team slogans with actual mineral counts and maximum depth',()=>{
@@ -126,9 +126,10 @@ test('comment activation names the correct author and a rejected command is neve
   assert.match(app.nodes.get('activation-title').textContent,/RAIN|LLUVIA/);
   assert.match(app.nodes.get('activation-actor').textContent,/Ana/);
   assert.match(app.nodes.get('activation-source').textContent,/PRUEBA/);
+  app.transport.onControl({type:'bw_pause',target:'block-wars',paused:true});
   app.transport.onEvent({...event,id:'rain-beto',receivedAt:101,actor:{stableHash:'beto',displayName:'Beto'}});
   app.tick(400);
-  assert.match(app.nodes.get('command-feedback').textContent,/enfriamiento|espera|ocupad/i);
+  assert.match(app.nodes.get('command-feedback').textContent,/pausada/i);
   assert.doesNotMatch(app.nodes.get('activation-actor').textContent,/Beto/);
   app.transport.onControl({type:'bw_emergency',target:'block-wars'});app.tick(600);
   assert.equal(app.nodes.get('activation-card').hidden,true);
@@ -165,7 +166,7 @@ test('YouTube reward callout reflects reader state and public subscriber privacy
   assert.equal(app.nodes.get('youtube-rewards').hidden,false);
   assert.match(app.nodes.get('reward-status').textContent,/PENDIENTE/);
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
-  assert.match(html,/LIKE[^<]*→[^<]*TNT/);assert.match(html,/SUB PÚBLICO[^<]*→[^<]*NUKE/);
+  assert.match(html,/LIKE[^<]*→[^<]*NUKE ×3/);assert.match(html,/SUB PÚBLICO[^<]*→[^<]*NUKE ×10/);
   assert.match(html,/Solo suscripciones públicas.*demora/);
   app.transport.onYouTubeState({state:'connected',rewards:{state:'active'}});app.tick(200);
   assert.match(app.nodes.get('reward-status').textContent,/ACTIVAS/);
@@ -190,10 +191,32 @@ test('YouTube stop, baseline change and missing reward state cancel queued actio
     const app=harness('youtube');app.transport.onEvent(reward(1));app.transport.onEvent(reward(2));
     app.transport.onYouTubeState(status);app.tick(10);app.tick(260);app.tick(510);
     assert.equal(app.cancelledRewardVoices,1,'reader cancellation reaches typed audio cancellation');
-    assert.equal(app.sounds.length,1,JSON.stringify(status));assert.equal(app.engine.state.entities.filter(e=>e.actionId===reward(1).id).length,1,'accepted TNT continues');
+    assert.equal(app.sounds.length,1,JSON.stringify(status));assert.equal(app.engine.state.entities.filter(e=>e.actionId===reward(1).id).length,3,'accepted NUKE charges continue');
   }
   const app=harness('youtube');app.transport.onEvent(reward(1));app.transport.onEvent(reward(2));
   app.transport.onYouTubeState({state:'reconnecting',rewards:{state:'active'}});app.tick(10);app.tick(260);
   assert.equal(app.cancelledRewardVoices,0);
   assert.equal(app.sounds.length,2,'normal chat stream rotation does not cancel healthy rewards');
+});
+test('Minecraft public subscriber alert uses moderated text and a stable six-second deadline without HUD animation restarts',()=>{
+  const app=harness('youtube'),reward={type:'subscriber',source:'youtube',id:'ytr:'+'f'.repeat(32),receivedAt:Date.now(),actor:{displayName:'Ana 🌻 López!',stableHash:'a'.repeat(32)},data:{}};
+  app.transport.onEvent(reward);app.tick(200);
+  assert.equal(app.nodes.get('subscriber-alert').hidden,false);assert.equal(app.nodes.get('subscriber-name').textContent,'Ana López');
+  const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'games/block-wars/style.css'),'utf8');
+  assert.match(html,/NUEVO SUSCRIPTOR/);assert.match(html,/NUKE ×10/);assert.match(html,/data-icon="nuke"/);
+  assert.match(css,/@keyframes bw-subscriber/);assert.match(css,/@media\(prefers-reduced-motion:reduce\)[\s\S]*bw-subscriber/);
+  const demo=harness('youtube');demo.transport.onEvent({...reward,source:'simulator',type:'follow',id:'demo-sub'});demo.tick(200);
+  assert.equal(demo.nodes.get('subscriber-alert').hidden,true,'simulated follow cannot display a real subscriber alert');
+  const comment=harness('youtube');comment.transport.onEvent({...reward,type:'comment',id:'yt:'+'f'.repeat(32),data:{text:'NUKE'}});comment.tick(200);
+  assert.equal(comment.nodes.get('subscriber-alert').hidden,true,'a NUKE comment cannot impersonate a subscriber reward');
+  const firstId=app.nodes.get('subscriber-alert').dataset.actionId;
+  app.tick(400);app.tick(600);assert.equal(app.nodes.get('subscriber-alert').dataset.actionId,firstId);assert.equal(app.alertRestarts,1,'HUD updates do not restart the sprite animation');
+  app.transport.onControl({target:'block-wars',type:'bw_settings',settings:{reducedMotion:true}});app.tick(800);
+  assert.equal(app.nodes.get('subscriber-alert').dataset.reducedMotion,'true');
+  app.transport.onControl({target:'block-wars',type:'bw_pause',paused:true});app.tick(1000);assert.equal(app.nodes.get('subscriber-alert').hidden,true);
+});
+test('event timer uses short English captions while the active banner retains event attribution',()=>{
+  const app=harness();assert.equal(app.nodes.get('timer-caption').textContent,'NEXT EVENT');
+  app.transport.onEvent({type:'comment',source:'simulator',id:'caption-ana',receivedAt:1,actor:{displayName:'Ana',stableHash:'ana'},data:{text:'NUKE'}});app.tick(200);
+  assert.equal(app.nodes.get('timer-caption').textContent,'EVENT ACTIVE');assert.match(app.nodes.get('event-banner').textContent,/Ana/);
 });

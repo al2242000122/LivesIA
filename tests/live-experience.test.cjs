@@ -11,12 +11,14 @@ function harness(options){
   return {engine,rules,heard,notices,experience};
 }
 function comment(id,text,at=1){return {id,type:'comment',source:'simulator',receivedAt:at,actor:{displayName:'Minero demo',stableHash:'user1'},data:{text}};}
-test('accepted command produces one announcement with its actor; rejected cooldown produces none',()=>{
+test('accepted instant commands announce their actors while duplicates and paused rejections produce none',()=>{
   const app=harness();
   assert.equal(app.experience.handleEvent(comment('a','NUKE')),true);
   assert.equal(app.heard.length,1);assert.equal(app.heard[0].kind,'nuke');assert.equal(app.heard[0].actorName,'Minero demo');
   app.experience.handleEvent(comment('a','NUKE'));app.experience.handleEvent(comment('b','NUKE',2));
-  assert.equal(app.heard.length,1);assert.match(app.notices.at(-1),/enfriamiento|rechazada/i);
+  assert.equal(app.heard.length,2,'another instant NUKE can activate without cooldown');
+  app.engine.pause(true);app.experience.handleEvent(comment('c','NUKE',3));
+  assert.equal(app.heard.length,2);assert.match(app.notices.at(-1),/pausada/i);
 });
 test('rewarded mine and follow have their own announcement, team choice and ignored paid event have none',()=>{
   const app=harness();app.experience.handleEvent(comment('team','!dark'));

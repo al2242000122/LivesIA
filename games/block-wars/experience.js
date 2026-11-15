@@ -5,6 +5,7 @@
   'use strict';
   const audible=new Set([...Object.keys(config.EVENTS),'mine','follow','turbo','descomunal']);
   const FEEDBACK_TTL=8;
+  const SUBSCRIBER_ALERT_SECONDS=6;
   const REWARD_LIMIT=64,REWARD_GAP=.25,REWARD_TTL=30000,REWARD_DEDUPE_TTL=120000,REWARD_DEDUPE_LIMIT=256;
   function actorName(value){
     if(typeof value!=='string'||value.length>64)return 'un minero';
@@ -16,7 +17,7 @@
     const youtube=options.platform==='youtube';
     const now=options.now||Date.now,rewards=[],rewardSeen=new Map();
     let context=null,sequence=0,impactSeen=new WeakSet(),nextRewardAt=0;
-    const state={lastActivation:null,lastFeedback:null,elapsed:0,rewardQueue:0,rewardsDropped:0,rewardsActivated:0};
+    const state={lastActivation:null,lastFeedback:null,subscriberAlert:null,elapsed:0,rewardQueue:0,rewardsDropped:0,rewardsActivated:0};
     // Local IDs never incorporate viewer names, hashes or event identifiers.
     const session=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
     const nextId=()=>session+':'+(++sequence);
@@ -36,6 +37,11 @@
       const by=name?name:source==='automatic'?'La mina':'La comunidad';
       const activation={id,kind,team:team||'neutral',actorName:name,source,at:state.elapsed,until:state.elapsed+FEEDBACK_TTL};
       if(origin?.reward)activation.speechKind=origin.speechKind;
+      if(source==='youtube'&&origin?.reward&&origin.speechKind==='youtube_subscriber'){
+        const moderated=name.slice(0,80).normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);
+        const at=now()/1000;
+        state.subscriberAlert={id,actorName:moderated||'NUEVO MINERO',at,until:at+SUBSCRIBER_ALERT_SECONDS};
+      }
       if(source==='automatic')activation.engineActionId=origin?.engineActionId||'';
       state.lastActivation=activation;
       const message=(origin?.reward?'RECOMPENSA YOUTUBE':sourceLabel(source))+' · '+by+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
@@ -96,7 +102,7 @@
     function action(input){return scoped({source:'simulator',actorName:''},()=>engine.action(input));}
     function clearRewards(){state.rewardsDropped+=rewards.length;rewards.length=0;state.rewardQueue=0;}
     function cancelRewards(){
-      clearRewards();
+      clearRewards();state.subscriberAlert=null;
       try{audio.cancelYouTubeRewards?.();}catch{/* Reader cancellation must remain safe when audio is unavailable. */}
     }
     function drainReward(){
@@ -108,7 +114,7 @@
       const subscriber=rewards.findIndex(item=>item.type==='subscriber'),index=subscriber<0?0:subscriber,item=rewards[index];
       nextRewardAt=state.elapsed+REWARD_GAP;
       let accepted=false,failed=false;
-      try{accepted=scoped(item.origin,()=>engine.action({type:item.type==='like'?'tnt':'nuke',team:'neutral'}));}
+      try{accepted=scoped(item.origin,()=>engine.action({type:'nuke',count:item.type==='like'?3:10,team:'neutral'}));}
       catch{failed=true;}
       // Temporary engine capacity keeps the reward pending until its original expiry.
       if(accepted||failed)rewards.splice(index,1);
@@ -133,11 +139,12 @@
         origin:{reward:true,id:event.id,source:'youtube',actorName:event.actor.displayName,speechKind:event.type==='like'?'like_milestone':'youtube_subscriber'}});
       state.rewardQueue=rewards.length;drainReward();return true;
     }
-    function pause(value){if(value)clearRewards();}
-    function clear(){clearRewards();nextRewardAt=state.elapsed;state.lastActivation=null;state.lastFeedback=null;impactSeen=new WeakSet();}
+    function pause(value){if(value){clearRewards();state.subscriberAlert=null;}}
+    function clear(){clearRewards();nextRewardAt=state.elapsed;state.lastActivation=null;state.lastFeedback=null;state.subscriberAlert=null;impactSeen=new WeakSet();}
     function update(dt){
       if(Number.isFinite(dt)&&dt>0)state.elapsed+=dt;
       drainReward();
+      if(state.subscriberAlert&&now()/1000>=state.subscriberAlert.until)state.subscriberAlert=null;
       for(const key of ['lastActivation','lastFeedback'])if(state[key]&&state.elapsed>=state[key].until)state[key]=null;
       const count=engine.state.eventCount,contacts=engine.state.body?.collisions||0;
       engine.update(dt);

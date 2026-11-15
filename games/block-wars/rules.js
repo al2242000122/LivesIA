@@ -27,11 +27,12 @@
     maxLikeDelta:[1,1000000],maxNotifications:[1,20]};
   const COUNTER_CAP=Number.MAX_SAFE_INTEGER;
   function add(a,b){return Math.min(COUNTER_CAP,a+b);}
-  function config(options,base){
+  function config(options,base,rapid=false){
     if(!options||typeof options!=='object'||Array.isArray(options))throw new RangeError('Invalid rules settings');
     const result=Object.assign({},base);
     for(const key of Object.keys(options)){
-      if(!Object.prototype.hasOwnProperty.call(RANGES,key)||!Number.isSafeInteger(options[key])||options[key]<RANGES[key][0]||options[key]>RANGES[key][1])throw new RangeError('Invalid rules setting: '+key);
+      const minimum=rapid&&['effectCooldownMs','actorEffectCooldownMs'].includes(key)?0:RANGES[key]?.[0];
+      if(!Object.prototype.hasOwnProperty.call(RANGES,key)||!Number.isSafeInteger(options[key])||options[key]<minimum||options[key]>RANGES[key][1])throw new RangeError('Invalid rules setting: '+key);
       result[key]=options[key];
     }
     if(result.actorTtlMs<Math.max(result.teamCooldownMs,result.mineCooldownMs,result.boomCooldownMs,result.followCooldownMs,result.actorEffectCooldownMs,result.pickWindowMs))throw new RangeError('Actor TTL must preserve cooldowns');
@@ -42,8 +43,8 @@
   function createRules(engine,options){
     if(!engine||typeof engine.action!=='function'||!engine.state)throw new TypeError('An engine is required');
     const rapid=engine.state.layout==='endless';
-    const defaults=rapid?{...DEFAULTS,effectCooldownMs:500,actorEffectCooldownMs:1000}:DEFAULTS;
-    let settings=config(options===undefined?{}:options,defaults),clock=0,lastSweep=-Infinity,round=engine.state.round,pickWindow=-1;
+    const defaults=rapid?{...DEFAULTS,effectCooldownMs:0,actorEffectCooldownMs:0}:DEFAULTS;
+    let settings=config(options===undefined?{}:options,defaults,rapid),clock=0,lastSweep=-Infinity,round=engine.state.round,pickWindow=-1;
     const actors=new Map(),dedupe=new Map(),rainVoters=new Map();
     const buckets=Object.fromEntries(SOURCES.map(source=>[source,{progress:0,pending:0}]));
     const metrics={bySource:Object.fromEntries(SOURCES.map(source=>[source,sourceMetrics()])),rejected:0};
@@ -225,7 +226,7 @@
       return true;
     }
     function configure(patch){
-      let next;try{next=config(patch,settings);}catch{return false;}
+      let next;try{next=config(patch,settings,rapid);}catch{return false;}
       if(next.maxActors<Math.max(actors.size,rainVoters.size)||next.maxDedupe<dedupe.size)return false;
       // Existing credits retain their original threshold; only each source's remainder is repriced.
       for(const source of SOURCES){const bucket=buckets[source];bucket.pending+=Math.floor(bucket.progress/next.likeThreshold);bucket.progress%=next.likeThreshold;}

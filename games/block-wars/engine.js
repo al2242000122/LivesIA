@@ -33,6 +33,7 @@
     }
     const settings = {seed:20261110,width:20,height:25,duration:180,eventInterval:60,reducedMotion:false,layout:'arena',
       ...(options.layout==='endless'?{width:7,height:40}:{}),...options};
+    const LIMITS=settings.layout==='endless'?config.LIMITS:config.LEGACY_LIMITS;
     if (!validSeed(settings.seed) || !integer(settings.width,4,40) || !integer(settings.height,4,40) ||
         settings.width*settings.height>LIMITS.maxCells || !['arena','shaft','endless'].includes(settings.layout) ||
         settings.layout==='endless' && (!physics || settings.height<32) || !validSettings(settings)) {
@@ -50,7 +51,7 @@
     }
     function updateSpeed(team) {
       let speed=PICKAXES[team.pickaxe].baseSpeed*EFFICIENCY[team.efficiency];
-      for(const [key,buff] of Object.entries(BUFFS)) if(team.buffs[key]>0) speed*=buff.multiplier;
+      for(const [key,buff] of Object.entries(BUFFS)) if(team.buffs[key]>0) speed*=settings.layout==='endless'?(MC[key]?.multiplier??buff.multiplier):buff.multiplier;
       team.effectiveSpeed=Math.round(Math.min(LIMITS.maxSpeed,speed)*1e9)/1e9;
     }
     function makeWorld(round) {
@@ -274,7 +275,7 @@
         if(block.hp<=1e-10) {
           destroy(index,id,true);
           if(team.buffs.big>0 && state.queue.length+state.entities.length<LIMITS.maxQueue) {
-            enqueue('big',id,index%state.width,Math.floor(index/state.width),{radius:MC.big.contactBlastRadius,shape:'circle'});
+            enqueue('big',id,index%state.width,Math.floor(index/state.width),{radius:config.LEGACY_EFFECTS.big.contactBlastRadius,shape:'circle'});
           }
           chooseTarget(id);
         }
@@ -381,12 +382,12 @@
         age:0,duration:tuning.lifetime??projectile.lifetime,size:descriptor.size,rotation:0,
         radius:descriptor.size/2,vx:(sequence%2?1:-1)*projectile.driftSpeed,vy:0,
         fuse:tuning.fuse??projectile.fuse,
-        delay,grounded:false,stage:'fall',...context};
+        delay,volleyIndex:sequence,grounded:false,stage:'fall',...context};
       if(tier){
         entity.size=tier.size;entity.radius=tier.size/Math.SQRT2;
-        entity.blastTier=kind;entity.blastRadius=tier.radius;entity.variantIndex=sequence%tier.count;
+        entity.blastTier=kind;entity.blastRadius=tier.radius;entity.variantIndex=sequence%3;
         entity.rotation=(sequence%2?1:-1)*.3;entity.angularVelocity=(sequence%2?1:-1)*projectile.rotationRate;
-        if(kind==='nuke')entity.x=(sequence+1)*state.width/(tier.count+1);
+        if(kind==='nuke')entity.x=(sequence%3+1)*state.width/4;
       }
       if(kind==='rain'){
         entity.stage='pickaxe';entity.pickaxe=Object.keys(PICKAXES)[sequence%Object.keys(PICKAXES).length];
@@ -583,14 +584,15 @@
     }
     const commonFields=['type','team'];
     const fields={mine:['count'],repair:['count'],tnt:['count','x','y'],meteor:['count','x','y'],
-      rain:['count','x','y'],nuke:['x','y'],turbo:[],descomunal:[],pickaxe:['pickaxe'],
+      rain:['count','x','y'],nuke:['count','x','y'],turbo:[],descomunal:[],pickaxe:['pickaxe'],
       enchant:['efficiency','unbreaking','fortune']};
     for(const key of Object.keys(EVENTS)) if(!own(fields,key)) fields[key]=[];
     function validAction(action) {
       if(!plain(action) || typeof action.type!=='string' || !own(fields,action.type)) return false;
       if(Object.keys(action).some(key=>!commonFields.includes(key) && !fields[action.type].includes(key))) return false;
       if(own(action,'team') && !['dark','light','neutral'].includes(action.team)) return false;
-      if(own(action,'count') && !integer(action.count,1,8)) return false;
+      if(own(action,'count') && (action.type==='nuke'?
+        state.layout!=='endless'||!integer(action.count,1,MC.nuke.maxCount):!integer(action.count,1,8))) return false;
       if(own(action,'x')!==own(action,'y')) return false;
       if(own(action,'x') && (!integer(action.x,0,state.width-1) || !integer(action.y,0,state.height-1))) return false;
       if(action.type==='pickaxe' && (typeof action.pickaxe!=='string' || !own(PICKAXES,action.pickaxe))) return false;
@@ -605,20 +607,22 @@
     function action(input,context) {
       if(!validAction(input) || state.paused || state.phase!=='playing') return false;
       const kind=input.type,count=input.count || 1;
-      const descriptor=own(EVENTS,kind)?EVENTS[kind]:null;
+      const endless=state.layout==='endless';
+      const original=own(EVENTS,kind)?EVENTS[kind]:null;
+      const descriptor=original&&endless?{...original,duration:MC[kind]?.duration??original.duration}:original;
       const explosion=descriptor?.mode==='blast';
       const arenaLegacy=state.layout==='arena' && ['tnt','meteor','rain','nuke'].includes(kind);
-      const endless=state.layout==='endless',weather=endless&&['thunder','storm'].includes(kind);
-      const rapid=endless&&['youtube','tikfinity','simulator'].includes(context?.source)&&
-        typeof context?.actionId==='string'&&/^[a-zA-Z0-9:_-]{1,80}$/.test(context.actionId);
-      const entries=weather?0:endless&&kind==='arrow'?MC.arrow.volleyCount:endless&&kind==='nuke'?MC.tiers.nuke.count:arenaLegacy?(kind==='rain'?count*4:count):explosion?count*descriptor.count:count;
-      if(weather&&(state.weatherEvents.length>=LIMITS.maxWeather||!rapid&&state.weather))return false;
+      const weather=endless&&['thunder','storm'].includes(kind);
+      // Endless counts are explicit volleys; NUKE rewards specify their exact total.
+      const volley=endless?(MC[kind]?.count??MC.tiers[kind]?.count??descriptor?.count):descriptor?.count;
+      const entries=weather?0:endless&&kind==='arrow'?MC.arrow.volleyCount:endless&&kind==='nuke'?(input.count??MC.tiers.nuke.count):arenaLegacy?(kind==='rain'?count*4:count):explosion?count*volley:count;
+      if(weather&&state.weatherEvents.length>=LIMITS.maxWeather)return false;
       if(explosion && (state.queue.length+state.entities.length+entries>LIMITS.maxQueue ||
-          kind==='nuke' && !rapid && state.nukeCooldown>1e-10)) return false;
+          kind==='nuke' && !endless && state.nukeCooldown>1e-10)) return false;
       const id=TEAM_IDS.includes(input.team)?input.team:TEAM_IDS[Math.floor(random()*2)];
       const team=state.teams[id];
-      if(!rapid && own(BUFFS,kind) && team.cooldowns[kind]>1e-10) return false;
-      if(!rapid && descriptor && !arenaLegacy && state.eventCooldowns[kind][id]>1e-10) return false;
+      if(!endless && own(BUFFS,kind) && team.cooldowns[kind]>1e-10) return false;
+      if(!endless && descriptor && !arenaLegacy && state.eventCooldowns[kind][id]>1e-10) return false;
       const meta=actionContext(context);
       if(state.actionResults.length>=64)state.actionResults.shift();
       state.actionResults.push({kind,...meta,blocks:0,remaining:descriptor?.mode==='buff'?descriptor.duration:0,completed:false});
@@ -650,7 +654,7 @@
         for(const key of ['efficiency','unbreaking','fortune']) if(own(input,key)) team[key]=input[key];
         updateSpeed(team);
       } else {
-        team.buffs[kind]=BUFFS[kind].duration;
+        team.buffs[kind]=endless?(MC[kind]?.duration??BUFFS[kind].duration):BUFFS[kind].duration;
         team.cooldowns[kind]=BUFFS[kind].cooldown;
         updateSpeed(team);
         addEffect(kind,team.target?.x || 0,team.target?.y || 0,meta,'activation');
