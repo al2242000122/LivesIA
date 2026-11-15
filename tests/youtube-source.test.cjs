@@ -29,8 +29,9 @@ test('operator markup requires explicit own-video selection and uses local statu
 test('YouTube delayed weather/entity impacts preserve source, author and local action ID',()=>{
  for(const kind of ['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','mega','nuke','arrow']){
  const engine=createEngine({layout:'endless',seed:1,eventInterval:180}),rules=createRules(engine),experience=createExperience(engine,rules,{notify(){},impact(){}});assert.equal(experience.handleEvent(wire(kind)),true,kind);const id=experience.state.lastActivation.id;let impacts=0;
- for(let step=0;step<200;step++){experience.update(.05);for(const entry of [...engine.state.entities,...engine.state.effects,...engine.state.queue,...(engine.state.weather?[engine.state.weather]:[])]){if(entry.actionId===id){assert.equal(entry.source,'youtube',kind);assert.equal(entry.actor,'Ana',kind);if(entry.stage==='impact')impacts++;}}}
- assert.ok(impacts>0,kind+' produces attributed impact');
+ for(let step=0;step<200;step++){experience.update(.05);for(const entry of [...engine.state.entities,...engine.state.effects,...engine.state.queue,...(engine.state.weather?[engine.state.weather]:[])]){if(entry.actionId===id){assert.equal(entry.source,'youtube',kind);assert.equal(entry.actor,'Ana',kind);if(entry.stage==='impact'||kind==='rain'&&entry.stage==='pickaxe'&&entry.collisions>0)impacts++;}}}
+ assert.ok(impacts>0,kind+' produces attributed contact or impact');
+ if(kind==='rain'){assert.ok(engine.state.actionResults.find(entry=>entry.actionId===id)?.blocks>0,'attributed RAIN pickaxes really mine');assert.equal(engine.state.entities.filter(entry=>entry.actionId===id).length,0,'all RAIN picks expire by ten seconds');}
  }
 });
 

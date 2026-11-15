@@ -51,7 +51,12 @@ TEXTURES.update({
     "creeper": "assets/minecraft/textures/entity/creeper/creeper.png",
     "rain": "assets/minecraft/textures/environment/rain.png",
 })
-SPRITE_DIMENSIONS = {"creeper": (64, 32), "rain": (64, 256)}
+EFFECT_TEXTURES = dict(TEXTURES)
+ITEMS = {"item_diamond": "diamond", "item_coal": "coal", "item_iron_ingot": "iron_ingot",
+         "item_gold_ingot": "gold_ingot", "item_copper_ingot": "copper_ingot", "item_redstone": "redstone",
+         "item_lapis_lazuli": "lapis_lazuli", "item_emerald": "emerald"}
+TEXTURES.update({key: f"assets/minecraft/textures/item/{name}.png" for key, name in ITEMS.items()})
+SPRITE_DIMENSIONS = {"creeper": (64, 32), "rain": (64, 256), **{key: (16, 16) for key in ITEMS}}
 ASSET_LIMIT = 1024 * 1024
 MANIFEST_LIMIT = 2 * 1024 * 1024
 CHUNK_SIZE = 65536
@@ -64,7 +69,7 @@ def validate_config(config):
     if any(config[key] != value for key, value in PINNED.items()):
         raise ValueError("Source must match the official pinned Minecraft 26.3 metadata")
     if config["textures"] != TEXTURES:
-        raise ValueError("Texture paths must match the exact 41-entry whitelist")
+        raise ValueError("Texture paths must match the exact 49-entry whitelist")
     return config
 
 
@@ -152,7 +157,7 @@ def validate_png(data, texture_name=None):
 def install_archive(archive_path, config, destination):
     """Verify before opening ZIP; install into a new directory without replacing old data."""
     texture_paths = config["textures"]
-    if texture_paths not in (TEXTURES, BASE_TEXTURES, LEGACY_TEXTURES):
+    if texture_paths not in (TEXTURES, EFFECT_TEXTURES, BASE_TEXTURES, LEGACY_TEXTURES):
         raise ValueError("Texture whitelist does not match")
     destination = Path(destination)
     if destination.exists() or destination.is_symlink():
@@ -207,7 +212,7 @@ def verify_installed(destination, config, allow_legacy=False):
         raise ValueError("Existing provenance inventory does not match")
     texture_paths = TEXTURES
     if allow_legacy:
-        for previous in (LEGACY_TEXTURES, BASE_TEXTURES):
+        for previous in (LEGACY_TEXTURES, BASE_TEXTURES, EFFECT_TEXTURES):
             if set(inventory) == set(previous):
                 texture_paths = previous
     if set(inventory) != set(texture_paths):
@@ -233,8 +238,8 @@ def upgrade_archive(archive_path, config, destination):
     """Keep verified old assets until the complete replacement is ready; retain a backup."""
     destination = Path(destination)
     old = verify_installed(destination, config, allow_legacy=True)
-    if set(old["textures"]) not in (set(LEGACY_TEXTURES), set(BASE_TEXTURES)) or config["textures"] != TEXTURES:
-        raise ValueError("Upgrade requires the previous 24 or 34 assets and new 41-entry whitelist")
+    if set(old["textures"]) not in (set(LEGACY_TEXTURES), set(BASE_TEXTURES), set(EFFECT_TEXTURES)) or config["textures"] != TEXTURES:
+        raise ValueError("Upgrade requires the previous 24, 34 or 41 assets and new 49-entry whitelist")
     parent = destination.parent.resolve()
     if destination.is_symlink() or destination.resolve().parent != parent:
         raise ValueError("Upgrade target must be a direct local directory")

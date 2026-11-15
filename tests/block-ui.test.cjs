@@ -23,6 +23,21 @@ function harness(platform='local'){
   return {nodes,requests,listeners,sounds,mixes,get engine(){return instance;},get updates(){return updateCalls;},get transport(){return callbacks;},tick(now){frame(now);}};
 }
 
+test('mining HUD replaces team slogans with actual mineral counts and maximum depth',()=>{
+  const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
+  assert.doesNotMatch(html,/DARK <i>VS|interaction-trigger|interaction-chat-label/);
+  assert.match(html,/data-mineral-icon="item_diamond"/);
+  const app=harness('youtube');
+  app.engine.pause(true);app.engine.state.materialCounts={diamond:12,crystal:3,coal:7,gold:4};
+  app.engine.state.teams.dark.score=999999;app.engine.state.body.y=15.9;
+  app.tick(10);app.tick(200);
+  assert.equal(app.nodes.get('mineral-diamond').textContent,'15');
+  assert.equal(app.nodes.get('mineral-coal').textContent,'7');
+  assert.equal(app.nodes.get('depth-value').textContent,'15 m');
+  app.engine.state.body.y=10;app.tick(400);
+  assert.equal(app.nodes.get('depth-value').textContent,'15 m','bounces do not reduce reached depth');
+});
+
 test('operator audio mixes pass only typed mixer fields, independently of mute and narration',()=>{
   const app=harness();
   app.transport.onControl({type:'bw_audio',target:'block-wars',settings:{volume:.65,muted:false,narration:false,musicVolume:.25,fxVolume:.85,voiceVolume:.9,musicEnabled:true}});
@@ -92,7 +107,7 @@ test('YouTube scene blocks TikFinity while preserving simulator rewards and trut
   assert.ok(app.engine.state.entities.length>0);app.tick(6000);
   assert.match(app.nodes.get('source').textContent,/YOUTUBE.*ESPERANDO COMENTARIOS/);
   assert.match(app.nodes.get('relay').textContent,/SINCRONIZANDO CHAT/);
-  assert.match(app.nodes.get('like-progress').textContent,/NO CONTROLAN/);
+  assert.equal(app.nodes.has('like-progress'),false,'removed slogan has no hidden test-only node');
   assert.equal(app.sounds[0].speechKind,'like_milestone');
   const command=harness('youtube');
   command.transport.onEvent({type:'comment',source:'simulator',id:'yt-rain',receivedAt:3,actor:{stableHash:'miner',displayName:'Minero demo'},data:{text:'RAIN'}});

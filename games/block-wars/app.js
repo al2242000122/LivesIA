@@ -3,11 +3,8 @@
   const element = id => document.getElementById(id);
   const youtube=typeof location==='object'&&new URLSearchParams(location.search).get('platform')==='youtube';
   if(youtube){
-    element('interaction-trigger').textContent='CHAT';
-    element('interaction-chat-label').textContent='CHAT';
-    element('interaction-events-label').textContent='GRATIS';
     element('command-heading').textContent='COMANDOS GRATIS';
-    element('command-instruction').textContent='ACTIVADOS POR COMENTARIOS';
+    element('command-instruction').textContent='NIVEL 1–4 · RAIN: PICOS 10s';
     element('notice').textContent='YouTube · Esperando estado del chat';
   }
   const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'endless',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
@@ -30,6 +27,7 @@
     audio.setNarration(voiceAvailable&&narrationRequested);
   }
   speechHealth();
+  let maximumDepth=0;
   let reducedMotion=Boolean(engine.state.config && engine.state.config.reducedMotion);
   let relay='offline',last=0,accumulator=0,hudAt=0,fpsAt=0,frames=0,fps=0,frameMs=0,telemetryAt=0,stopped=false;
   const sources=new Set();
@@ -58,7 +56,7 @@
         if(typeof command.settings.reducedMotion==='boolean')reducedMotion=command.settings.reducedMotion;
         break;
       case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);audio.pause(engine.state.paused);break;
-      case 'bw_reset':audio.pause(true);engine.reset(command.seed);rules.reset();experience.reset();presentInteraction();audio.pause(false);break;
+      case 'bw_reset':maximumDepth=0;audio.pause(true);engine.reset(command.seed);rules.reset();experience.reset();presentInteraction();audio.pause(false);break;
       case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();experience.clear();presentInteraction();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
     }
   }
@@ -81,19 +79,22 @@
   function updateHud(){
     const state=engine.state,active=state.activeEvent;
     const depth=Math.floor((state.rowOffset||0)+(state.body?.y||0));
-    element('round').textContent=String(depth).padStart(4,'0');
+    maximumDepth=Math.max(maximumDepth,depth);
+    element('depth-value').textContent=maximumDepth+' m';
+    const minerals=state.materialCounts||{};
+    for(const material of ['coal','iron','copper','gold','redstone','lapis','diamond','emerald']){
+      const count=(minerals[material]||0)+(material==='diamond'?(minerals.crystal||0):0);
+      element('mineral-'+material).textContent=count.toLocaleString('es-MX');
+    }
     const elapsed=Math.floor(state.elapsed||0);
     element('clock').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
-    element('scoreline').textContent='◆ DARK '+state.teams.dark.score+' · ✦ LIGHT '+state.teams.light.score;
     const team=state.teams[state.focus?.team||'dark'];
     element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · FUERZA '+team.effectiveSpeed.toFixed(1);
-    const threshold=rules.state.likeThreshold,progress=rules.state.likeProgressBySource;
-    element('like-progress').textContent=youtube?'LOS LIKES DE YOUTUBE NO CONTROLAN LA MINA':threshold+' likes por TNT · DEMO '+progress.simulator+' / RELAY '+progress.tikfinity;
     element('source').textContent=youtube?(sources.has('youtube')?'YOUTUBE · COMENTARIOS RECIBIDOS':'YOUTUBE · ESPERANDO COMENTARIOS'):sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
     element('relay').textContent=youtube?youtubeLabels[youtubeStatus]:relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY · LIVE SIN VERIFICAR':'RELAY DESCONECTADO · LIVE SIN VERIFICAR';
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
     const label=descriptor?.label||active?.kind||'';
-    element('timer-caption').textContent=active?'EVENTO: '+label:'PRÓXIMO EVENTO GRATIS';
+    element('timer-caption').textContent=active?'EVENTO: '+label:'SIGUIENTE EVENTO';
     const remainingLabel=active?(active.remaining>0?active.remaining.toFixed(1)+'s':'EN CURSO'):state.nextEventIn.toFixed(1)+'s';
     element('next-event').textContent=state.paused?'PAUSA':remainingLabel;
     element('timer-card').classList.toggle('is-active',Boolean(active));
@@ -104,6 +105,7 @@
       banner.textContent=originLabel(active.source)+' · '+label+' · '+actor+' · '+remainingLabel;banner.style.borderColor=descriptor?.color||'#ff4444';
     }
     for(const kind of BlockWarsConfig.SELECTED_EVENTS)element('menu-'+kind).classList.toggle('is-active',active?.kind===kind||(kind==='rain'&&active?.kind==='tnt_rain'));
+    for(const kind of BlockWarsConfig.SELECTED_EVENTS)element('menu-'+kind).dataset.rank=String(BlockWarsConfig.COMMAND_RANKS?.[kind]||1);
     presentInteraction();
   }
   function paintIcons(){
@@ -114,7 +116,7 @@
       if(original){painter.clearRect(0,0,16,16);painter.drawImage(original,0,0,16,16,0,0,16,16);continue;}
       const pixels=painter.createImageData(16,16);pixels.data.set(textures.tnt(icon.dataset.icon).pixels);painter.putImageData(pixels,0,0);
     }
-    const commandArt={tnt:'tnt',rain:'tnt',thunder:'diamond',storm:'rain',creeper:'creeper',meteor:'magma',fire:'fire',tsunami:'water',
+    const commandArt={tnt:'tnt',rain:'diamond_pickaxe',thunder:'diamond',storm:'rain',creeper:'creeper',meteor:'magma',fire:'fire',tsunami:'water',
       spin:'diamond_pickaxe',fast:'gold_pickaxe',mega:'tnt',nuke:'tnt',arrow:'arrow',big:'netherite_pickaxe'};
     for(const icon of document.querySelectorAll?.('canvas[data-command-icon]')||[]){
       const name=commandArt[icon.dataset.commandIcon],image=globalThis.BlockWarsTextures?.source('sprite',name);
@@ -125,10 +127,16 @@
       else painter.drawImage(image,0,0,16,16,0,0,16,16);
     }
   }
-  paintIcons();
+  function paintMinerals(){
+    for(const icon of document.querySelectorAll?.('canvas[data-mineral-icon]')||[]){
+      const image=globalThis.BlockWarsTextures?.source('sprite',icon.dataset.mineralIcon);if(!image)continue;
+      const painter=icon.getContext('2d');painter.imageSmoothingEnabled=false;painter.clearRect(0,0,16,16);painter.drawImage(image,0,0,16,16,0,0,16,16);
+    }
+  }
+  paintIcons();paintMinerals();
   globalThis.BlockWarsTextures?.loadOriginals().then(result=>{
-    element('asset-status').textContent=result.ok?(result.complete?'TEXTURAS MINECRAFT · '+result.version:'TEXTURAS MINECRAFT BASE · FALTAN TEXTURAS DE EFECTOS'):'TEXTURAS DE RESPALDO · IMPORTAR RECURSOS LOCALES';
-    paintIcons();
+    element('asset-status').textContent=result.ok?(result.complete?'TEXTURAS MINECRAFT · '+result.version:'TEXTURAS MINECRAFT BASE · FALTAN RECURSOS DE EFECTOS O MINERALES'):'TEXTURAS DE RESPALDO · IMPORTAR RECURSOS LOCALES';
+    paintIcons();paintMinerals();
   });
   function telemetry(){
     const state=engine.state;

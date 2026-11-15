@@ -16,13 +16,13 @@
   const CUES=Object.freeze({
     mine:['mine'],follow:['levelup'],tnt:['fuse'],nuke:['dragon','fuse'],mega:['anvil','fuse'],
     arrow:['bow'],rainbow:['orb'],butterfly:['elytra'],tnt_rain:['fuse','bow'],
-    thunder:['thunder'],fire:['fire'],rain:['fuse','rain'],storm:['rain','thunder'],
+    thunder:['thunder'],fire:['fire'],rain:['rain','elytra'],storm:['rain','thunder'],
     creeper:['creeper','fuse'],tsunami:['splash'],black_hole:['portal'],jackpot:['levelup','fuse'],
     demon:['dragon'],meteor:['fire','anvil'],spin:['riptide'],fast:['elytra'],big:['anvil'],
     turbo:['riptide'],descomunal:['dragon','riptide']
   });
   const IMPACTS=Object.freeze({
-    mine:['mine2'],tnt:['explode'],rain:['explode2'],tnt_rain:['explode2'],mega:['explode3'],
+    mine:['mine2'],tnt:['explode'],rain:['mine2'],tnt_rain:['explode2'],mega:['explode3'],
     nuke:['explode3','thunder'],creeper:['explode'],thunder:['thunder'],storm:['mine3'],
     meteor:['explode3'],fire:['fire'],arrow:['bowhit'],tsunami:['splash']
   });

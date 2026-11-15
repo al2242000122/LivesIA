@@ -20,11 +20,11 @@ test('TNT falls onto actual terrain and waits for its fuse; its destruction belo
   assert.equal(e.state.entities[0].actor,'Ana');assert.equal(e.state.entities[0].actionId,'event-ana');
   advance(e,.6);assert.equal(e.state.actionResults[0].blocks,0,'no explosion in empty air');
   let grounded=false;
-  for(let i=0;i<100;i++){advance(e,.05);grounded||=e.state.entities.some(v=>v.grounded);}
+  for(let i=0;i<100;i++){advance(e,.05);grounded||=e.state.entities.some(v=>v.landed);}
   assert.ok(grounded,'must touch a solid block');assert.ok(e.state.actionResults[0].blocks>0);
   assert.equal(e.state.actionResults[0].completed,true);
 });
-test('RAIN releases eight staggered TNT bodies and keeps one provenance through all impacts',()=>{
+test('RAIN releases eight staggered pickaxe bodies and keeps one provenance through all impacts',()=>{
   const e=world();e.action({type:'rain',team:'light'},context);
   assert.equal(e.state.entities.length,8);assert.equal(new Set(e.state.entities.map(v=>v.delay)).size,8);
   assert.ok(e.state.entities.every(v=>v.actor==='Ana'&&v.kind==='rain'));
@@ -68,7 +68,7 @@ test('CREEPER and NUKE retain a visible landing fuse before their faster chain e
   for(const kind of ['creeper','nuke']){
     const e=world();e.action({type:kind,team:'dark'},context);
     advance(e,1);assert.equal(e.state.actionResults[0].blocks,0);
-    if(kind==='nuke')assert.ok(e.state.entities[0].fuse>=1.4);
+    if(kind==='nuke')assert.ok(e.state.entities.every(v=>v.fuse>0&&v.fuse<=1.6));
     advance(e,8);assert.ok(e.state.actionResults[0].blocks>0,kind);
   }
 });
@@ -149,7 +149,7 @@ test('large falling charges use their complete visible footprint on a ledge and 
       for(let x=0;x<7;x++)if(x!==3&&x!==4)e.state.blocks[8*7+x]={material:'stone',hp:1.8,maxHp:1.8,value:2};
     }
     let landed=false;
-    for(let i=0;i<100&&!landed;i++){advance(e,.05);landed=entity.grounded;}
+    for(let i=0;i<100&&!landed;i++){advance(e,.05);landed=entity.landed;}
     assert.ok(landed,kind);
     const expectedFloor=kind==='mega'?8:10;
     assert.ok(entity.y+entity.size/2<=expectedFloor+1e-6,kind+' rendered bottom must not penetrate terrain');
@@ -191,12 +191,12 @@ test('endless periodic events use the fourteen selected effects while the legacy
   }
   assert.ok([...shaftSeen].some(kind=>!SELECTED_EVENTS.includes(kind)&&kind!=='turbo'),'legacy pool still includes unselected catalog effects');
 });
-test('initial RAIN uses the visible air shaft for all eight TNT charges rather than spawning above solid sidewalls',()=>{
+test('initial RAIN uses the visible air shaft for all eight pickaxes rather than spawning above solid sidewalls',()=>{
   const e=createEngine({seed:42,layout:'endless',eventInterval:180});
   assert.equal(e.action({type:'rain',team:'dark'},context),true);
   assert.equal(e.state.entities.length,8);
   for(const entity of e.state.entities){
-    assert.ok(entity.y>=0,'each TNT starts visibly inside the world');
+    assert.ok(entity.y>=0,'each pickaxe starts visibly inside the world');
     assert.ok(entity.targetY>=8,'its fall is aimed at the mining front, not row-zero sidewalls');
     for(let row=Math.max(0,Math.floor(entity.y-entity.radius));row<Math.ceil(entity.y+entity.radius);row++){
       for(let col=Math.floor(entity.x-entity.radius+1e-6);col<Math.ceil(entity.x+entity.radius-1e-6);col++)assert.equal(e.state.blocks[row*7+col],null);
@@ -205,7 +205,7 @@ test('initial RAIN uses the visible air shaft for all eight TNT charges rather t
   let deepestImpact=0;
   for(let i=0;i<160;i++){
     e.update(.05);
-    for(const effect of e.state.effects)if(effect.actionId===context.actionId&&effect.stage==='impact')deepestImpact=Math.max(deepestImpact,effect.y+.5+e.state.rowOffset);
+    for(const pick of e.state.entities)if(pick.actionId===context.actionId&&pick.collisions>0)deepestImpact=Math.max(deepestImpact,pick.y+pick.radius+e.state.rowOffset);
   }
   assert.ok(deepestImpact>=7,'the visible rain reaches terrain near the mining front');
   assert.ok(e.state.actionResults.find(result=>result.actionId===context.actionId).blocks>0);
@@ -246,4 +246,62 @@ test('concurrent weather retains each command author through damage and has a fi
 test('rain volley is released within two seconds rather than dribbling for four seconds',()=>{
   const e=world();e.action({type:'rain',team:'dark'},context);
   assert.ok(Math.max(...e.state.entities.map(v=>v.delay))<=1.5);
+});
+
+
+test('endless RAIN launches mixed physical pickaxes for exactly ten seconds including delays',()=>{
+  const e=world();assert.equal(e.action({type:'rain',team:'dark'},context),true);
+  assert.equal(e.state.entities.length,8);
+  assert.deepEqual(new Set(e.state.entities.map(v=>v.pickaxe)),new Set(['wood','stone','gold','diamond','netherite']));
+  assert.ok(e.state.entities.every(v=>v.stage==='pickaxe'&&v.duration===10&&v.actor==='Ana'));
+  const picks=e.state.entities.slice();
+  advance(e,2);assert.ok(picks.some(v=>v.collisions>0));
+  advance(e,8.1);assert.equal(e.state.entities.filter(v=>v.kind==='rain').length,0);
+  assert.ok(e.state.actionResults.find(v=>v.actionId===context.actionId).blocks>0);
+  assert.equal(e.state.queue.filter(v=>v.kind==='rain').length,0,'no TNT blast is substituted for pick contacts');
+});
+
+test('NUKE creates three giant independently rotated charges and higher blast tiers destroy more terrain',()=>{
+  const totals=[];
+  for(const kind of ['tnt','mega','nuke']){
+    const e=world();e.action({type:kind,team:'dark'},context);
+    assert.equal(e.state.entities.length,kind==='nuke'?3:1);
+    if(kind==='nuke'){
+      assert.deepEqual(e.state.entities.map(v=>v.variantIndex),[0,1,2]);
+      assert.ok(new Set(e.state.entities.map(v=>v.x)).size>=2);
+    }
+    assert.ok(e.state.entities.every(v=>v.radius>=v.size/Math.SQRT2-1e-9));
+    const charge=e.state.entities[0],rotation=charge.rotation;
+    advance(e,.1);assert.notEqual(charge.rotation,rotation);
+    advance(e,12);totals.push(e.state.actionResults[0].blocks);
+  }
+  assert.ok(totals[1]>totals[0],String(totals));assert.ok(totals[2]>totals[1],String(totals));
+});
+
+test('material counters count each actual block once regardless of score multipliers and survive voting cycles',()=>{
+  const e=createEngine({seed:42,layout:'endless',eventInterval:180});
+  const initial=Object.values(e.state.materialCounts).reduce((a,b)=>a+b,0);assert.equal(initial,0);
+  const before=e.state.blocks.slice();e.action({type:'nuke',team:'dark'},context);
+  for(let i=0;i<180;i++){e.state.body.x=3.5;e.state.body.y=1;e.state.body.vx=0;e.state.body.vy=0;e.update(.05);}
+  const expected={};for(let i=0;i<before.length;i++)if(before[i]&&!e.state.blocks[i])expected[before[i].material]=(expected[before[i].material]||0)+1;
+  for(const [material,count]of Object.entries(expected))assert.equal(e.state.materialCounts[material],count);
+  const total=Object.values(e.state.materialCounts).reduce((a,b)=>a+b,0);
+  assert.equal(total,e.state.teams.dark.blocks+e.state.teams.light.blocks);
+  e.state.elapsed=179.99;e.update(.05);assert.ok(Object.values(e.state.materialCounts).reduce((a,b)=>a+b,0)>=total);
+  e.reset();assert.ok(Object.values(e.state.materialCounts).every(v=>v===0));
+});
+
+
+test('rebounding TNT collides with a solid ceiling across its physical footprint',()=>{
+  const e=world();e.state.blocks.fill(null);
+  for(const row of [6,10])for(let col=0;col<7;col++)e.state.blocks[row*7+col]={material:'stone',hp:100,maxHp:100,value:2};
+  e.action({type:'tnt',team:'dark'},context);const charge=e.state.entities[0];
+  Object.assign(charge,{x:3.5,y:8,vx:0,vy:-10,delay:0,fuse:5});
+  let reversed=false;
+  for(let i=0;i<20;i++){
+    Object.assign(e.state.body,{x:3.5,y:1,vx:0,vy:0});e.update(.025);
+    assert.ok(charge.y-charge.radius>=7-1e-6,'charge never penetrates the ceiling');
+    reversed||=charge.vy>0;
+  }
+  assert.ok(reversed,'ceiling contact reverses upward travel');
 });
