@@ -57,3 +57,11 @@ Reversión: commit67d93db (PR21), reiniciar sólo el servidor propio y refrescar
 | Revisiones independientes |Seguridad,lógica,calidad PASS; addendum de partículas aprobado en seguridad y lógica |
 
 Las revisiones detectaron y corrigieron un intervalo67 configurado que se ignoraba y un descarte de cuerpos por un destino antiguo al reciclar terreno. Se añadieron regresiones con configuración alterada y la combinación natural de ULTRANUKE con MESSI,SIUUU yRAIN. El presupuesto de dibujo también excluye impactos fuera de pantalla para reservar partículas a los visibles. No se detectaron regresiones pendientes. Los datos de música se comprobaron decodificando el archivo y verificando duración, picos y extremos del bucle; esto no demuestra escucha remota enYouTube.
+
+## Carga local en OBS
+
+Código0bf9a62 y recursos verificados cargados en la instalación habitual. Las rutas locales devolvieron200 con los tipos correctos para los dos sprites nucleares, partículas, audio67OGG, SIUUUMP3 y músicaWAV de16s. El servidor quedó como proceso propio en segundo plano; su PID y registros están en artifacts ignorados, sin credenciales.
+
+Se observó el perfil LivesIAYouTube, escena MinaYouTube y fuente720×1280 configurada a60FPS. Tras habilitar audio, el medidor quedó activo y desapareció el botón de activación. Se observaron el cartel ULTRANUKE3/10, los17comandos, NOOB=BAN y efectos combinados del simulador con PRUEBA:67,MESSI,SIUU,TNT,NUKE. Se guardó la captura local ignorada `artifacts/minecraft-energy/ultranuke-commands-obs.png`. En captura con efectos se observó58.03/60FPS y después60/60; no es una medición sostenida de rendimiento.
+
+La sala anterior ya figuraba complete y OBS estaba cerrado al retomar. La apertura local tuvo un aviso transitorio de OBS; la siguiente observación mostró la ventana normal con la mina funcionando. Al terminar, emisión y grabación estaban detenidas; no se creó ni inició otroLIVE. No se verificaron eventos oficiales nuevos ni escucha remota de voz/memes en esta entrega. El origen comunitario del grito de Ronaldo y su licencia no verificada siguen documentados por separado.
