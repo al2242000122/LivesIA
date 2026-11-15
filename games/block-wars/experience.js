@@ -12,11 +12,11 @@
     const name=value.normalize('NFKC').replace(/\s+/g,' ').trim();
     return name&&/^[\p{L}\p{N}\p{M} _-]+$/u.test(name)?name.slice(0,32):'un minero';
   }
-  function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'CHAT YOUTUBE':'EVENTO DE LA MINA';}
+  function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'':'LA MINA';}
   function createExperience(engine,rules,audio,onNotice=()=>{},options={}){
     const youtube=options.platform==='youtube';
-    const now=options.now||Date.now,rewards=[],rewardSeen=new Map();
-    let context=null,sequence=0,impactSeen=new WeakSet(),nextRewardAt=0;
+    const now=options.now||Date.now,rewards=[],rewardSeen=new Map(),deferredOrigins=new Map();
+    let context=null,sequence=0,impactSeen=new WeakSet(),nextRewardAt=0,lastAutomaticEngineId=null;
     const state={lastActivation:null,lastFeedback:null,subscriberAlert:null,elapsed:0,rewardQueue:0,rewardsDropped:0,rewardsActivated:0};
     // Local IDs never incorporate viewer names, hashes or event identifiers.
     const session=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
@@ -44,7 +44,7 @@
       }
       if(source==='automatic')activation.engineActionId=origin?.engineActionId||'';
       state.lastActivation=activation;
-      const message=(origin?.reward?'RECOMPENSA YOUTUBE':sourceLabel(source))+' · '+by+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
+      const message=[sourceLabel(source),by].filter(Boolean).join(' · ')+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
       publish({...activation,accepted:true,reason:'activated',retryAfterMs:0},message);
       const sound={id,kind,team:team||'neutral',actorName:name,source};
       if(youtube||source==='youtube'){
@@ -60,9 +60,27 @@
       const origin=metadata?.community&&['simulator','tikfinity','youtube'].includes(metadata.source)?{source:metadata.source,actorName:metadata.source==='youtube'?context?.actorName||'':'',trigger:metadata.trigger}:context;
       const id=origin?.reward?origin.id:nextId(),source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
       const accepted=perform(action,{actor:source==='automatic'?'':origin?.actorName||'',source,actionId:id});
-      if(accepted)announce(context?.follow?'follow':action.type,action.team,origin,id);
+      if(accepted){
+        const kind=context?.follow?'follow':action.type;
+        if(engine.state.lastAdmission?.actionId===id&&engine.state.lastAdmission.queued){
+          deferredOrigins.set(id,{kind,origin});
+          publish({id,kind,source,actorName:origin?.actorName||'',accepted:true,reason:'queued',retryAfterMs:0},
+            [sourceLabel(source),origin?.actorName,config.EVENTS[action.type]?.label||kind,'recibido · en cola'].filter(Boolean).join(' · '));
+        }else announce(kind,action.team,origin,id);
+      }
       return accepted;
     };
+    engine.subscribeDeferredActions?.(detail=>{
+      const pending=deferredOrigins.get(detail.actionId);
+      if(!pending){if(detail.source==='automatic')announceAutomatic(detail);return;}
+      deferredOrigins.delete(detail.actionId);
+      announce(pending.kind,detail.team,pending.origin,detail.actionId);
+    });
+    function announceAutomatic(detail){
+      if(detail.source!=='automatic'||detail.actionId===lastAutomaticEngineId)return;
+      lastAutomaticEngineId=detail.actionId;
+      announce(detail.kind,detail.team,{source:'automatic',engineActionId:detail.actionId});
+    }
     function scoped(origin,callback){
       const previous=context;context=origin;
       try{return callback();}finally{context=previous;}
@@ -87,22 +105,24 @@
         accepted:outcome.kind==='dark'||outcome.kind==='light'?'Equipo '+outcome.kind.toUpperCase()+' seleccionado.':rules.state.lastMessage||'Comando aceptado.'
       };
       const message=reasons[outcome.reason]||(outcome.accepted?'Participación aceptada.':'La acción no se activó.');
-      publish({id:nextId(),...outcome,source:origin.source,actorName:origin.actorName},sourceLabel(origin.source)+' · '+message);
+      publish({id:nextId(),...outcome,source:origin.source,actorName:origin.actorName},[sourceLabel(origin.source),message].filter(Boolean).join(' · '));
     }
     function handleEvent(event){
       if(event?.source==='youtube'&&event.type!=='comment')return handleReward(event);
       const command=typeof event?.data?.text==='string'?event.data.text.trim().toLowerCase():'';
       const community=event?.type==='like'||event?.source!=='youtube'&&['!boom','!voterain'].includes(command);
       const origin={source:event?.source,follow:event?.type==='follow',actorName:community?'':event?.source==='youtube'&&typeof event?.actor?.displayName==='string'?Array.from(event.actor.displayName.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'')).slice(0,44).join(''):actorName(event?.actor?.displayName)};
-      const previous=state.lastActivation;
+      const previous=state.lastActivation,previousFeedback=state.lastFeedback;
       const accepted=scoped(origin,()=>rules.handle(event));
-      if((event?.type==='comment'||event?.type==='follow')&&previous===state.lastActivation)feedback(rules.state.lastOutcome,origin);
+      if((event?.type==='comment'||event?.type==='follow')&&previous===state.lastActivation&&previousFeedback===state.lastFeedback)feedback(rules.state.lastOutcome,origin);
       return accepted;
     }
     function action(input){return scoped({source:'simulator',actorName:''},()=>engine.action(input));}
     function clearRewards(){state.rewardsDropped+=rewards.length;rewards.length=0;state.rewardQueue=0;}
     function cancelRewards(){
       clearRewards();state.subscriberAlert=null;
+      engine.cancelPendingActions?.('youtube');
+      for(const [id,pending]of deferredOrigins)if(pending.origin?.source==='youtube')deferredOrigins.delete(id);
       try{audio.cancelYouTubeRewards?.();}catch{/* Reader cancellation must remain safe when audio is unavailable. */}
     }
     function drainReward(){
@@ -113,8 +133,13 @@
       if(!rewards.length||state.elapsed+1e-9<nextRewardAt)return;
       const subscriber=rewards.findIndex(item=>item.type==='subscriber'),index=subscriber<0?0:subscriber,item=rewards[index];
       nextRewardAt=state.elapsed+REWARD_GAP;
+      // Official rewards keep their own expiry/priority queue and voice grants;
+      // do not transfer them into the command backlog where they could outlive it.
+      const charges=item.type==='like'?3:10;
+      if(engine.state.pendingActionCount>0||
+        (engine.state.entities?.length||0)+(engine.state.queue?.length||0)+charges>config.LIMITS.maxQueue)return;
       let accepted=false,failed=false;
-      try{accepted=scoped(item.origin,()=>engine.action({type:'nuke',count:item.type==='like'?3:10,team:'neutral'}));}
+      try{accepted=scoped(item.origin,()=>engine.action({type:'nuke',count:charges,team:'neutral'}));}
       catch{failed=true;}
       // Temporary engine capacity keeps the reward pending until its original expiry.
       if(accepted||failed)rewards.splice(index,1);
@@ -140,7 +165,7 @@
       state.rewardQueue=rewards.length;drainReward();return true;
     }
     function pause(value){if(value){clearRewards();state.subscriberAlert=null;}}
-    function clear(){clearRewards();nextRewardAt=state.elapsed;state.lastActivation=null;state.lastFeedback=null;state.subscriberAlert=null;impactSeen=new WeakSet();}
+    function clear(){clearRewards();deferredOrigins.clear();lastAutomaticEngineId=null;nextRewardAt=state.elapsed;state.lastActivation=null;state.lastFeedback=null;state.subscriberAlert=null;impactSeen=new WeakSet();}
     function update(dt){
       if(Number.isFinite(dt)&&dt>0)state.elapsed+=dt;
       drainReward();
@@ -150,7 +175,7 @@
       engine.update(dt);
       if((engine.state.body?.collisions||0)>contacts)audio.impact?.('mine');
       // Engine IDs repeat on deterministic reset; audio IDs must stay unique across resets/reloads.
-      if(engine.state.eventCount>count&&engine.state.lastEvent)announce(engine.state.lastEvent.kind,engine.state.lastEvent.team,{source:'automatic',engineActionId:engine.state.lastEvent.actionId});
+      if(engine.state.eventCount>count&&engine.state.lastEvent)announceAutomatic(engine.state.lastEvent);
       for(const effect of engine.state.effects||[]){
         if(effect.stage==='impact'&&!impactSeen.has(effect)){impactSeen.add(effect);audio.impact?.(effect.kind);}
       }

@@ -158,7 +158,13 @@
         outcome(false,'pending',0,effect||command.slice(1));
         if(effect&&unavailable())return reject(source,unavailable());
         if(effect&&clock-lastEffectAt<settings.effectCooldownMs)return reject(source,'global_cooldown',settings.effectCooldownMs-(clock-lastEffectAt));
-        const user=record(key);if(!user)return reject(source,'capacity');
+        // Instant endless effects need no persistent participant/cooldown record.
+        // Existing team members retain their choice; new commenters can join a
+        // burst even when the membership/voting registry is full.
+        const user=rapid&&effect&&settings.actorEffectCooldownMs===0?
+          actors.get(key)||{team:null,effectAt:-Infinity}:record(key);
+        if(!user)return reject(source,'capacity');
+        user.lastSeen=clock;
         const ok=comment(command,user,key,identified,effect);
         if(ok&&effect)m.effects=add(m.effects,1);
         if(ok)m.commands=add(m.commands,1);else return reject(source,state.lastOutcome.reason==='pending'?'unavailable':state.lastOutcome.reason,state.lastOutcome.retryAfterMs);

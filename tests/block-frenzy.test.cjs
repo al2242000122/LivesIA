@@ -13,7 +13,7 @@ function world(){
 function advance(e,seconds){for(let i=0;i<Math.round(seconds*60);i++){Object.assign(e.state.body,{x:3.5,y:1,vx:0,vy:0});e.update(1/60);}}
 
 test('endless frenzy launches tripled physical commands and twelve arrows without altering legacy descriptors',()=>{
-  for(const [kind,count] of Object.entries({tnt:3,rain:24,creeper:3,meteor:3,fire:12,tsunami:3,arrow:12,mega:3,nuke:3})){
+  for(const [kind,count] of Object.entries({tnt:3,rain:12,creeper:3,meteor:3,fire:12,tsunami:3,arrow:12,mega:3,nuke:3})){
     const e=world();assert.equal(e.action({type:kind,team:'dark'},context),true,kind);
     assert.equal(e.state.entities.length,count,kind);
     assert.ok(e.state.entities.every(v=>v.actor===context.actor&&v.actionId===context.actionId));
@@ -60,7 +60,7 @@ test('endless buff durations and strength grow with bounded collision-safe body 
     const e=world();e.action({type:kind,team:'dark'},context);
     assert.ok(e.state.teams.dark.buffs[kind]>=BUFFS[kind].duration*3);
     e.update(1/60);
-    if(kind==='big')assert.ok(e.state.body.radius>=.7&&e.state.body.radius<1);
+    if(kind==='big')assert.ok(e.state.body.radius<=.45&&e.state.body.visualScale>2);
   }
   assert.ok(MC.spin.rotationRate>=18);assert.ok(MC.fire.burnSeconds>=6);assert.ok(MC.fire.burnDamage> .9);
   assert.ok(LIMITS.maxQueue>=96);assert.ok(LIMITS.maxWeather>=16);

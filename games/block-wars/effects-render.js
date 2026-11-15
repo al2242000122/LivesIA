@@ -10,9 +10,9 @@
       const actor=entry.source==='youtube'?
         Array.from(String(entry.actor||'LA COMUNIDAD').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'')).slice(0,44).join(''):
         String(entry.actor||'LA COMUNIDAD').replace(/[\x00-\x1f\x7f<>]/g,'').slice(0,32);
-      return entry.source==='automatic'?'EVENTO DE LA MINA':
+      return entry.source==='automatic'?'LA MINA':
         entry.source==='simulator'||entry.source==='operator'?'PRUEBA · '+actor:
-        entry.source==='youtube'?'CHAT YOUTUBE · '+actor:actor;
+        actor;
     }
     function label(entry,x,y){
       if(!entry.source&&!entry.actor)return;
@@ -70,28 +70,19 @@
       for(let i=0;i<20;i++)ctx.fillRect(x+((Math.floor(i/3)%2)*3-1)*unit,y-i*cell/3,unit,cell/3+2);
     }
     function chargeAtEdge(entry){
-      // A full-size charge may rest above a narrow opening; keep its actual fuse visible.
-      const left=205,top=325+(entry.kind==='nuke'?(entry.variantIndex||0)*78:0),boxWidth=Math.min(330,width-left-160);
-      ctx.save();ctx.fillStyle='#11151ced';ctx.fillRect(left,top,boxWidth,66);
-      ctx.save();ctx.translate(left+32,top+32);tnt(entry,48,true);ctx.restore();
-      ctx.fillStyle='#ffe177';ctx.font='bold 16px Consolas,monospace';ctx.textAlign='left';
-      ctx.fillText('↑ '+entry.kind.toUpperCase()+' · ENTRADA',left+65,top+19,boxWidth-75);
-      ctx.fillStyle='#fff';ctx.font='bold 14px Consolas,monospace';
-      ctx.fillText(entry.landed||entry.stage==='fuse'?'MECHA '+Math.max(0,entry.fuse||0).toFixed(1)+'s':'CARGA SOBRE LA ENTRADA',left+65,top+39,boxWidth-75);
-      ctx.fillStyle='#d1e4ba';ctx.font='bold 12px Consolas,monospace';ctx.fillText(credit(entry),left+65,top+57,boxWidth-75);ctx.restore();
+      chargeGroup([entry],0);
     }
     function chargeGroup(entries,slot){
       const shown=entries.slice(0,10),entry=shown[0];if(!entry)return;
-      const left=205,top=385+slot*104,boxWidth=Math.min(330,width-left-160);
-      ctx.save();ctx.fillStyle='#11151ced';ctx.fillRect(left,top,boxWidth,98);
-      ctx.fillStyle='#ffe177';ctx.font='bold 15px Consolas,monospace';ctx.textAlign='left';
-      ctx.fillText('↑ '+entry.kind.toUpperCase()+' ×'+entries.length+' · ENTRADA',left+8,top+19,boxWidth-16);
+      const left=205,top=350+slot*68,boxWidth=Math.min(330,width-left-160);
+      ctx.save();ctx.fillStyle='#11151cbd';ctx.fillRect(left,top,boxWidth,62);
+      ctx.fillStyle='#ffe177';ctx.font='bold 13px Consolas,monospace';ctx.textAlign='left';
+      const fuse=Math.min(...shown.filter(item=>item.landed||item.stage==='fuse').map(item=>Math.max(0,item.fuse||0)));
+      ctx.fillText('↑ '+entry.kind.toUpperCase()+' ×'+entries.length+(Number.isFinite(fuse)?' · MECHA '+fuse.toFixed(1)+'s':''),left+8,top+16,boxWidth-16);
       for(let i=0;i<shown.length;i++){
-        ctx.save();ctx.translate(left+19+i*27,top+43);tnt(shown[i],24,true);ctx.restore();
+        ctx.save();ctx.translate(left+19+i*27,top+36);tnt(shown[i],24,true);ctx.restore();
       }
-      const fuse=Math.min(...shown.filter(item=>item.landed).map(item=>Math.max(0,item.fuse||0)));
-      ctx.fillStyle='#fff';ctx.font='bold 12px Consolas,monospace';ctx.fillText(Number.isFinite(fuse)?'MECHA '+fuse.toFixed(1)+'s':'CARGAS SOBRE LA ENTRADA',left+8,top+72,boxWidth-16);
-      ctx.fillStyle='#d1e4ba';ctx.fillText(credit(entry),left+8,top+90,boxWidth-16);ctx.restore();
+      ctx.fillStyle='#d1e4ba';ctx.font='bold 11px Consolas,monospace';ctx.fillText(credit(entry),left+8,top+58,boxWidth-16);ctx.restore();
     }
     function projectile(entry,cell,offset,cameraY,reduced){
       if(entry.delay>0)return;

@@ -4,7 +4,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
-  const GRAVITY=30,MAX_SPEED=15,MIN_HORIZONTAL=5,RESTITUTION=0.86;
+  const GRAVITY=30,MAX_SPEED=15,MAX_SPEED_SCALE=2.4,MIN_HORIZONTAL=5,RESTITUTION=0.86;
   function createBody(width){
     return {x:width/2,y:4.5,vx:5.6,vy:0,radius:0.35,rotation:0,team:'dark',collisions:0};
   }
@@ -19,7 +19,7 @@
     return {x:nearest.x,y:nearest.y,depth:body.radius+nearest.d};
   }
   function step(body,dt,world,onContact,speedScale=1){
-    const scale=Number.isFinite(speedScale)?clamp(speedScale,1,1.6):1,maxSpeed=MAX_SPEED*scale;
+    const scale=Number.isFinite(speedScale)?clamp(speedScale,1,MAX_SPEED_SCALE):1,maxSpeed=MAX_SPEED*scale;
     // A faster body needs spatial as well as temporal substeps to keep narrow blocks solid.
     const travel=Math.hypot(body.vx,body.vy)*dt+GRAVITY*dt*dt/2;
     const steps=Math.min(64,Math.max(1,Math.ceil(dt/.0125),Math.ceil(travel/(body.radius*.5)))),h=dt/steps;
@@ -52,5 +52,5 @@
       body.rotation=(body.rotation+body.vx*h*0.8)%(Math.PI*2);
     }
   }
-  return Object.freeze({createBody,step,normal,GRAVITY,MAX_SPEED,MIN_HORIZONTAL,RESTITUTION});
+  return Object.freeze({createBody,step,normal,GRAVITY,MAX_SPEED,MAX_SPEED_SCALE,MIN_HORIZONTAL,RESTITUTION});
 });

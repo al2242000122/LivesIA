@@ -13,6 +13,7 @@
   let voiceAvailable=false,narrationRequested=true;
   const audio=BlockWarsAudio.createAudio({narrationEnabled:false,onStatus(status){
     element('audio-enable').hidden=Boolean(status.enabled);
+    element('audio-gate').hidden=Boolean(status.enabled);
     const music=status.musicStatus==='playing'?' · MÚSICA EN BUCLE':status.musicStatus==='unavailable'?' · MÚSICA NO DISPONIBLE':'';
     element('audio-status').textContent=(status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
       status.fxAssetStatus==='unavailable'?'FALTAN SONIDOS LOCALES DE MINECRAFT':
@@ -69,7 +70,7 @@
     if(youtube&&!['simulator','youtube'].includes(event.source))return;
     if(event.source in totals){totals[event.source]++;sources.add(event.source);}if(event.source==='youtube')youtubeEvents++;experience.handleEvent(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
-  function originLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'CHAT YOUTUBE':'EVENTO DE LA MINA';}
+  function originLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':'';}
   function presentInteraction(){
     const activation=experience.state.lastActivation,feedback=experience.state.lastFeedback;
     const subscriber=experience.state.subscriberAlert,alert=element('subscriber-alert');
@@ -84,12 +85,13 @@
     alert.dataset.reducedMotion=String(reducedMotion);
     element('activation-card').hidden=!activation;
     if(activation){
-      element('activation-source').textContent=activation.speechKind?'RECOMPENSA YOUTUBE':originLabel(activation.source);
+      const source=element('activation-source');source.textContent=originLabel(activation.source);source.hidden=!source.textContent;
       element('activation-title').textContent=youtube&&activation.kind==='follow'?'SUSCRIPTOR DE PRUEBA':BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
       element('activation-actor').textContent=activation.source==='automatic'?'LA MINA':activation.actorName||'LA COMUNIDAD';
     }
-    element('command-feedback').hidden=!feedback||feedback.accepted;
-    if(feedback&&!feedback.accepted)element('command-feedback').textContent=feedback.message;
+    const showFeedback=feedback&&(!feedback.accepted||feedback.reason==='queued');
+    element('command-feedback').hidden=!showFeedback;
+    if(showFeedback)element('command-feedback').textContent=feedback.message;
   }
   function updateHud(){
     const state=engine.state,active=state.activeEvent;
@@ -121,7 +123,7 @@
     const banner=element('event-banner');banner.hidden=!active;
     if(active){
       const actor=active.source==='automatic'?'LA MINA':active.actor||'LA COMUNIDAD';
-      banner.textContent=originLabel(active.source)+' · '+label+' · '+actor+' · '+remainingLabel;banner.style.borderColor=descriptor?.color||'#ff4444';
+      banner.textContent=[originLabel(active.source),label,actor,remainingLabel].filter(Boolean).join(' · ');banner.style.borderColor=descriptor?.color||'#ff4444';
     }
     for(const kind of BlockWarsConfig.SELECTED_EVENTS)element('menu-'+kind).classList.toggle('is-active',active?.kind===kind||(kind==='rain'&&active?.kind==='tnt_rain'));
     for(const kind of BlockWarsConfig.SELECTED_EVENTS)element('menu-'+kind).dataset.rank=String(BlockWarsConfig.COMMAND_RANKS?.[kind]||1);

@@ -33,6 +33,9 @@
     }
     const settings = {seed:20261110,width:20,height:25,duration:180,eventInterval:60,reducedMotion:false,layout:'arena',
       ...(options.layout==='endless'?{width:7,height:40}:{}),...options};
+    if(settings.layout==='endless'&&physics&&MC.fast.physicsSpeedScale>physics.MAX_SPEED_SCALE){
+      throw new RangeError('FAST speed scale exceeds the supported physics limit');
+    }
     const LIMITS=settings.layout==='endless'?config.LIMITS:config.LEGACY_LIMITS;
     if (!validSeed(settings.seed) || !integer(settings.width,4,40) || !integer(settings.height,4,40) ||
         settings.width*settings.height>LIMITS.maxCells || !['arena','shaft','endless'].includes(settings.layout) ||
@@ -40,6 +43,8 @@
       throw new RangeError('Invalid engine configuration');
     }
     let random,visualRandom,baseSeed=settings.seed,summaryRemaining=0,remainingBlocks=0,shaftReachedFloor=false,actionSequence=0;
+    let pendingHead=null,pendingTail=null;
+    const deferredListeners=new Set(),MAX_DEFERRED_STARTS_PER_TICK=64;
     const state = {};
 
     function makeTeam() {
@@ -51,7 +56,10 @@
     }
     function updateSpeed(team) {
       let speed=PICKAXES[team.pickaxe].baseSpeed*EFFICIENCY[team.efficiency];
-      for(const [key,buff] of Object.entries(BUFFS)) if(team.buffs[key]>0) speed*=settings.layout==='endless'?(MC[key]?.multiplier??buff.multiplier):buff.multiplier;
+      for(const [key,buff] of Object.entries(BUFFS)) {
+        const remaining=settings.layout==='endless'?Math.max(state.teams.dark.buffs[key],state.teams.light.buffs[key]):team.buffs[key];
+        if(remaining>0)speed*=settings.layout==='endless'?(MC[key]?.multiplier??buff.multiplier):buff.multiplier;
+      }
       team.effectiveSpeed=Math.round(Math.min(LIMITS.maxSpeed,speed)*1e9)/1e9;
     }
     function makeWorld(round) {
@@ -108,6 +116,7 @@
       state.weatherEvents=[];
       state.hazards=[];
       state.actionResults=[];
+      pendingHead=null;pendingTail=null;state.pendingActionCount=0;state.lastAdmission=null;
       state.materialCounts=Object.fromEntries(Object.keys(MATERIALS).map(material=>[material,0]));
       state.elapsed=0;
       state.rowOffset=0;
@@ -384,10 +393,19 @@
         fuse:tuning.fuse??projectile.fuse,
         delay,volleyIndex:sequence,grounded:false,stage:'fall',...context};
       if(tier){
-        entity.size=tier.size;entity.radius=tier.size/Math.SQRT2;
+        // Giant sprites overhang their physical cores so they can enter a narrow mine.
+        entity.size=tier.size;entity.radius=tier.collisionRadius;
         entity.blastTier=kind;entity.blastRadius=tier.radius;entity.variantIndex=sequence%3;
         entity.rotation=(sequence%2?1:-1)*.3;entity.angularVelocity=(sequence%2?1:-1)*projectile.rotationRate;
-        if(kind==='nuke')entity.x=(sequence%3+1)*state.width/4;
+      }
+      const scattered=['tnt','creeper','mega','nuke'].includes(kind);
+      if(scattered){
+        const fan=sequence%3-1,scatter=MC.scatter;
+        entity.radius=tier?.collisionRadius??tuning.collisionRadius;
+        entity.x=state.body.x+fan*scatter.horizontalSpacing;
+        entity.y=Math.max(entity.radius+.01,state.body.y-scatter.height+fan*scatter.verticalSpacing);
+        entity.vx=fan*scatter.velocity;entity.vy=(sequence%3-1)*1.5;
+        entity.delay=sequence*(tuning.spawnInterval??scatter.spawnInterval);
       }
       if(kind==='rain'){
         entity.stage='pickaxe';entity.pickaxe=Object.keys(PICKAXES)[sequence%Object.keys(PICKAXES).length];
@@ -395,9 +413,11 @@
         entity.vx=(sequence%2?1:-1)*(physics.MIN_HORIZONTAL+sequence*.2);
       }
       entity.x=Math.max(entity.radius,Math.min(state.width-entity.radius,entity.x));
-      // The square sprite and its support footprint have the same physical size.
-      if(['tnt','rain','creeper','mega','nuke'].includes(kind))chooseAirSpawn(entity);
-      entity.y=Math.min(entity.y,supportAcross(entity,entity.y-entity.radius)-entity.radius-.001);
+      if(scattered)chooseLocalAirSpawn(entity);
+      else{
+        if(kind==='rain')chooseAirSpawn(entity);
+        entity.y=Math.min(entity.y,supportAcross(entity,entity.y-entity.radius)-entity.radius-.001);
+      }
       entity.startX=entity.x;entity.startY=entity.y;
       if(['tnt','rain','creeper','mega','nuke'].includes(kind)){
         entity.targetX=entity.x;entity.targetY=supportAcross(entity,entity.y+entity.radius);
@@ -412,6 +432,26 @@
           duration:tuning.flightLifetime??projectile.flightLifetime,radius:tuning.flightRadius??projectile.flightRadius});
       }
       state.entities.push(entity);
+    }
+    function chooseLocalAirSpawn(entity){
+      const {searchStep,searchRadius}=MC.scatter,steps=Math.round(searchRadius/searchStep);
+      const preferredX=entity.x,preferredY=entity.y;
+      const columns=Array.from({length:steps*2+1},(_,i)=>preferredX+(i-steps)*searchStep);
+      // Cell centers cover one-cell passages even when the pick is off-center.
+      for(let col=0;col<state.width;col++)if(Math.abs(col+.5-preferredX)<=searchRadius)columns.push(col+.5);
+      let best=null,distance=Infinity;
+      // At most 374 local candidates, regardless of stream depth or chat volume.
+      for(let dy=-steps;dy<=steps;dy++)for(const x of columns){
+        const y=preferredY+dy*searchStep,r=entity.radius;
+        if(x-r<0||x+r>state.width||y-r<0||y+r>state.height)continue;
+        let clear=true;
+        for(let row=Math.floor(y-r+1e-6);row<=Math.ceil(y+r-1e-6)-1&&clear;row++){
+          for(let col=Math.floor(x-r+1e-6);col<=Math.ceil(x+r-1e-6)-1;col++)if(state.blocks[row*state.width+col]){clear=false;break;}
+        }
+        const score=(x-preferredX)**2+(y-preferredY)**2;
+        if(clear&&score<distance){best={x,y};distance=score;}
+      }
+      if(best)Object.assign(entity,best);
     }
     function chooseAirSpawn(entity){
       if(entity.y-entity.radius<0)return; // A giant charge may not fit the opening.
@@ -496,7 +536,7 @@
         }
       }
       if(entity.landed)entity.fuse=Math.max(0,entity.fuse-dt);
-      // The circumscribed support radius encloses every corner at every angle.
+      // Resolve the configured core; oversized artwork is intentionally cosmetic.
       entity.rotation=(entity.rotation+(entity.angularVelocity||0)*dt)%(Math.PI*2);
       return entity.landed&&entity.fuse<=1e-10;
     }
@@ -605,7 +645,52 @@
       return true;
     }
     function action(input,context) {
+      return admitAction(input,context);
+    }
+    function admitAction(input,context,scheduled=false) {
       if(!validAction(input) || state.paused || state.phase!=='playing') return false;
+      if(state.layout!=='endless')return startAction(input,context,false,scheduled);
+      const meta=actionContext(context);
+      const queued=Boolean(pendingHead)||!startAction(input,meta,true,scheduled);
+      if(queued){
+        const entry={input:{...input},context:meta,scheduled,next:null};
+        if(pendingTail)pendingTail.next=entry;else pendingHead=entry;
+        pendingTail=entry;state.pendingActionCount++;
+      }
+      state.lastAdmission={kind:input.type,actionId:meta.actionId,queued};
+      return true;
+    }
+    function subscribeDeferredActions(listener){
+      if(typeof listener!=='function')throw new TypeError('A deferred action listener is required');
+      deferredListeners.add(listener);return ()=>deferredListeners.delete(listener);
+    }
+    function cancelPendingActions(source){
+      let previous=null,current=pendingHead,cancelled=0;
+      while(current){
+        const next=current.next;
+        if(current.context.source===source){
+          if(previous)previous.next=next;else pendingHead=next;
+          if(pendingTail===current)pendingTail=previous;
+          state.pendingActionCount--;cancelled++;
+        }else previous=current;
+        current=next;
+      }
+      return cancelled;
+    }
+    function drainPendingActions(){
+      let started=0;
+      while(pendingHead&&!state.paused&&state.phase==='playing'&&started<MAX_DEFERRED_STARTS_PER_TICK){
+        const entry=pendingHead;
+        if(!startAction(entry.input,entry.context,true,entry.scheduled))break;
+        pendingHead=entry.next;if(!pendingHead)pendingTail=null;
+        state.pendingActionCount--;started++;
+        const event={...state.lastEvent};
+        for(const listener of deferredListeners){
+          try{listener({...event});}catch{/* An overlay failure must not discard accepted gameplay. */}
+        }
+      }
+    }
+    function startAction(input,context,prepared=false,scheduled=false) {
       const kind=input.type,count=input.count || 1;
       const endless=state.layout==='endless';
       const original=own(EVENTS,kind)?EVENTS[kind]:null;
@@ -623,7 +708,7 @@
       const team=state.teams[id];
       if(!endless && own(BUFFS,kind) && team.cooldowns[kind]>1e-10) return false;
       if(!endless && descriptor && !arenaLegacy && state.eventCooldowns[kind][id]>1e-10) return false;
-      const meta=actionContext(context);
+      const meta=prepared?context:actionContext(context);
       if(state.actionResults.length>=64)state.actionResults.shift();
       state.actionResults.push({kind,...meta,blocks:0,remaining:descriptor?.mode==='buff'?descriptor.duration:0,completed:false});
       if(weather){
@@ -666,6 +751,7 @@
         state.activeEvent={kind,remaining:BUFFS[kind].duration,duration:BUFFS[kind].duration,team:id,...meta};
       }
       state.lastEvent={kind,team:id,...meta};
+      if(scheduled)state.eventCount++;
       return true;
     }
     function updateVisuals(dt) {
@@ -731,8 +817,11 @@
       const body=state.body,active=state.activeEvent;
       body.team=active && own(BUFFS,active.kind)?active.team:body.x<state.width/2?'dark':'light';
       const team=state.teams[body.team];
-      body.radius=team.buffs.big>0?MC.big.bodyRadius:0.35;
-      const speedScale=team.buffs.fast>0?MC.fast.physicsSpeedScale:1;
+      const buffs=Object.fromEntries(Object.keys(BUFFS).map(key=>[key,Math.max(state.teams.dark.buffs[key],state.teams.light.buffs[key])]));
+      body.buffs=buffs;
+      body.radius=buffs.big>0?MC.big.bodyRadius:0.35;
+      body.visualScale=buffs.big>0?MC.big.visualScale:1;
+      const speedScale=buffs.fast>0?MC.fast.physicsSpeedScale:1;
       const previousScale=body.speedScale||1;
       if(speedScale!==previousScale){body.vx*=speedScale/previousScale;body.vy*=speedScale/previousScale;}
       body.speedScale=speedScale;
@@ -747,13 +836,14 @@
         block.hp=Math.max(0,block.hp-damage);team.progress=Math.max(0,team.progress-damage);budget.remaining--;
         if(block.hp<=1e-10){
           destroy(index,body.team,true);
-          if(team.buffs.big>0 && state.queue.length+state.entities.length<LIMITS.maxQueue){
+          if(buffs.big>0 && state.queue.length+state.entities.length<LIMITS.maxQueue){
             enqueue('big',body.team,index%state.width,Math.floor(index/state.width),{radius:MC.big.contactBlastRadius,shape:'circle'});
           }
         }
       },speedScale);
       // Keep SPIN's characteristic fast rotation while collisions stay circular.
-      if(team.buffs.spin>0)body.rotation=(body.rotation+MC.spin.rotationRate*step)%(Math.PI*2);
+      body.angularSpeed=(buffs.spin>0?MC.spin.rotationRate:0)+(buffs.fast>0?MC.fast.rotationRate:0);
+      body.rotation=(body.rotation+body.angularSpeed*step)%(Math.PI*2);
       streamRows();
     }
     function update(seconds) {
@@ -782,16 +872,15 @@
           team.buffs[key]=Math.max(0,team.buffs[key]-step);
           team.cooldowns[key]=Math.max(0,team.cooldowns[key]-step);
         }
-        updateSpeed(team);
       }
+      for(const id of TEAM_IDS)updateSpeed(state.teams[id]);
       for(const cooldown of Object.values(state.eventCooldowns)) {
         for(const id of TEAM_IDS) cooldown[id]=Math.max(0,cooldown[id]-step);
       }
       if(state.nextEventIn<=1e-10) {
         const events=endless?config.SELECTED_EVENTS:state.layout!=='arena'?Object.keys(EVENTS):['rain','meteor','tnt','turbo','descomunal','nuke'];
-        let accepted=action({type:events[Math.floor(random()*events.length)]});
-        if(!accepted) accepted=action({type:endless?'spin':'turbo'});
-        if(accepted) state.eventCount++;
+        const accepted=admitAction({type:events[Math.floor(random()*events.length)]},undefined,true);
+        if(!accepted)admitAction({type:endless?'spin':'turbo'},undefined,true);
         state.nextEventIn=settings.eventInterval;
       }
       const budget={remaining:LIMITS.maxBlockOps};
@@ -806,6 +895,7 @@
       }
       updateFocus();
       advanceResults(step);
+      if(endless)drainPendingActions();
       // A shaft is a finite downward excavation. Once a miner reaches its floor,
       // start the next round rather than returning to isolated old ceiling walls.
       const reachedFloor=state.layout==='shaft' && (shaftReachedFloor || TEAM_IDS.some(id=>state.teams[id].target?.y>=state.height-1));
@@ -826,6 +916,7 @@
       state.weather=null;
       state.weatherEvents=[];
       state.hazards.length=0;
+      pendingHead=null;pendingTail=null;state.pendingActionCount=0;state.lastAdmission=null;
       for(const result of state.actionResults)if(!result.completed){result.completed=true;result.cancelled=true;}
       for(const id of TEAM_IDS) {
         const team=state.teams[id];
@@ -846,7 +937,7 @@
       return true;
     }
     reset(baseSeed);
-    return {state,update,action,pause,reset,clearEffects,configure};
+    return {state,update,action,pause,reset,clearEffects,configure,subscribeDeferredActions,cancelPendingActions};
   }
   function validSettings(value) {
     return finite(value.duration) && value.duration>=10 && value.duration<=900 &&
