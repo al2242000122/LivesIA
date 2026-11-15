@@ -27,7 +27,7 @@
       .replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);
     const priority = input.kind === 'nuke' ? 3 : ['mega','jackpot','meteor','black_hole'].includes(input.kind) ? 2 : input.kind === 'follow' ? 1 : 0;
     return {id:input.id,kind:input.kind,actorName,team:input.team || 'neutral',source:input.source,at,priority,
-      narrate:(input.source !== 'youtube'||rewardSpeech) && input.narrate !== false,speechKind:input.speechKind || input.kind};
+      narrate:!['sixty_seven','messi','siuuu'].includes(input.kind)&&(input.source !== 'youtube'||rewardSpeech) && input.narrate !== false,speechKind:input.speechKind || input.kind};
   }
 
   function createAudio(options = {}) {
@@ -66,9 +66,9 @@
       if (!samples || !context || context.state !== 'running' || state.fxVolume === 0 || nodes.size + samples.length > MAX_NODES) { state.fxDropped++; return false; }
       try {
         for (const key of samples) {
-          if (!Object.hasOwn(Assets.SOUNDS,key)) continue;
+          if (!Object.hasOwn(Assets.SOUNDS,key)&&!Object.hasOwn(Assets.LOCAL_CLIPS,key)) continue;
           const media = new env.Audio(), item = {media,timer:null};
-          media.preload='auto'; media.src='/assets-local/minecraft-sounds/'+key+'.ogg';
+          media.preload='auto'; media.src=Assets.LOCAL_CLIPS[key]||'/assets-local/minecraft-sounds/'+key+'.ogg';
           media.volume=sampleVolume(); nodes.add(item);
           media.onended=()=>releaseNode(item,false);
           const fail=()=>{if(!nodes.has(item))return;releaseNode(item,true);state.fxAssetStatus='unavailable';state.fxDropped++;status('minecraft_sounds_unavailable');};
@@ -216,6 +216,7 @@
       purge(); const key = event.source + ':' + event.id;
       if (seen.has(key)) return false;
       seen.set(key,event.at); while (seen.size > MAX_SEEN) seen.delete(seen.keys().next().value);
+      if(event.kind==='messi'){status('silent_command');return true;}
       cue(CUES[event.kind]);
       if (!event.narrate || !state.narrationEnabled || now() < voiceBlockedUntil) { status('fx_only'); return true; }
       if (queue.length >= MAX_PENDING) {

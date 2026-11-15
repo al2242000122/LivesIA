@@ -11,6 +11,8 @@
   }
   // One spelling, one action: the old direct TNT-shower aliases now select RAIN.
   EFFECT_ALIASES['tnt rain']='rain';EFFECT_ALIASES.tntrain='rain';
+  for(const alias of ['67','sixseven','six seven','sixty_seven'])EFFECT_ALIASES[alias]='sixty_seven';
+  EFFECT_ALIASES.siuu='siuuu';
   function effectType(command){
     const alias=command.startsWith('!')?command.slice(1):command;
     return Object.prototype.hasOwnProperty.call(EFFECT_ALIASES,alias)?EFFECT_ALIASES[alias]:null;

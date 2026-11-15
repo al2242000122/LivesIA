@@ -7,6 +7,10 @@
   const ORIGINAL_NAMES=Object.freeze(['stone','soil','coal','iron','gold','redstone','lapis','emerald','diamond','copper','granite','diorite','andesite','moss','obsidian','magma','bedrock','wood_pickaxe','stone_pickaxe','gold_pickaxe','diamond_pickaxe','netherite_pickaxe','tnt','tnt_top',...Array.from({length:10},(_,i)=>'destroy_stage_'+i)]);
   const EFFECT_NAMES=Object.freeze({water:[16,0],ice:[16,16],fire:[16,0],arrow:[16,16],dispenser:[16,16],creeper:[64,32],rain:[64,256]});
   const ITEM_NAMES=Object.freeze({item_diamond:[16,16],item_coal:[16,16],item_iron_ingot:[16,16],item_gold_ingot:[16,16],item_copper_ingot:[16,16],item_redstone:[16,16],item_lapis_lazuli:[16,16],item_emerald:[16,16]});
+  const NUKE_NAMES=Object.freeze({nuke_like:[16,16],nuke_subscriber:[16,16]});
+  const PARTICLE_NAMES=Object.freeze(Object.fromEntries([
+    ...Array.from({length:16},(_,i)=>['particle_explosion_'+i,[32,32]]),
+    ...Array.from({length:8},(_,i)=>['particle_smoke_'+i,[8,8]])]));
   let originals=new Map();
   function source(kind,id){
     if(kind==='crack')return Number.isInteger(id)&&id>=0&&id<=9?originals.get('destroy_stage_'+id)||null:null;
@@ -16,20 +20,20 @@
   async function loadOriginals({ImageClass=root.Image,timeoutMs=5000}={}){
     originals=new Map();
     if(typeof ImageClass!=='function')return {ok:false,loaded:0};
-    const names=[...ORIGINAL_NAMES,...Object.keys(EFFECT_NAMES),...Object.keys(ITEM_NAMES)];
+    const names=[...ORIGINAL_NAMES,...Object.keys(EFFECT_NAMES),...Object.keys(ITEM_NAMES),...Object.keys(NUKE_NAMES),...Object.keys(PARTICLE_NAMES)];
     const results=await Promise.allSettled(names.map(name=>new Promise((resolve,reject)=>{
       const image=new ImageClass();
       const timer=setTimeout(()=>finish(false),Math.max(1,Math.min(10000,timeoutMs)));
       function finish(ok){clearTimeout(timer);image.onload=null;image.onerror=null;ok?resolve([name,image]):reject(new Error('Textura local no disponible: '+name));}
       image.onload=()=>{
-        const dimensions=EFFECT_NAMES[name]||ITEM_NAMES[name];
+        const dimensions=EFFECT_NAMES[name]||ITEM_NAMES[name]||NUKE_NAMES[name]||PARTICLE_NAMES[name];
         finish(dimensions&&dimensions[1]?image.width===dimensions[0]&&image.height===dimensions[1]:image.width===16&&image.height>=16&&image.height<=1024&&image.height%16===0);
       };
       image.onerror=()=>finish(false);image.src='/block-wars/assets/'+name+'.png';
     })));
     if(results.slice(0,ORIGINAL_NAMES.length).some(result=>result.status==='rejected'))return {ok:false,complete:false,loaded:0};
     originals=new Map(results.filter(result=>result.status==='fulfilled').map(result=>result.value));
-    return {ok:true,complete:originals.size===names.length,itemsComplete:Object.keys(ITEM_NAMES).every(name=>originals.has(name)),loaded:originals.size,version:SOURCE_VERSION};
+    return {ok:true,complete:originals.size===names.length,itemsComplete:Object.keys(ITEM_NAMES).every(name=>originals.has(name)),nukesComplete:Object.keys(NUKE_NAMES).every(name=>originals.has(name)),particlesComplete:Object.keys(PARTICLE_NAMES).every(name=>originals.has(name)),loaded:originals.size,version:SOURCE_VERSION};
   }
   const SIZE=16;
   const clamp=n=>Math.max(0,Math.min(255,Math.round(n)));
@@ -115,5 +119,5 @@
     }
     return out;
   }
-  return {tile,pickaxe,tnt,sprite,source,loadOriginals,ORIGINAL_NAMES,EFFECT_NAMES,ITEM_NAMES,SOURCE_VERSION};
+  return {tile,pickaxe,tnt,sprite,source,loadOriginals,ORIGINAL_NAMES,EFFECT_NAMES,ITEM_NAMES,NUKE_NAMES,PARTICLE_NAMES,SOURCE_VERSION};
 });

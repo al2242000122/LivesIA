@@ -6,10 +6,10 @@ const Textures=require('../games/block-wars/textures.js');
 
 test('original Minecraft catalog loads atomically and aliases existing materials',async()=>{
   const requested=[];
-  class ImageStub{set src(url){this.url=url;requested.push(url);[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,url.includes('magma')?512:16];queueMicrotask(()=>this.onload());}}
+  class ImageStub{set src(url){this.url=url;requested.push(url);const name=url.split('/').at(-1).slice(0,-4);[this.width,this.height]=Textures.PARTICLE_NAMES[name]||(url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,url.includes('magma')?512:16]);queueMicrotask(()=>this.onload());}}
   const result=await Textures.loadOriginals({ImageClass:ImageStub});
-  assert.equal(result.loaded,49);assert.equal(result.ok,true);assert.equal(result.complete,true);
-  assert.equal(new Set(requested).size,49);
+  assert.equal(result.loaded,75);assert.equal(result.ok,true);assert.equal(result.complete,true);assert.equal(result.nukesComplete,true);assert.equal(result.particlesComplete,true);
+  assert.equal(new Set(requested).size,75);
   assert.ok(requested.every(url=>/^\/block-wars\/assets\/[a-z_0-9]+\.png$/.test(url)));
   assert.equal(Textures.source('tile','crystal'),Textures.source('tile','diamond'));
   assert.equal(Textures.source('tool','gold').url,'/block-wars/assets/gold_pickaxe.png');
@@ -22,11 +22,11 @@ test('original Minecraft catalog loads atomically and aliases existing materials
 });
 
 test('optional effect textures preserve the installed base34 and disclose partial artwork',async()=>{
-  class BaseOnly{set src(url){this.url=url;this.width=16;this.height=16;queueMicrotask(()=>[...Object.keys(Textures.EFFECT_NAMES),...Object.keys(Textures.ITEM_NAMES||{})].some(name=>url.endsWith('/'+name+'.png'))?this.onerror():this.onload());}}
+  class BaseOnly{set src(url){this.url=url;this.width=16;this.height=16;queueMicrotask(()=>[...Object.keys(Textures.EFFECT_NAMES),...Object.keys(Textures.ITEM_NAMES||{}),...Object.keys(Textures.NUKE_NAMES)].some(name=>url.endsWith('/'+name+'.png'))?this.onerror():this.onload());}}
   const partial=await Textures.loadOriginals({ImageClass:BaseOnly});
   assert.equal(partial.ok,true);assert.equal(partial.complete,false);assert.equal(partial.loaded,34);
   assert.ok(Textures.source('tile','stone'));assert.equal(Textures.source('sprite','creeper'),null);
-  class WithSkin{set src(url){this.url=url;[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,16];queueMicrotask(()=>this.onload());}}
+  class WithSkin{set src(url){this.url=url;[this.width,this.height]=Textures.PARTICLE_NAMES[url.split('/').at(-1).slice(0,-4)]||(url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,16]);queueMicrotask(()=>this.onload());}}
   assert.equal((await Textures.loadOriginals({ImageClass:WithSkin})).complete,true);
   assert.equal(Textures.source('sprite','creeper').width,64);
   assert.equal(Textures.source('sprite','rain').height,256);
@@ -103,6 +103,6 @@ test('mineral item icons use distinct original16px sprites while old41 installs 
   assert.equal(require('../configs/minecraft-assets.json').textures[name],'assets/minecraft/textures/item/'+file+'.png');
  }
  assert.notEqual(Textures.source('sprite','item_diamond'),Textures.source('tile','diamond'));
- class Old41{set src(url){this.url=url;[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,16];queueMicrotask(()=>url.includes('/item_')?this.onerror():this.onload());}}
+ class Old41{set src(url){this.url=url;[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,16];queueMicrotask(()=>url.includes('/item_')||url.includes('/nuke_')?this.onerror():this.onload());}}
  const partial=await Textures.loadOriginals({ImageClass:Old41});assert.equal(partial.ok,true);assert.equal(partial.loaded,41);assert.equal(partial.complete,false);assert.equal(partial.itemsComplete,false);assert.equal(Textures.source('sprite','item_diamond'),null);assert.ok(Textures.source('tile','diamond'));
 });

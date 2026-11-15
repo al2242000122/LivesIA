@@ -292,11 +292,19 @@
     }
     function addEffect(kind,x,y,context={},stage='impact') {
       if(state.effects.length>=LIMITS.maxEffects) state.effects.shift();
-      state.effects.push({kind,x,y,age:0,duration:kind==='nuke'?2.5:1.2,...context,stage});
+      const profile=state.layout==='endless'&&kind==='nuke'?MC.ultranuke[context.rewardVariant]:null;
+      state.effects.push({kind,x,y,age:0,duration:profile?.visualDuration??(kind==='nuke'?2.5:1.2),...context,stage});
     }
     function enqueue(kind,id,x,y,override,context={}) {
       if(state.queue.length+state.entities.length>=LIMITS.maxQueue)return false;
       const descriptor=override || EVENTS[kind];
+      const profile=state.layout==='endless'&&kind==='nuke'?MC.ultranuke[context.rewardVariant]:null;
+      state.queue.push({kind,team:id,x,y,indices:blastIndices(kind,x,y,descriptor),cursor:0,started:false,
+        multiplier:kind==='jackpot'?2:1,...context,
+        ...(profile?{shockwaveIndex:0,shockwaveOffsets:profile.shockwaveOffsets,waveOriginY:y}:{})});
+      return true;
+    }
+    function blastIndices(kind,x,y,descriptor){
       const arenaLegacy=state.layout==='arena' && ['tnt','meteor','rain','nuke'].includes(kind);
       const radius=arenaLegacy?(kind==='nuke'?Math.max(state.width,state.height)*0.48:kind==='meteor'?3:2):descriptor.radius;
       const shape=arenaLegacy?'circle':descriptor.shape;
@@ -316,8 +324,7 @@
         const distance=index=>(index%state.width-x)**2+(Math.floor(index/state.width)-y)**2;
         return distance(a)-distance(b);
       });
-      state.queue.push({kind,team:id,x,y,indices,cursor:0,started:false,multiplier:kind==='jackpot'?2:1,...context});
-      return true;
+      return indices;
     }
     function processExplosions(budget) {
       let operations=0;
@@ -333,7 +340,14 @@
           budget.remaining--;
           destroy(index,blast.team,false,blast.multiplier,blast);
         }
-        if(blast.cursor===blast.indices.length) state.queue.shift();
+        if(blast.cursor===blast.indices.length){
+          const nextOffset=blast.shockwaveOffsets?.[blast.shockwaveIndex];
+          if(nextOffset!==undefined){
+            blast.shockwaveIndex++;blast.y=Math.min(state.height-1,blast.waveOriginY+nextOffset);
+            blast.indices=blastIndices(blast.kind,blast.x,blast.y,{radius:blast.blastRadius,shape:'circle'});
+            blast.cursor=0;blast.started=false;
+          }else state.queue.shift();
+        }
       }
     }
     function launch(kind,id,x,y,sequence=0,context={}) {
@@ -368,14 +382,18 @@
       }
     }
     const attribution=entry=>({actor:entry.actor||'',source:entry.source||'automatic',actionId:entry.actionId||'',
-      ...(entry.blastTier?{blastTier:entry.blastTier,variantIndex:entry.variantIndex,blastRadius:entry.blastRadius}:{})});
+      ...(entry.blastTier?{blastTier:entry.blastTier,variantIndex:entry.variantIndex,blastRadius:entry.blastRadius}:{}),
+      ...(entry.rewardVariant?{rewardVariant:entry.rewardVariant,spriteId:entry.spriteId,shockwaveIndex:entry.shockwaveIndex||0}:{}),
+      ...(entry.digit?{digit:entry.digit,salvoGroup:entry.salvoGroup}:{}),
+      ...(entry.kind==='siuuu'?{shockwaveIndex:entry.jumps||0}:{})});
     function actionContext(input){
       const context=plain(input)?input:{};
       const cleanedActor=typeof context.actor==='string'?context.actor.replace(context.source==='youtube'?/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g:/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069<>]/g,''):'';
       const actor=context.source==='youtube'?Array.from(cleanedActor).slice(0,44).join(''):cleanedActor.slice(0,32);
       const source=['simulator','tikfinity','youtube','automatic','operator'].includes(context.source)?context.source:'automatic';
       const supplied=typeof context.actionId==='string'&&/^[a-zA-Z0-9:_-]{1,80}$/.test(context.actionId)?context.actionId:null;
-      return {actor,source,actionId:supplied||'engine-'+(++actionSequence)};
+      return {actor,source,actionId:supplied||'engine-'+(++actionSequence),
+        ...(['like','subscriber'].includes(context.rewardVariant)?{rewardVariant:context.rewardVariant}:{})};
     }
     function terrainBelow(x,y){
       const col=Math.max(0,Math.min(state.width-1,Math.floor(x)));
@@ -385,7 +403,8 @@
     function launchEndless(kind,id,x,y,sequence,context){
       const descriptor=EVENTS[kind],tuning=MC[kind]||{},projectile=MC.projectile,targetY=terrainBelow(x,y);
       const startY=Math.max(.5,Math.min(y-projectile.spawnHeight,state.body.y-projectile.spawnHeight));
-      const tier=MC.tiers[kind];
+      const profile=kind==='nuke'?MC.ultranuke[context.rewardVariant]:null;
+      const tier=profile||MC.tiers[kind];
       const delay=sequence*(tuning.spawnInterval??projectile.spawnInterval);
       const entity={kind,team:id,x:x+.5,y:startY,startX:x+.5,startY,targetX:x+.5,targetY,
         age:0,duration:tuning.lifetime??projectile.lifetime,size:descriptor.size,rotation:0,
@@ -397,8 +416,9 @@
         entity.size=tier.size;entity.radius=tier.collisionRadius;
         entity.blastTier=kind;entity.blastRadius=tier.radius;entity.variantIndex=sequence%3;
         entity.rotation=(sequence%2?1:-1)*.3;entity.angularVelocity=(sequence%2?1:-1)*projectile.rotationRate;
+        if(profile)entity.spriteId=profile.spriteId;
       }
-      const scattered=['tnt','creeper','mega','nuke'].includes(kind);
+      const scattered=['tnt','creeper','mega','nuke','sixty_seven','messi','siuuu'].includes(kind);
       if(scattered){
         const fan=sequence%3-1,scatter=MC.scatter;
         entity.radius=tier?.collisionRadius??tuning.collisionRadius;
@@ -406,6 +426,19 @@
         entity.y=Math.max(entity.radius+.01,state.body.y-scatter.height+fan*scatter.verticalSpacing);
         entity.vx=fan*scatter.velocity;entity.vy=(sequence%3-1)*1.5;
         entity.delay=sequence*(tuning.spawnInterval??scatter.spawnInterval);
+      }
+      if(kind==='sixty_seven'){
+        entity.digit=sequence<6?6:7;entity.salvoGroup=sequence<6?0:1;
+        entity.x=state.body.x+(sequence%7-3)*.4;entity.y=Math.max(.5,state.body.y-1.5+(sequence%2)*.4);
+        entity.vx=(sequence%7-3)*2.8;
+        entity.delay=sequence*tuning.spawnInterval+(entity.salvoGroup?tuning.groupPause:0);
+      }
+      if(kind==='messi')Object.assign(entity,{stage:'ricochet',radius:tuning.collisionRadius,size:.9,
+        x:state.body.x,y:Math.max(.5,state.body.y-.6),vx:18,vy:-4,hits:0,nextPulse:0,spriteId:'football'});
+      if(kind==='siuuu'){
+        if(sequence===0)Object.assign(entity,{stage:'jump',x:state.body.x,y:Math.max(.5,state.body.y-.6),vx:6,vy:-tuning.jumpSpeed,jumps:0});
+        else Object.assign(entity,{stage:'pickaxe',pickaxe:Object.keys(PICKAXES)[(sequence-1)%5],radius:.28,
+          progress:0,collisions:0,contactMultiplier:tuning.contactMultiplier,vx:(sequence%2?1:-1)*(6+sequence)});
       }
       if(kind==='rain'){
         entity.stage='pickaxe';entity.pickaxe=Object.keys(PICKAXES)[sequence%Object.keys(PICKAXES).length];
@@ -490,7 +523,7 @@
         state.hazards.push({kind,team:entity.team,x:entity.x,y:entity.y+MC.fire.burnOffsetY,radius:MC.fire.burnRadius,
           remaining:MC.fire.burnSeconds,duration:MC.fire.burnSeconds,nextPulse:0,...meta});
       }
-      const tier=MC.tiers[kind];
+      const tier=kind==='nuke'?MC.ultranuke[entity.rewardVariant]||MC.tiers[kind]:MC.tiers[kind];
       enqueue(kind,entity.team,entity.x-.5,entity.y-.5,tier?{radius:tier.radius,shape:'circle'}:undefined,meta);
     }
 
@@ -563,7 +596,7 @@
         entity.age+=dt;
         if(entity.age>=entity.duration-1e-10)return 'spent';
         if(entity.delay>0){entity.delay=Math.max(0,entity.delay-dt);return false;}
-        entity.progress=Math.min(LIMITS.maxProgress,entity.progress+PICKAXES[entity.pickaxe].baseSpeed*MC.rain.contactMultiplier*dt);
+        entity.progress=Math.min(LIMITS.maxProgress,entity.progress+PICKAXES[entity.pickaxe].baseSpeed*(entity.contactMultiplier||MC.rain.contactMultiplier)*dt);
         physics.step(entity,dt,state,index=>{
           const block=state.blocks[index];if(!block||budget.remaining<=0||entity.progress<=0)return;
           const amount=Math.min(block.hp,entity.progress);entity.progress-=amount;
@@ -573,6 +606,7 @@
       }
       if(entity.delay>0){entity.delay=Math.max(0,entity.delay-dt);return false;}
       entity.age+=dt;
+      if(entity.stage==='ricochet'||entity.stage==='jump')return advanceSpecialBody(entity,dt,budget);
       let done=false;
       if(entity.stage==='wave'){
         const tuning=MC.tsunami;
@@ -586,6 +620,24 @@
       else done=advanceFalling(entity,dt);
       // All falling actors have a timeout even if there is no terrain in the buffer.
       return done||entity.age>=entity.duration&&'spent';
+    }
+    function advanceSpecialBody(entity,dt,budget){
+      const tuning=MC[entity.kind],jumping=entity.stage==='jump';
+      entity.collisions=entity.collisions||0;entity.nextPulse=(entity.nextPulse||0)-dt;
+      if(!jumping)entity.vx+=Math.sin(entity.age*5)*tuning.curveAcceleration*dt;
+      physics.step(entity,dt,state,(index,normal)=>{
+        entity.hits=(entity.hits||0)+1;
+        const landing=jumping&&normal.y<-.5;
+        if(landing)entity.jumps++;
+        if(landing||!jumping&&entity.nextPulse<=0){
+          damageArea(entity,tuning.contactRadius,tuning.damage,budget);
+          addEffect(entity.kind,entity.x-.5,entity.y-.5,attribution(entity));
+          entity.nextPulse=tuning.pulseSeconds||.1;
+        }
+        if(landing)entity.vy=-tuning.jumpSpeed;
+      },jumping?1:1.6);
+      entity.rotation=(entity.rotation+(tuning.rotationRate||8)*dt)%(Math.PI*2);
+      return entity.age>=entity.duration||jumping&&entity.jumps>=tuning.maxJumps?'spent':false;
     }
     function advanceWeather(dt,budget){
       for(let i=state.weatherEvents.length-1;i>=0;i--){
@@ -799,7 +851,10 @@
       }
       state.rowOffset+=shift;state.body.y-=shift;
       for(const entity of state.entities){entity.y-=shift;entity.startY-=shift;entity.targetY-=shift;}
-      state.entities=state.entities.filter(entity=>entity.targetY>=0 && entity.y>=-8);
+      state.entities=state.entities.filter(entity=>{
+        const freeBody=['ricochet','jump','pickaxe'].includes(entity.stage);
+        return entity.y>=-8&&(freeBody||entity.targetY>=0);
+      });
       for(const list of [state.effects,state.particles])for(const entry of list)entry.y-=shift;
       for(const hazard of state.hazards)hazard.y-=shift;
       state.hazards=state.hazards.filter(hazard=>hazard.y>=-2&&hazard.y<state.height+2);
@@ -807,10 +862,11 @@
       state.particles=state.particles.filter(particle=>particle.y>=-8 && particle.y<state.height+8);
       for(const blast of state.queue){
         blast.y-=shift;
+        if(blast.waveOriginY!==undefined)blast.waveOriginY-=shift;
         blast.indices=blast.indices.slice(blast.cursor).map(index=>index-shift*width).filter(index=>index>=0 && index<state.blocks.length);
         blast.cursor=0;
       }
-      state.queue=state.queue.filter(blast=>blast.indices.length>0);
+      state.queue=state.queue.filter(blast=>blast.indices.length>0||blast.shockwaveOffsets&&blast.shockwaveIndex<blast.shockwaveOffsets.length);
       remainingBlocks=state.blocks.filter(Boolean).length;
     }
     function updateBody(step,budget) {
@@ -878,7 +934,7 @@
         for(const id of TEAM_IDS) cooldown[id]=Math.max(0,cooldown[id]-step);
       }
       if(state.nextEventIn<=1e-10) {
-        const events=endless?config.SELECTED_EVENTS:state.layout!=='arena'?Object.keys(EVENTS):['rain','meteor','tnt','turbo','descomunal','nuke'];
+        const events=endless?config.SELECTED_EVENTS:state.layout!=='arena'?config.LEGACY_EVENTS:['rain','meteor','tnt','turbo','descomunal','nuke'];
         const accepted=admitAction({type:events[Math.floor(random()*events.length)]},undefined,true);
         if(!accepted)admitAction({type:endless?'spin':'turbo'},undefined,true);
         state.nextEventIn=settings.eventInterval;

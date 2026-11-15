@@ -6,8 +6,8 @@ const path=require('node:path');
 const vm=require('node:vm');
 const {EVENTS}=require('../games/block-wars/config.js');
 const {validateCommand}=require('../lib/contracts.js');
-const catalog=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big','storm','creeper'];
-test('the original eighteen effects plus storm and creeper remain static and server-allowlisted',()=>{
+const catalog=['tnt','rainbow','mega','arrow','butterfly','nuke','tnt_rain','thunder','fire','rain','tsunami','black_hole','jackpot','demon','meteor','spin','fast','big','storm','creeper','sixty_seven','messi','siuuu'];
+test('all twenty-three effects retain the original catalog and remain static and server-allowlisted',()=>{
   assert.deepEqual(Object.keys(EVENTS).sort(),catalog.slice().sort());
   assert.equal(Object.isFrozen(EVENTS),true);
   for(const key of catalog){

@@ -69,15 +69,19 @@
     meteor:event('meteor','METEOR','#ecab70','blast',12,5,1.5,3,1,'circle'),
     spin:event('spin','SPIN','#c89ae7','buff',20,8,1,0,1,'tool'),
     fast:event('fast','FAST','#81d4ec','buff',18,5,1,0,1,'tool'),
-    big:event('big','BIG','#e6c484','buff',23,9,1,0,1,'tool')
+    big:event('big','BIG','#e6c484','buff',23,9,1,0,1,'tool'),
+    sixty_seven:event('sixty_seven','67','#ffd754','blast',5,7,1.1,2.4,13,'circle'),
+    messi:event('messi','MESSI','#80d9ff','blast',5,8,.9,1.8,1,'circle'),
+    siuuu:event('siuuu','SIUUU','#f5bd65','blast',5,7,1.6,4,6,'circle')
   });
   const LIMITS = Object.freeze({maxQueue:96,maxParticles:320,maxEffects:64,
     maxBlockOps:40,maxExplosionOps:32,maxProgress:64,maxDelta:0.25,
     maxCells:1600,maxEntities:96,maxWeather:16,maxSpeed:240,nukeCooldown:45,summaryDuration:4,maxScore:1000000000});
   const LEGACY_LIMITS=Object.freeze({...LIMITS,maxQueue:24,maxParticles:160,maxEffects:24,maxEntities:24,maxWeather:8});
   const LEGACY_EFFECTS=Object.freeze({big:Object.freeze({contactBlastRadius:1.1})});
-  const SELECTED_EVENTS=Object.freeze(['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big']);
-  const COMMAND_RANKS=Object.freeze({tnt:1,arrow:1,spin:1,fast:1,big:2,rain:2,creeper:2,thunder:2,fire:3,storm:3,meteor:3,tsunami:3,mega:3,nuke:4});
+  const LEGACY_EVENTS=Object.freeze(Object.keys(EVENTS).filter(id=>!['sixty_seven','messi','siuuu'].includes(id)));
+  const SELECTED_EVENTS=Object.freeze(['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big','sixty_seven','messi','siuuu']);
+  const COMMAND_RANKS=Object.freeze({tnt:1,arrow:1,spin:1,fast:1,big:2,rain:2,creeper:2,thunder:2,fire:3,storm:3,meteor:3,tsunami:3,mega:3,nuke:4,sixty_seven:3,messi:3,siuuu:3});
   // Local gameplay tuning: seconds, cells, cells/second and HP. Not platform limits.
   const MINECRAFT_EFFECTS=Object.freeze({
     mining:Object.freeze({contactWorkMultiplier:3}),
@@ -93,6 +97,13 @@
     tnt:Object.freeze({fuse:.85}),
     mega:Object.freeze({lifetime:7,fuse:.45}),
     nuke:Object.freeze({lifetime:9,fuse:.6,spawnInterval:.12,maxCount:10}),
+    ultranuke:Object.freeze({
+      like:Object.freeze({spriteId:'nuke_like',size:4.2,radius:7.5,collisionRadius:.45,visualDuration:7,shockwaveOffsets:Object.freeze([3,7])}),
+      subscriber:Object.freeze({spriteId:'nuke_subscriber',size:5.2,radius:11,collisionRadius:.45,visualDuration:9,shockwaveOffsets:Object.freeze([5,11,18,25])})
+    }),
+    sixty_seven:Object.freeze({count:13,lifetime:7,fuse:.3,collisionRadius:.28,spawnInterval:.05,groupPause:.1}),
+    messi:Object.freeze({lifetime:8,collisionRadius:.3,contactRadius:1.8,damage:6,pulseSeconds:.08,curveAcceleration:8,rotationRate:14}),
+    siuuu:Object.freeze({lifetime:7,collisionRadius:.3,contactRadius:4,damage:8,maxJumps:3,jumpSpeed:13,contactMultiplier:10}),
     creeper:Object.freeze({count:3,fuse:.8,collisionRadius:.3}),
     scatter:Object.freeze({height:1.1,horizontalSpacing:.55,verticalSpacing:.4,velocity:3,spawnInterval:.08,searchStep:.25,searchRadius:2}),
     arrow:Object.freeze({spawnInterval:.06,volleyCount:12,flightSeconds:.45,originHeight:3,damage:2.4}),
@@ -106,5 +117,5 @@
     big:Object.freeze({duration:27,multiplier:4,bodyRadius:.35,visualScale:2.4,contactBlastRadius:1.8}),
     spin:Object.freeze({duration:24,multiplier:12,rotationRate:60})
   });
-  return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS,LEGACY_LIMITS,LEGACY_EFFECTS,SELECTED_EVENTS,COMMAND_RANKS,MINECRAFT_EFFECTS});
+  return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS,LEGACY_LIMITS,LEGACY_EFFECTS,LEGACY_EVENTS,SELECTED_EVENTS,COMMAND_RANKS,MINECRAFT_EFFECTS});
 }));
