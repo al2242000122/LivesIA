@@ -123,3 +123,12 @@ La atribución se pasa en un segundo argumento interno a `engine.action`, separa
 Tras `npm ci --ignore-scripts`: `npm run check`, `npm test` y `npm run test:soak` (dos horas virtuales por defecto; `SOAK_HOURS=6` para seis). `node --check` sustituye diagnósticos IDE cuando no están disponibles. Las pruebas unitarias ejecutan el script real del juego con DOM/Canvas/tiempo/transporte dobles; la integración HTTP/SSE usa procesos reales. Ninguna de ellas acredita un LIVE ni una sesión OBS prolongada. Ver `docs/AUDIT_PHASE_1.md` para contrato, evidencias y pendientes.
 
 Una demora superior a una ronda puede ocultar reinicios dobles en las pruebas de tiempo: para comprobar reinicio tras game over usar también demoras menores de 180 s (p. ej. 5 s). Los mensajes sobredimensionados de prueba deben contener JSON válido para cubrir la guarda de longitud.
+
+
+## Ajuste de efectos e inventario (2026-11-14)
+
+El PR18 (`codex/minecraft-command-spectacle`, base PR17) incorpora ocho contadores por material realmente destruido, profundidad máxima de sesión y elimina los eslóganes/DARK VS LIGHT del HUD. RAIN y sus alias ahora generan ocho picos físicos de cinco materiales durante10s en endless; tnt_rain conserva TNT explosiva. NUKE lanza tres cargas gigantes de paletas distintas y daño independiente, MEGA queda entre TNT y NUKE. El importador admite49PNG, con respaldo desde24/34/41, siempre fuera de Git.
+
+Las cargas rebotan contra suelo y techo a través de toda su huella. Probar explícitamente un techo sobre la trayectoria ascendente: comprobar sólo suelo permite penetraciones. Las pruebas de paleta deben capturar fillStyle/filter; comparar coordenadas de rectángulos no verifica colores. Suite310/310 con concurrencia2, sintaxis65, soak endless6hvirtuales y cadencia30minvirtuales aprobados. La ejecución masiva de tests puede agotar el plazo de PowerShell bajo carga; comprobar aislado y limitar concurrencia sin ampliar plazos de producción.
+
+La versión67e25f3 se cargó en el ensayo YouTube existente, confirmado no listado y live; OBS mostró el nuevo HUD, audio activado,60FPS y0fotogramas perdidos. Se dejó emitiendo por indicación del propietario. Lector oficial conectado tras seleccionar de nuevo la misma sala; no se verificó un comentario nuevo después de ese reinicio. No detener emisiones activas ni cambiar su privacidad por rutina. Evidencia local ignorada: artifacts/minecraft-energy/spectacle-deployment.json y obs-spectacle-live.png. Detalles y reversión: docs/block-wars/MINECRAFT_SPECTACLE_2026-11-14.md.
