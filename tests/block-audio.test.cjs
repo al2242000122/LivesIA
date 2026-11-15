@@ -83,6 +83,47 @@ test('internal narration policy retains action FX and uses only typed, compatibl
   h.audio.stop();
 });
 
+test('official reward adapter through engine to voice preserves grant IDs and moderates subscriber names',async()=>{
+  const {createAdapter}=require('../integrations/events.js'),{createEngine}=require('../games/block-wars/engine.js');
+  const {createRules}=require('../games/block-wars/rules.js'),{createExperience}=require('../games/block-wars/experience.js');
+  const h=harness();await h.audio.enable();
+  const adapter=createAdapter({now:()=>1000}),engine=createEngine({layout:'endless',seed:1,eventInterval:180});
+  const experience=createExperience(engine,createRules(engine),h.audio,()=>{},{platform:'youtube',now:()=>1000});
+  const wire=(n,type)=>({type,source:'youtube',id:'ytr:'+n.toString(16).padStart(32,'0'),receivedAt:1000,actor:{displayName:type==='like'?'':'Ana 🌻 López!',stableHash:'b'.repeat(32)},data:type==='like'?{delta:1}:{}});
+  experience.handleEvent(adapter.normalizeYouTubeReward(wire(1,'like')));await flush();
+  assert.deepEqual(h.requests[0].event,{id:wire(1).id,kind:'like_milestone',actorName:'',team:'neutral',source:'youtube'});
+  h.media[0].end();await flush();
+  experience.handleEvent(adapter.normalizeYouTubeReward(wire(2,'subscriber')));experience.update(.25);await flush();
+  assert.deepEqual(h.requests[1].event,{id:wire(2).id,kind:'youtube_subscriber',actorName:'Ana López',team:'neutral',source:'youtube'});
+  assert.equal(engine.state.entities.filter(e=>e.kind==='nuke'&&e.actionId===wire(2).id).length,3);
+  for(const patch of [{id:'yt:'+'c'.repeat(32)},{kind:'follow'},{speechKind:'like_milestone'},{source:'tikfinity'}]){
+    assert.equal(h.audio.notify({id:wire(3).id,kind:'nuke',speechKind:'youtube_subscriber',actorName:'Ana',source:'youtube',narrate:true,...patch}),false);
+  }
+  h.media[1].end();await flush();
+  h.audio.notify({id:'yt:'+'d'.repeat(32),kind:'tnt',source:'youtube',narrate:true});await flush();
+  assert.equal(h.requests.length,2,'ordinary comments cannot request speech even with narrate true');h.audio.stop();
+});
+
+test('canceling YouTube rewards releases their active and pending voices while preserving music, FX and simulator voice',async()=>{
+  const h=harness();await h.audio.enable();
+  const yt=n=>({id:'ytr:'+n.toString(16).padStart(32,'0'),kind:'tnt',source:'youtube',speechKind:'like_milestone',narrate:true});
+  h.audio.notify(yt(1));await flush();h.audio.notify(yt(2));h.audio.notify(h.event('preserved'));
+  const music=h.samples.find(sample=>sample.loop),fx=h.samples.filter(sample=>!sample.loop),voice=h.media[0];
+  h.audio.cancelYouTubeRewards();await flush();
+  assert.equal(voice.paused,true);assert.ok(h.revoked.length>0);assert.equal(h.requests[0].signal.aborted,true);
+  assert.equal(h.requests.length,2);assert.equal(h.requests[1].event.source,'simulator');
+  assert.equal(h.audio.state.musicStatus,'playing');assert.equal(music.paused,false);assert.ok(fx.every(sample=>!sample.paused));
+  assert.equal(h.audio.state.queue,0);h.audio.cancelYouTubeRewards();assert.equal(h.media[1].paused,false,'unrelated active voice survives');h.audio.stop();
+});
+
+test('canceling YouTube rewards aborts in-flight requests and ignores their late audio',async()=>{
+  let complete;const requests=[];
+  const h=harness({requestSpeech(event,{signal}){requests.push({event,signal});return new Promise(resolve=>{complete=resolve;});}});await h.audio.enable();
+  h.audio.notify({id:'ytr:'+'a'.repeat(32),kind:'nuke',source:'youtube',speechKind:'youtube_subscriber',narrate:true,actorName:'Ana'});await flush();
+  h.audio.cancelYouTubeRewards();assert.equal(requests[0].signal.aborted,true);
+  complete(new Blob(['audio'],{type:'audio/mpeg'}));await flush();assert.equal(h.media.length,0);assert.equal(h.audio.state.playing,false);assert.equal(h.audio.state.musicStatus,'playing');h.audio.stop();
+});
+
 test('real YouTube experience routes fourteen commands and automatic effects to FX, and only simulator rewards to TTS', async () => {
   const {createEngine}=require('../games/block-wars/engine.js');
   const {createRules}=require('../games/block-wars/rules.js');

@@ -15,12 +15,12 @@ function harness(platform='local'){
   const nodes=new Map(),listeners={},requests=[],sounds=[],mixes=[];
   const context2d=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get(object,key){if(!(key in object))object[key]=()=>{};return object[key];}});
   function node(id){if(!gameIds.has(id))throw new Error('Missing game markup ID: '+id);if(!nodes.has(id))nodes.set(id,{textContent:'',style:{},dataset:{},classList:{toggle(){}},addEventListener(){},getContext(){return context2d;},width:720,height:1280});return nodes.get(id);}
-  let callbacks,frame,instance,updateCalls=0;
+  let callbacks,frame,instance,updateCalls=0,cancelledRewardVoices=0;
   const sandbox={console,location:{search:platform==='youtube'?'?platform=youtube':''},URLSearchParams,BlockWarsEngine:{createEngine(options){instance=engineModule.createEngine(options);const update=instance.update;instance.update=dt=>{updateCalls++;update(dt);};return instance;}},BlockWarsRules:rulesModule,BlockWarsConfig:config,BlockWarsRender:render,
-    BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(event){sounds.push(event);},setVolume(){},setMix(value){mixes.push(value);},setNarration(){},stop(){}};}},
+    BlockWarsExperience:experience,BlockWarsAudio:{createAudio(){return{enable(){},mute(){},pause(){},notify(event){sounds.push(event);},setVolume(){},setMix(value){mixes.push(value);},setNarration(){},cancelYouTubeRewards(){cancelledRewardVoices++;},stop(){}};}},
     LiveTransport:{connect(options){callbacks=options;return{stop(){}};}},document:{getElementById:node,addEventListener(type,listener){listeners[type]=listener;}},matchMedia(){return{matches:false};},performance:{now(){return 0;}},addEventListener(type,listener){listeners[type]=listener;},requestAnimationFrame(callback){frame=callback;},fetch(url,options){requests.push({url,options});return Promise.resolve({ok:true,json:async()=>({enabled:false})});}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'games/block-wars/app.js'),'utf8'),sandbox,{filename:'app.js'});
-  return {nodes,requests,listeners,sounds,mixes,get engine(){return instance;},get updates(){return updateCalls;},get transport(){return callbacks;},tick(now){frame(now);}};
+  return {nodes,requests,listeners,sounds,mixes,get engine(){return instance;},get updates(){return updateCalls;},get cancelledRewardVoices(){return cancelledRewardVoices;},get transport(){return callbacks;},tick(now){frame(now);}};
 }
 
 test('mining HUD replaces team slogans with actual mineral counts and maximum depth',()=>{
@@ -158,4 +158,42 @@ test('YouTube activation UI preserves author/source and clears connected status 
   app.transport.onEvent({type:'comment',source:'youtube',id:'yt:'+'a'.repeat(32),receivedAt:1,actor:{stableHash:'b'.repeat(32),displayName:'Ana'},data:{text:'THUNDER'}});app.tick(400);
   assert.equal(app.nodes.get('activation-source').textContent,'CHAT YOUTUBE');assert.equal(app.nodes.get('activation-actor').textContent,'Ana');assert.equal(app.sounds[0].narrate,false);
   app.transport.onYouTubeState({state:'reconnecting'});app.tick(600);assert.match(app.nodes.get('relay').textContent,/DESCONECTADO/);
+});
+
+test('YouTube reward callout reflects reader state and public subscriber privacy without changing local mode',()=>{
+  const app=harness('youtube');
+  assert.equal(app.nodes.get('youtube-rewards').hidden,false);
+  assert.match(app.nodes.get('reward-status').textContent,/PENDIENTE/);
+  const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
+  assert.match(html,/LIKE[^<]*→[^<]*TNT/);assert.match(html,/SUB PÚBLICO[^<]*→[^<]*NUKE/);
+  assert.match(html,/Solo suscripciones públicas.*demora/);
+  app.transport.onYouTubeState({state:'connected',rewards:{state:'active'}});app.tick(200);
+  assert.match(app.nodes.get('reward-status').textContent,/ACTIVAS/);
+  app.transport.onYouTubeState({state:'reconnecting'});app.tick(400);
+  assert.match(app.nodes.get('reward-status').textContent,/PENDIENTE/);
+  assert.equal(harness().nodes.get('youtube-rewards').hidden,true);
+});
+
+test('app routes public subscriber reward attribution and pause cancels reward backlog immediately',()=>{
+  const app=harness('youtube'),reward=(n,type='like')=>({type,source:'youtube',id:'ytr:'+n.toString(16).padStart(32,'0'),receivedAt:Date.now(),actor:{displayName:type==='subscriber'?'Ana':'',stableHash:'a'.repeat(32)},data:type==='like'?{delta:1}:{}});
+  app.transport.onEvent(reward(1,'subscriber'));app.tick(200);
+  assert.equal(app.sounds[0].kind,'nuke');assert.equal(app.nodes.get('activation-source').textContent,'RECOMPENSA YOUTUBE');
+  assert.equal(app.nodes.get('activation-actor').textContent,'Ana');assert.match(app.nodes.get('source').textContent,/EVENTOS RECIBIDOS/);
+  app.transport.onEvent(reward(2));app.transport.onControl({type:'bw_pause',target:'block-wars',paused:true});
+  app.transport.onControl({type:'bw_pause',target:'block-wars',paused:false});app.tick(400);app.tick(650);
+  assert.equal(app.sounds.length,1);
+});
+
+test('YouTube stop, baseline change and missing reward state cancel queued actions while healthy chat reconnect retains them',()=>{
+  const reward=n=>({type:'like',source:'youtube',id:'ytr:'+n.toString(16).padStart(32,'0'),receivedAt:Date.now(),actor:{displayName:'',stableHash:'a'.repeat(32)},data:{delta:1}});
+  for(const status of [{state:'stopped'},{state:'ended'},{state:'idle'},{state:'unconfigured'},{state:'synchronizing'},{state:'error'},{state:'quota_exhausted'},{state:'reconnecting'},{state:'connected',rewards:{state:'synchronizing'}}]){
+    const app=harness('youtube');app.transport.onEvent(reward(1));app.transport.onEvent(reward(2));
+    app.transport.onYouTubeState(status);app.tick(10);app.tick(260);app.tick(510);
+    assert.equal(app.cancelledRewardVoices,1,'reader cancellation reaches typed audio cancellation');
+    assert.equal(app.sounds.length,1,JSON.stringify(status));assert.equal(app.engine.state.entities.filter(e=>e.actionId===reward(1).id).length,1,'accepted TNT continues');
+  }
+  const app=harness('youtube');app.transport.onEvent(reward(1));app.transport.onEvent(reward(2));
+  app.transport.onYouTubeState({state:'reconnecting',rewards:{state:'active'}});app.tick(10);app.tick(260);
+  assert.equal(app.cancelledRewardVoices,0);
+  assert.equal(app.sounds.length,2,'normal chat stream rotation does not cancel healthy rewards');
 });

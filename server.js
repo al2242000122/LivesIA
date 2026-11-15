@@ -23,9 +23,11 @@ function broadcastYouTube(kind,payload){
   for(const client of clients)if(client.gameTarget==='block-wars')writeEvent(client,output);
 }
 youtube=createYouTubeChat({
+  rewardsEnabled:true,
   expectedChannelId:process.env.YOUTUBE_EXPECTED_CHANNEL_ID||'UCRJQkWn3h-uh8LCu6WERU2Q',
   getAccessToken:options=>youtubeAuth.getAccessToken(options),
   onEvent:event=>broadcastYouTube('youtube_comment',event),
+  onReward:event=>broadcastYouTube('youtube_reward',event),
   onState:()=>{if(youtube)broadcastYouTube('youtube_state',youtubeStatus());}
 });
 const files = {
@@ -156,7 +158,10 @@ const server = http.createServer((req, res) => {
   if(req.method==='GET'&&route==='/api/block-wars/speech/status')return send(res,200,speech.status());
   if(req.method==='POST'&&route==='/api/block-wars/speech'){
     const controller=new AbortController();res.once('close',()=>controller.abort());
-    return receiveJson(req,res,validatePayload,payload=>speech.synthesize(payload,{signal:controller.signal}),result=>{
+    return receiveJson(req,res,validatePayload,payload=>{
+      if(payload.source==='youtube'&&!youtube.claimRewardSpeech(payload))return {statusCode:403,error:{error:'Recompensa de voz no verificada.'}};
+      return speech.synthesize(payload,{signal:controller.signal});
+    },result=>{
       if(result.audio){res.writeHead(result.statusCode,{'Content-Type':result.contentType,'Cache-Control':'no-store'});res.end(result.audio);}
       else send(res,result.statusCode,result.error);
     });

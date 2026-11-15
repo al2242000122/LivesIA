@@ -5,6 +5,7 @@
   'use strict';
   const audible=new Set([...Object.keys(config.EVENTS),'mine','follow','turbo','descomunal']);
   const FEEDBACK_TTL=8;
+  const REWARD_LIMIT=64,REWARD_GAP=.25,REWARD_TTL=30000,REWARD_DEDUPE_TTL=120000,REWARD_DEDUPE_LIMIT=256;
   function actorName(value){
     if(typeof value!=='string'||value.length>64)return 'un minero';
     const name=value.normalize('NFKC').replace(/\s+/g,' ').trim();
@@ -13,15 +14,18 @@
   function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'CHAT YOUTUBE':'EVENTO DE LA MINA';}
   function createExperience(engine,rules,audio,onNotice=()=>{},options={}){
     const youtube=options.platform==='youtube';
-    let context=null,sequence=0,impactSeen=new WeakSet();
-    const state={lastActivation:null,lastFeedback:null,elapsed:0};
+    const now=options.now||Date.now,rewards=[],rewardSeen=new Map();
+    let context=null,sequence=0,impactSeen=new WeakSet(),nextRewardAt=0;
+    const state={lastActivation:null,lastFeedback:null,elapsed:0,rewardQueue:0,rewardsDropped:0,rewardsActivated:0};
     // Local IDs never incorporate viewer names, hashes or event identifiers.
     const session=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
     const nextId=()=>session+':'+(++sequence);
     const perform=engine.action;
     function publish(detail,message){
       const feedback={...detail,message,at:state.elapsed,until:state.elapsed+FEEDBACK_TTL};
-      state.lastFeedback=feedback;onNotice(message,feedback);return feedback;
+      state.lastFeedback=feedback;
+      try{onNotice(message,feedback);}catch{/* A broken overlay must not interrupt gameplay. */}
+      return feedback;
     }
     function announce(kind,team,origin,id=nextId()){
       if(!audible.has(kind))return;
@@ -31,23 +35,24 @@
       const label=config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:subscriberDemo?'SUSCRIPTOR DE PRUEBA':'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
       const by=name?name:source==='automatic'?'La mina':'La comunidad';
       const activation={id,kind,team:team||'neutral',actorName:name,source,at:state.elapsed,until:state.elapsed+FEEDBACK_TTL};
+      if(origin?.reward)activation.speechKind=origin.speechKind;
       if(source==='automatic')activation.engineActionId=origin?.engineActionId||'';
       state.lastActivation=activation;
-      const message=sourceLabel(source)+' · '+by+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
+      const message=(origin?.reward?'RECOMPENSA YOUTUBE':sourceLabel(source))+' · '+by+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
       publish({...activation,accepted:true,reason:'activated',retryAfterMs:0},message);
       const sound={id,kind,team:team||'neutral',actorName:name,source};
       if(youtube||source==='youtube'){
-        // Real comments retain FX; only simulator rewards may request speech.
-        const speechKind=subscriberDemo?'youtube_subscriber':source==='simulator'&&kind==='tnt'&&origin?.trigger==='like'?'like_milestone':null;
+        // Comments retain FX; only dedicated rewards and explicit demos request speech.
+        const speechKind=origin?.reward?origin.speechKind:subscriberDemo?'youtube_subscriber':source==='simulator'&&kind==='tnt'&&origin?.trigger==='like'?'like_milestone':null;
         sound.narrate=Boolean(speechKind);
         if(speechKind)sound.speechKind=speechKind;
       }
-      audio.notify(sound);
+      try{audio.notify(sound);}catch{/* Accepted actions continue when audio is unavailable. */}
     }
     engine.action=function(action,metadata){
       // Deferred community credits retain their source without borrowing a spectator's name.
       const origin=metadata?.community&&['simulator','tikfinity','youtube'].includes(metadata.source)?{source:metadata.source,actorName:metadata.source==='youtube'?context?.actorName||'':'',trigger:metadata.trigger}:context;
-      const id=nextId(),source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
+      const id=origin?.reward?origin.id:nextId(),source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
       const accepted=perform(action,{actor:source==='automatic'?'':origin?.actorName||'',source,actionId:id});
       if(accepted)announce(context?.follow?'follow':action.type,action.team,origin,id);
       return accepted;
@@ -79,6 +84,7 @@
       publish({id:nextId(),...outcome,source:origin.source,actorName:origin.actorName},sourceLabel(origin.source)+' · '+message);
     }
     function handleEvent(event){
+      if(event?.source==='youtube'&&event.type!=='comment')return handleReward(event);
       const command=typeof event?.data?.text==='string'?event.data.text.trim().toLowerCase():'';
       const community=event?.type==='like'||event?.source!=='youtube'&&['!boom','!voterain'].includes(command);
       const origin={source:event?.source,follow:event?.type==='follow',actorName:community?'':event?.source==='youtube'&&typeof event?.actor?.displayName==='string'?Array.from(event.actor.displayName.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'')).slice(0,44).join(''):actorName(event?.actor?.displayName)};
@@ -88,9 +94,50 @@
       return accepted;
     }
     function action(input){return scoped({source:'simulator',actorName:''},()=>engine.action(input));}
-    function clear(){state.lastActivation=null;state.lastFeedback=null;impactSeen=new WeakSet();}
+    function clearRewards(){state.rewardsDropped+=rewards.length;rewards.length=0;state.rewardQueue=0;}
+    function cancelRewards(){
+      clearRewards();
+      try{audio.cancelYouTubeRewards?.();}catch{/* Reader cancellation must remain safe when audio is unavailable. */}
+    }
+    function drainReward(){
+      if(engine.state.paused){clearRewards();return;}
+      const at=now();
+      for(let i=rewards.length-1;i>=0;i--)if(rewards[i].expires<=at){rewards.splice(i,1);state.rewardsDropped++;}
+      state.rewardQueue=rewards.length;
+      if(!rewards.length||state.elapsed+1e-9<nextRewardAt)return;
+      const subscriber=rewards.findIndex(item=>item.type==='subscriber'),index=subscriber<0?0:subscriber,item=rewards[index];
+      nextRewardAt=state.elapsed+REWARD_GAP;
+      let accepted=false,failed=false;
+      try{accepted=scoped(item.origin,()=>engine.action({type:item.type==='like'?'tnt':'nuke',team:'neutral'}));}
+      catch{failed=true;}
+      // Temporary engine capacity keeps the reward pending until its original expiry.
+      if(accepted||failed)rewards.splice(index,1);
+      if(accepted)state.rewardsActivated++;else if(failed)state.rewardsDropped++;
+      state.rewardQueue=rewards.length;
+    }
+    function handleReward(event){
+      if(!youtube||engine.state.paused||event?.source!=='youtube'||!['like','subscriber'].includes(event.type)||
+        typeof event.id!=='string'||!/^ytr:[a-f0-9]{32}$/.test(event.id)||!Number.isSafeInteger(event.receivedAt)||event.receivedAt<0||
+        typeof event.actor?.displayName!=='string'||(event.type==='like'?event.data?.delta!==1||event.actor.displayName!=='':!event.actor.displayName.trim()))return false;
+      const at=now();
+      if(event.receivedAt>at+1000)return false;
+      for(const [id,until]of rewardSeen)if(until<=at)rewardSeen.delete(id);
+      if(rewardSeen.has(event.id)||at-event.receivedAt>=REWARD_TTL)return false;
+      if(rewards.length>=REWARD_LIMIT){
+        const like=event.type==='subscriber'?rewards.findIndex(item=>item.type==='like'):-1;
+        if(like<0){state.rewardsDropped++;return false;}
+        rewards.splice(like,1);state.rewardsDropped++;
+      }
+      rewardSeen.set(event.id,at+REWARD_DEDUPE_TTL);while(rewardSeen.size>REWARD_DEDUPE_LIMIT)rewardSeen.delete(rewardSeen.keys().next().value);
+      rewards.push({type:event.type,expires:Math.min(at,event.receivedAt)+REWARD_TTL,
+        origin:{reward:true,id:event.id,source:'youtube',actorName:event.actor.displayName,speechKind:event.type==='like'?'like_milestone':'youtube_subscriber'}});
+      state.rewardQueue=rewards.length;drainReward();return true;
+    }
+    function pause(value){if(value)clearRewards();}
+    function clear(){clearRewards();nextRewardAt=state.elapsed;state.lastActivation=null;state.lastFeedback=null;impactSeen=new WeakSet();}
     function update(dt){
       if(Number.isFinite(dt)&&dt>0)state.elapsed+=dt;
+      drainReward();
       for(const key of ['lastActivation','lastFeedback'])if(state[key]&&state.elapsed>=state[key].until)state[key]=null;
       const count=engine.state.eventCount,contacts=engine.state.body?.collisions||0;
       engine.update(dt);
@@ -102,7 +149,7 @@
       }
       scoped(null,()=>rules.flush());
     }
-    return {handleEvent,action,update,clear,reset:clear,state};
+    return {handleEvent,handleReward,cancelRewards,action,update,clear,pause,reset:clear,state};
   }
   return {createExperience};
 });

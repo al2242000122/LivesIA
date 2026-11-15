@@ -17,7 +17,7 @@
     element('audio-status').textContent=(status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
       status.fxAssetStatus==='unavailable'?'FALTAN SONIDOS LOCALES DE MINECRAFT':
       status.paused?'AUDIO EN PAUSA':status.lastStatus==='voice_error'||status.lastStatus==='voice_timeout'?'SONIDOS ACTIVOS · VOZ NO DISPONIBLE':
-      voiceAvailable&&narrationRequested?(youtube?'MINECRAFT + VOZ LIKES/SUBS · PRUEBA':'MINECRAFT + VOZ CONFIGURADA · ENSAYAR'):'SONIDOS MINECRAFT')+music;
+      voiceAvailable&&narrationRequested?(youtube?'MINECRAFT + VOZ LIKES/SUBS':'MINECRAFT + VOZ CONFIGURADA · ENSAYAR'):'SONIDOS MINECRAFT')+music;
   }});
   const experience=BlockWarsExperience.createExperience(engine,rules,audio,text=>{element('notice').textContent=text;},{platform:youtube?'youtube':'local'});
   element('audio-enable').addEventListener('click',()=>audio.enable());
@@ -33,6 +33,8 @@
   const sources=new Set();
   const totals={simulator:0,tikfinity:0,youtube:0};
   let youtubeStatus='synchronizing';
+  let rewardStatus='synchronizing',youtubeEvents=0;
+  element('youtube-rewards').hidden=!youtube;
   const youtubeLabels={unconfigured:'CHAT SIN CONFIGURAR',idle:'CHAT SIN SELECCIÓN',waiting_live:'ESPERANDO TRANSMISIÓN',synchronizing:'SINCRONIZANDO CHAT',connected:'TRANSPORTE DE CHAT CONECTADO',reconnecting:'CHAT DESCONECTADO · RECONECTANDO',ended:'TRANSMISIÓN TERMINADA',error:'CHAT NO DISPONIBLE',quota_exhausted:'CUOTA AGOTADA',stopped:'CHAT DETENIDO'};
   const toolNames={wood:'MADERA',stone:'PIEDRA',gold:'ORO',diamond:'DIAMANTE',netherite:'NETHERITA'};
   function control(command){
@@ -55,21 +57,24 @@
         if(Object.prototype.hasOwnProperty.call(command.settings,'likeThreshold'))rules.configure({likeThreshold:command.settings.likeThreshold});
         if(typeof command.settings.reducedMotion==='boolean')reducedMotion=command.settings.reducedMotion;
         break;
-      case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);audio.pause(engine.state.paused);break;
+      case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);experience.pause(engine.state.paused);audio.pause(engine.state.paused);break;
       case 'bw_reset':maximumDepth=0;audio.pause(true);engine.reset(command.seed);rules.reset();experience.reset();presentInteraction();audio.pause(false);break;
       case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();experience.clear();presentInteraction();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
     }
   }
-  const transport=LiveTransport.connect({target:'block-wars',relayEnabled:!youtube,youtubeEnabled:youtube,onYouTubeState(status){youtubeStatus=status.state;},onEvent(event){
+  const transport=LiveTransport.connect({target:'block-wars',relayEnabled:!youtube,youtubeEnabled:youtube,onYouTubeState(status){
+    youtubeStatus=status.state;rewardStatus=status.rewards?.state||'synchronizing';
+    if(['idle','unconfigured','synchronizing','stopped','ended','error','quota_exhausted'].includes(status.state)||rewardStatus!=='active')experience.cancelRewards();
+  },onEvent(event){
     if(youtube&&!['simulator','youtube'].includes(event.source))return;
-    if(event.source in totals){totals[event.source]++;sources.add(event.source);}experience.handleEvent(event);
+    if(event.source in totals){totals[event.source]++;sources.add(event.source);}if(event.source==='youtube')youtubeEvents++;experience.handleEvent(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
   function originLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'CHAT YOUTUBE':'EVENTO DE LA MINA';}
   function presentInteraction(){
     const activation=experience.state.lastActivation,feedback=experience.state.lastFeedback;
     element('activation-card').hidden=!activation;
     if(activation){
-      element('activation-source').textContent=originLabel(activation.source);
+      element('activation-source').textContent=activation.speechKind?'RECOMPENSA YOUTUBE':originLabel(activation.source);
       element('activation-title').textContent=youtube&&activation.kind==='follow'?'SUSCRIPTOR DE PRUEBA':BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
       element('activation-actor').textContent=activation.source==='automatic'?'LA MINA':activation.actorName||'LA COMUNIDAD';
     }
@@ -90,8 +95,12 @@
     element('clock').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
     const team=state.teams[state.focus?.team||'dark'];
     element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · FUERZA '+team.effectiveSpeed.toFixed(1);
-    element('source').textContent=youtube?(sources.has('youtube')?'YOUTUBE · COMENTARIOS RECIBIDOS':'YOUTUBE · ESPERANDO COMENTARIOS'):sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
+    element('source').textContent=youtube?(youtubeEvents?'YOUTUBE · EVENTOS RECIBIDOS':'YOUTUBE · ESPERANDO COMENTARIOS'):sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
     element('relay').textContent=youtube?youtubeLabels[youtubeStatus]:relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY · LIVE SIN VERIFICAR':'RELAY DESCONECTADO · LIVE SIN VERIFICAR';
+    const rewardActive=['connected','reconnecting'].includes(youtubeStatus)&&rewardStatus==='active'&&!state.paused;
+    element('youtube-rewards').dataset.active=String(rewardActive);
+    element('reward-status').textContent=state.paused?'RECOMPENSAS EN PAUSA':rewardActive?'RECOMPENSAS ACTIVAS':
+      ['error','quota_exhausted','stopped'].includes(rewardStatus)?'RECOMPENSAS NO DISPONIBLES':'RECOMPENSAS PENDIENTES';
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
     const label=descriptor?.label||active?.kind||'';
     element('timer-caption').textContent=active?'EVENTO: '+label:'SIGUIENTE EVENTO';
