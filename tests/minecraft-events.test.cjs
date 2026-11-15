@@ -24,9 +24,9 @@ test('TNT falls onto actual terrain and waits for its fuse; its destruction belo
   assert.ok(grounded,'must touch a solid block');assert.ok(e.state.actionResults[0].blocks>0);
   assert.equal(e.state.actionResults[0].completed,true);
 });
-test('RAIN releases twenty-four staggered pickaxe bodies and keeps one provenance through all impacts',()=>{
+test('RAIN releases twelve staggered pickaxe bodies and keeps one provenance through all impacts',()=>{
   const e=world();e.action({type:'rain',team:'light'},context);
-  assert.equal(e.state.entities.length,24);assert.equal(new Set(e.state.entities.map(v=>v.delay)).size,24);
+  assert.equal(e.state.entities.length,12);assert.equal(new Set(e.state.entities.map(v=>v.delay)).size,12);
   assert.ok(e.state.entities.every(v=>v.actor==='Ana'&&v.kind==='rain'));
   advance(e,10);assert.ok(e.state.actionResults[0].blocks>0);assert.equal(e.state.actionResults[0].completed,true);
 });
@@ -72,12 +72,12 @@ test('CREEPER and NUKE retain a visible landing fuse before their faster chain e
     advance(e,8);assert.ok(e.state.actionResults[0].blocks>0,kind);
   }
 });
-test('FAST changes physical movement, BIG collision radius and SPIN rotation while pause freezes everything',()=>{
+test('FAST changes physical movement, BIG visual scale and SPIN rotation while pause freezes everything',()=>{
   const normal=world(),fast=world(),big=world(),spin=world();
   fast.action({type:'fast',team:'light'});big.action({type:'big',team:'light'});spin.action({type:'spin',team:'light'});
   for(const e of [normal,fast,big,spin])e.update(.05);
   assert.ok(Math.abs(fast.state.body.vx)>Math.abs(normal.state.body.vx));
-  assert.ok(big.state.body.radius>normal.state.body.radius);
+  assert.ok(big.state.body.visualScale>normal.state.body.visualScale);
   assert.notEqual(spin.state.body.rotation,normal.state.body.rotation);
   fast.pause(true);const snapshot=JSON.stringify(fast.state);fast.update(.25);assert.equal(JSON.stringify(fast.state),snapshot);
 });
@@ -87,7 +87,7 @@ test('ARROW launches an actual volley from a wall and MEGA has a larger footprin
   advance(arrows,6);assert.ok(arrows.state.actionResults[0].blocks>0);
   const tnt=world(),mega=world();tnt.action({type:'tnt',team:'dark'},context);mega.action({type:'mega',team:'dark'},context);
   assert.ok(mega.state.entities[0].size>tnt.state.entities[0].size);
-  assert.ok(mega.state.entities[0].fuse>tnt.state.entities[0].fuse);
+  assert.ok(mega.state.entities[0].fuse>0&&mega.state.entities[0].fuse<=.6);
   advance(tnt,8);advance(mega,8);assert.ok(mega.state.actionResults[0].blocks>tnt.state.actionResults[0].blocks);
 });
 test('internal attribution is bounded, never accepted in action JSON, and does not affect seeded gameplay',()=>{
@@ -127,37 +127,38 @@ test('each selected destructive command remains deterministic with reduced motio
     assert.deepEqual(a.state.actionResults,b.state.actionResults);
   }
 });
-test('flooded commands have explicit accepted or rejected outcomes without growing event storage',()=>{
-  const e=world();let accepted=0,rejected=0;
+test('flooded commands are admitted immediately or pending while active event storage stays bounded',()=>{
+  const e=world();let queued=0;
   for(let i=0;i<500;i++){
     const kind=SELECTED_EVENTS[i%SELECTED_EVENTS.length],previous=e.state.lastEvent,id='flood-'+i;
-    if(e.action({type:kind,team:'dark'},{...context,actionId:id})){
-      accepted++;assert.equal(e.state.lastEvent.actionId,id);
-    }else{rejected++;assert.equal(e.state.lastEvent,previous);}
+    assert.equal(e.action({type:kind,team:'dark'},{...context,actionId:id}),true);
+    assert.equal(e.state.lastAdmission.actionId,id);
+    if(e.state.lastAdmission.queued){queued++;assert.equal(e.state.lastEvent,previous);}
+    else assert.equal(e.state.lastEvent.actionId,id);
     e.update(.05);
     assert.ok(e.state.actionResults.length<=64);assert.ok(e.state.hazards.length<=MC.fire.maxHazards);
     assert.ok(e.state.entities.length+e.state.queue.length<=LIMITS.maxQueue);
   }
-  assert.ok(accepted>=14);assert.ok(rejected>0);
+  assert.ok(queued>0);assert.ok(e.state.pendingActionCount>0);
 });
-test('large falling charges use their complete visible footprint on a ledge and never spawn inside solid terrain',()=>{
+test('falling charges resolve their configured core on ledges and spawn their core outside terrain',()=>{
   for(const kind of ['tnt','mega','nuke']){
     const e=world();assert.equal(e.action({type:kind,team:'dark'},context),true);
     const entity=e.state.entities[0];entity.vx=0;
     if(kind==='mega'){
-      // A two-cell opening is narrower than a three-cell MEGA TNT.
-      for(let x=0;x<7;x++)if(x!==3&&x!==4)e.state.blocks[8*7+x]={material:'stone',hp:1.8,maxHp:1.8,value:2};
+      // A solid ledge catches the charge core before the lower floor.
+      for(let x=0;x<7;x++)e.state.blocks[8*7+x]={material:'stone',hp:1.8,maxHp:1.8,value:2};
     }
     let landed=false;
     for(let i=0;i<100&&!landed;i++){advance(e,.05);landed=entity.landed;}
     assert.ok(landed,kind);
     const expectedFloor=kind==='mega'?8:10;
-    assert.ok(entity.y+entity.size/2<=expectedFloor+1e-6,kind+' rendered bottom must not penetrate terrain');
+    assert.ok(entity.y+entity.radius<=expectedFloor+1e-6,kind+' physical core must not penetrate terrain');
   }
   const narrow=createEngine({layout:'endless',eventInterval:180});narrow.action({type:'mega',team:'dark'},context);
-  const entity=narrow.state.entities[0],half=entity.size/2;
+  const entity=narrow.state.entities[0],half=entity.radius;
   for(let y=Math.max(0,Math.floor(entity.y-half));y<Math.min(40,Math.ceil(entity.y+half));y++){
-    for(let x=Math.max(0,Math.floor(entity.x-half));x<Math.min(7,Math.ceil(entity.x+half));x++)assert.equal(narrow.state.blocks[y*7+x],null,'spawn footprint must be empty');
+    for(let x=Math.max(0,Math.floor(entity.x-half));x<Math.min(7,Math.ceil(entity.x+half));x++)assert.equal(narrow.state.blocks[y*7+x],null,'physical spawn core must be empty');
   }
 });
 test('physical impact effects and their damage footprint share the projectile center without a half-cell shift',()=>{
@@ -191,10 +192,10 @@ test('endless periodic events use the fourteen selected effects while the legacy
   }
   assert.ok([...shaftSeen].some(kind=>!SELECTED_EVENTS.includes(kind)&&kind!=='turbo'),'legacy pool still includes unselected catalog effects');
 });
-test('initial RAIN uses the visible air shaft for all twenty-four pickaxes rather than spawning above solid sidewalls',()=>{
+test('initial RAIN uses the visible air shaft for all twelve pickaxes rather than spawning above solid sidewalls',()=>{
   const e=createEngine({seed:42,layout:'endless',eventInterval:180});
   assert.equal(e.action({type:'rain',team:'dark'},context),true);
-  assert.equal(e.state.entities.length,24);
+  assert.equal(e.state.entities.length,12);
   for(const entity of e.state.entities){
     assert.ok(entity.y>=0,'each pickaxe starts visibly inside the world');
     assert.ok(entity.targetY>=8,'its fall is aimed at the mining front, not row-zero sidewalls');
@@ -228,14 +229,15 @@ test('attributed endless commands can overlap at one-second cadence without shar
   assert.equal(shaft.action({type:'nuke',team:'dark'},{...context,actionId:'second'}),false,'legacy mode retains cooldown');
 });
 
-test('concurrent weather retains each command author through damage and has a fixed admission limit',()=>{
+test('concurrent weather retains each author and pending weather starts as active slots become available',()=>{
   const e=world();
   for(let i=0;i<LIMITS.maxWeather;i++)assert.equal(e.action({type:i%2?'storm':'thunder',team:'dark'},{actor:'Miner '+i,source:'youtube',actionId:'weather-'+i}),true);
-  assert.equal(e.action({type:'storm',team:'light'},{actor:'Overflow',source:'youtube',actionId:'overflow'}),false);
+  assert.equal(e.action({type:'storm',team:'light'},{actor:'Overflow',source:'youtube',actionId:'overflow'}),true);
+  assert.equal(e.state.lastAdmission.queued,true);assert.equal(e.state.pendingActionCount,1);
   assert.equal(e.state.weatherEvents.length,LIMITS.maxWeather);
   // Replenish a fixed terrain fixture so sixteen weather sources have targets:
   // empty terrain cannot prove that an impact retains its individual author.
-  for(let frame=0;frame<320;frame++){
+  for(let frame=0;frame<560;frame++){
     for(let i=70;i<e.state.blocks.length;i++)e.state.blocks[i]={material:'stone',hp:1.8,maxHp:1.8,value:2};
     advance(e,.05);
   }
@@ -245,6 +247,9 @@ test('concurrent weather retains each command author through damage and has a fi
     assert.ok(result.blocks>0,'each admitted weather must actually cause credited terrain damage');
   }
   assert.equal(e.state.weather,null);assert.equal(e.state.weatherEvents.length,0);
+  assert.equal(e.state.pendingActionCount,0);
+  const overflow=e.state.actionResults.find(v=>v.actionId==='overflow');
+  assert.equal(overflow.actor,'Overflow');assert.ok(overflow.completed&&overflow.blocks>0);
   e.action({type:'storm',team:'dark'},context);e.clearEffects();assert.equal(e.state.weatherEvents.length,0);
 });
 
@@ -256,7 +261,7 @@ test('rain volley is released within two seconds rather than dribbling for four 
 
 test('endless RAIN launches mixed physical pickaxes for exactly ten seconds including delays',()=>{
   const e=world();assert.equal(e.action({type:'rain',team:'dark'},context),true);
-  assert.equal(e.state.entities.length,24);
+  assert.equal(e.state.entities.length,12);
   assert.deepEqual(new Set(e.state.entities.map(v=>v.pickaxe)),new Set(['wood','stone','gold','diamond','netherite']));
   assert.ok(e.state.entities.every(v=>v.stage==='pickaxe'&&v.duration===10&&v.actor==='Ana'));
   const picks=e.state.entities.slice();
@@ -275,7 +280,7 @@ test('NUKE creates three giant independently rotated charges and higher blast ti
       assert.deepEqual(e.state.entities.map(v=>v.variantIndex),[0,1,2]);
       assert.ok(new Set(e.state.entities.map(v=>v.x)).size>=2);
     }
-    assert.ok(e.state.entities.every(v=>v.radius>=v.size/Math.SQRT2-1e-9));
+    assert.ok(e.state.entities.every(v=>v.radius===MC.tiers[kind].collisionRadius));
     const charge=e.state.entities[0],rotation=charge.rotation;
     advance(e,.1);assert.notEqual(charge.rotation,rotation);
     advance(e,12);totals.push(e.state.actionResults[0].blocks);

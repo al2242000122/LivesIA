@@ -53,7 +53,7 @@ test('storm reads complete64x64 rain frames, uses bounded tiled draws and automa
   const draws=calls.filter(call=>call[0]==='drawImage');
   assert.ok(draws.length>0&&draws.length<100);
   assert.ok(draws.every(call=>call[1].url.endsWith('/rain.png')&&call[3]===128&&call[4]===64&&call[5]===64));
-  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='EVENTO DE LA MINA'));
+  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='LA MINA'));
   assert.equal(JSON.stringify(weather),before);
 });
 test('all approved projectiles have pixel textures and reduced motion cannot mutate gameplay',()=>{
@@ -78,18 +78,18 @@ test('giant charges above the viewport retain a visible TNT preview, owner and r
   }
 });
 
-test('YouTube entity and impact canvas credits explicitly preserve chat source and author',()=>{
+test('YouTube entity and impact canvas credits show only author while source remains internal',()=>{
  const {calls,painter}=recorder(),entry={kind:'tnt',stage:'fuse',x:2,y:4,size:.8,age:.5,actor:'Ana',source:'youtube',actionId:'local-action'};
  painter.projectile(entry,90,90,1,false);
- assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · Ana'));
+ assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='Ana'));
  calls.length=0;painter.explosion({...entry,stage:'impact',age:.2,duration:1},90,90,0,false);
- assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · Ana'));
+ assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='Ana'));assert.equal(entry.source,'youtube');
 });
 
 test('YouTube canvas preserves all44 printable author characters including angle brackets',()=>{
  const {calls,painter}=recorder(),actor=('<Ana> '+'L'.repeat(38)).slice(0,44),entry={kind:'tnt',stage:'fuse',x:2,y:4,size:.8,age:.2,duration:1,actor,source:'youtube'};
  painter.projectile(entry,90,90,0,false);painter.explosion(entry,90,90,0,false);
- assert.equal(calls.filter(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · '+actor).length,2);
+ assert.equal(calls.filter(call=>call[0]==='fillText'&&call[1]===actor).length,2);
 });
 
 test('NUKE impact has three pixel shock fronts with stronger density and reduced motion stays restrained',()=>{

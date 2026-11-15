@@ -24,13 +24,16 @@ test('optional configured cooldowns retain500ms across viewers and1s per viewer'
   assert.ok(engine.state.entities.length+engine.state.queue.length<=LIMITS.maxQueue);
 });
 
-test('rapid commands fail honestly when capacity is full and do not announce rejected actors',()=>{
+test('rapid commands wait when capacity is full and announce only once they start',()=>{
   const engine=createEngine({layout:'endless',seed:24});
   const rules=createRules(engine),sounds=[];
   const experience=createExperience(engine,rules,{notify:e=>sounds.push(e),impact(){}},()=>{},{platform:'youtube'});
   for(let i=0;i<LIMITS.maxQueue;i++)engine.state.entities.push({kind:'tnt'});
   assert.equal(experience.handleEvent({type:'comment',source:'youtube',id:'yt-full',receivedAt:1000,
-    actor:{stableHash:'test-miner',displayName:'Minera de prueba'},data:{text:'RAIN'}}),false);
+    actor:{stableHash:'test-miner',displayName:'Minera de prueba'},data:{text:'RAIN'}}),true);
   assert.equal(sounds.length,0);assert.equal(experience.state.lastActivation,null);
-  assert.equal(rules.state.lastOutcome.reason,'engine_busy');
+  assert.equal(engine.state.pendingActionCount,1);assert.equal(experience.state.lastFeedback.reason,'queued');
+  engine.state.entities.length=0;experience.update(1/60);
+  assert.equal(engine.state.pendingActionCount,0);assert.equal(sounds.length,1);
+  assert.equal(sounds[0].actorName,'Minera de prueba');
 });

@@ -82,18 +82,19 @@
   const MINECRAFT_EFFECTS=Object.freeze({
     mining:Object.freeze({contactWorkMultiplier:3}),
     tiers:Object.freeze({
-      tnt:Object.freeze({size:1,radius:2,count:3}),
-      mega:Object.freeze({size:2.8,radius:4,count:3}),
-      nuke:Object.freeze({size:3.6,radius:5.5,count:3})
+      tnt:Object.freeze({size:1,radius:2,count:3,collisionRadius:.32}),
+      mega:Object.freeze({size:2.8,radius:4,count:3,collisionRadius:.4}),
+      nuke:Object.freeze({size:3.6,radius:5.5,count:3,collisionRadius:.45})
     }),
     projectile:Object.freeze({spawnHeight:5,spawnInterval:.1,lifetime:6,driftSpeed:1.2,fuse:.4,
       gravity:28,maxFallSpeed:20,maxFallStep:.025,bounceRetention:.5,minBounceSpeed:1,maxBounces:3,rotationRate:2.2,
       flightSeconds:.65,flightLifetime:2.5,flightRadius:.2,maxFlightStep:.2,outsideGraceSeconds:.5}),
-    rain:Object.freeze({count:24,spawnInterval:.06,lifetime:10,contactMultiplier:3,radius:.32}),
+    rain:Object.freeze({count:12,spawnInterval:.06,lifetime:10,contactMultiplier:3,radius:.32}),
     tnt:Object.freeze({fuse:.85}),
-    mega:Object.freeze({lifetime:7,fuse:1.1}),
-    nuke:Object.freeze({lifetime:9,fuse:1.6,spawnInterval:.12,maxCount:10}),
-    creeper:Object.freeze({count:3,fuse:.8}),
+    mega:Object.freeze({lifetime:7,fuse:.45}),
+    nuke:Object.freeze({lifetime:9,fuse:.6,spawnInterval:.12,maxCount:10}),
+    creeper:Object.freeze({count:3,fuse:.8,collisionRadius:.3}),
+    scatter:Object.freeze({height:1.1,horizontalSpacing:.55,verticalSpacing:.4,velocity:3,spawnInterval:.08,searchStep:.25,searchRadius:2}),
     arrow:Object.freeze({spawnInterval:.06,volleyCount:12,flightSeconds:.45,originHeight:3,damage:2.4}),
     meteor:Object.freeze({count:3,flightSeconds:.8,flightLifetime:3,flightRadius:.6,pathRadius:.95,pathDamage:4,penetrationSeconds:.45}),
     fire:Object.freeze({count:12,maxHazards:24,burnOffsetY:.8,burnRadius:1.5,burnSeconds:6,burnDamage:1.8,pulseSeconds:.18}),
@@ -101,9 +102,9 @@
       pushRangeX:1.7,pushRangeY:3,pushAcceleration:12,maxPushSpeed:15}),
     thunder:Object.freeze({duration:12,pulseSeconds:.22}),
     storm:Object.freeze({duration:12,pulseSeconds:.06,windFrequency:2,windAcceleration:8}),
-    fast:Object.freeze({duration:15,multiplier:6,physicsSpeedScale:1.6}),
-    big:Object.freeze({duration:27,multiplier:2,bodyRadius:.75,contactBlastRadius:1.8}),
-    spin:Object.freeze({duration:24,multiplier:3,rotationRate:18})
+    fast:Object.freeze({duration:15,multiplier:12,physicsSpeedScale:2.4,rotationRate:45}),
+    big:Object.freeze({duration:27,multiplier:4,bodyRadius:.35,visualScale:2.4,contactBlastRadius:1.8}),
+    spin:Object.freeze({duration:24,multiplier:12,rotationRate:60})
   });
   return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS,LEGACY_LIMITS,LEGACY_EFFECTS,SELECTED_EVENTS,COMMAND_RANKS,MINECRAFT_EFFECTS});
 }));

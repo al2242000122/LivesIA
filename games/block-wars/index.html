@@ -14,12 +14,11 @@
     <div><dt><canvas data-mineral-icon="item_diamond" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Diamante</span></dt><dd id="mineral-diamond">0</dd></div>
     <div><dt><canvas data-mineral-icon="item_emerald" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Esmeralda</span></dt><dd id="mineral-emerald">0</dd></div>
   </dl><div class="bw-depth"><strong>PROFUNDIDAD</strong><b id="depth-value">0 m</b><small>MÁXIMA ALCANZADA</small></div></aside>
-  <header class="bw-mine-title"><h1>MINA INFINITA</h1><p>Escribe un comando del menú</p></header>
   <aside id="youtube-rewards" class="bw-rewards" hidden aria-label="Recompensas gratuitas de YouTube">
-    <div><canvas data-icon="nuke" width="16" height="16" aria-hidden="true"></canvas><strong>LIKE → NUKE ×3</strong></div>
-    <div><canvas data-icon="nuke" width="16" height="16" aria-hidden="true"></canvas><strong>SUB PÚBLICO → NUKE ×10</strong></div>
-    <b id="reward-status" role="status">RECOMPENSAS PENDIENTES</b>
-    <small>Likes netos detectados · Solo suscripciones públicas · Puede haber demora</small>
+    <div><canvas data-icon="nuke" width="16" height="16" aria-hidden="true"></canvas><strong>LIKE <em>=</em> <b>NUKE ×3</b></strong></div>
+    <div><canvas data-icon="nuke" width="16" height="16" aria-hidden="true"></canvas><strong>SUB <em>=</em> <b>NUKE ×10</b></strong></div>
+    <b id="reward-status" class="bw-sr-only" role="status">RECOMPENSAS PENDIENTES</b>
+    <small class="bw-sr-only">Likes netos detectados · Solo suscripciones públicas · Puede haber demora</small>
   </aside>
   <section id="activation-card" class="bw-activation" hidden aria-live="polite" aria-label="Última acción activada"><small id="activation-source"></small><strong id="activation-title"></strong><span id="activation-actor"></span></section>
   <p id="command-feedback" class="bw-command-feedback" hidden role="status"></p>
@@ -44,7 +43,7 @@
       <li id="menu-big" class="event-big"><canvas data-command-icon="big" width="16" height="16" aria-hidden="true"></canvas><b>BIG</b></li>
     </ol><small id="command-instruction">NIVEL 1→4 · RAIN: PICOS 10 s</small></aside>
   <section id="timer-card" class="bw-timer" aria-label="Cuenta regresiva de eventos"><strong id="timer-caption">NEXT EVENT</strong><b id="next-event">60.0s</b><div class="bw-time-track"><i id="time-fill"></i></div></section>
-  <div class="bw-tool-readout" id="tool-readout">PICO MADERA · 0.6 b/s</div>
-  <section class="bw-audio-gate" aria-label="Audio del ensayo"><button id="audio-enable" type="button">ACTIVAR SONIDO</button><small id="audio-status" role="status">AUDIO: ACTIVAR EN OBS → INTERACTUAR</small></section>
-  <footer class="bw-footer"><span id="source">DEMO · AUTÓNOMO</span><span>SESIÓN <b id="clock">00:00</b></span><small id="relay">RELAY DESCONECTADO · LIVE SIN VERIFICAR</small><small id="asset-status">CARGANDO TEXTURAS LOCALES</small><p id="notice" aria-live="polite">Escribe TNT, RAIN o NUKE · Participación gratis</p><small class="bw-attribution">PROYECTO NO OFICIAL · NO APROBADO NI ASOCIADO CON MOJANG O MICROSOFT</small></footer>
+  <div class="bw-tool-readout" id="tool-readout" hidden>PICO MADERA · 0.6 b/s</div>
+  <section id="audio-gate" class="bw-audio-gate" aria-label="Activar audio"><button id="audio-enable" type="button">ACTIVAR SONIDO</button><small id="audio-status" class="bw-sr-only" role="status">AUDIO: ACTIVAR EN OBS → INTERACTUAR</small></section>
+  <footer class="bw-footer" hidden><span id="source">DEMO · AUTÓNOMO</span><span>SESIÓN <b id="clock">00:00</b></span><small id="relay">RELAY DESCONECTADO · LIVE SIN VERIFICAR</small><small id="asset-status">CARGANDO TEXTURAS LOCALES</small><p id="notice" aria-live="polite">Escribe TNT, RAIN o NUKE · Participación gratis</p><small class="bw-attribution">PROYECTO NO OFICIAL · NO APROBADO NI ASOCIADO CON MOJANG O MICROSOFT</small></footer>
 </main><script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/physics.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/textures.js"></script><script src="/block-wars/effects-render.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/audio-assets.js"></script><script src="/block-wars/audio.js"></script><script src="/block-wars/experience.js"></script><script src="/block-wars/app.js"></script></body></html>

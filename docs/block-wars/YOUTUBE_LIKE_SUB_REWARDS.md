@@ -1,4 +1,4 @@
-> Actualización del propietario: LIKE→3cargas NUKE y SUBpúblico→10cargas NUKE, con alerta animada. El texto histórico de abajo describe el incremento anterior; véase [frenesí vigente](FRENZY_REFERENCE_2026-11-14.md).
+> Actualización del propietario: LIKE→3cargas NUKE y SUBpúblico→10cargas NUKE, con alerta animada. El texto histórico de abajo describe el incremento anterior; véase [frenesí vigente](FRENZY_REFERENCE_2026-11-14.md) y [correcciones del ensayo](LIVE_FEEDBACK_2026-11-15.md).
 
 # LIKE y SUB: recompensas individuales en YouTube
 
@@ -6,9 +6,9 @@
 
 El propietario aprobó: cada +1 neto detectado en likes dispara una TNT sin nombre; cada nuevo suscriptor público detectado dispara NUKE (tres TNT gigantes de colores) con su nombre y aviso de ElevenLabs. SUB significa suscripción gratuita al canal, no miembro de pago. Los comentarios mantienen sus14comandos y efectos, sin narración.
 
-La primera consulta establece una referencia y no recompensa los likes o suscriptores existentes. Se consulta el contador cada15s y los suscriptores públicos cada60s, más el tiempo de red/API; no es un evento instantáneo. YouTube sólo ofrece el contador de likes, no la identidad de cada persona. La API puede publicar cambios con retraso y no permite reconstruir likes simultáneos que se compensan con bajas entre consultas. Se usa un máximo histórico para evitar recompensar repetidamente quitar y volver a poner like; tras una bajada sólo se premian incrementos por encima del máximo recompensado.
+La primera consulta establece una referencia y no recompensa los likes o suscriptores existentes. Se consulta el contador cada15s y los suscriptores públicos cada60s, más el tiempo de red/API; no es un evento instantáneo. YouTube sólo ofrece el contador de likes, no la identidad de cada persona. La API puede publicar cambios con retraso y no permite reconstruir likes simultáneos que se compensan con bajas entre consultas. Desde la corrección del15noviembre se compara con la muestra anterior: una bajada observada permite recompensar una subida posterior, aunque no supere el máximo histórico. Un quitar/poner entre consultas que no cambie el total es indistinguible de ninguna interacción.
 
-Las suscripciones privadas no son observables. Las públicas se deduplican por identidad y deben tener fecha posterior al inicio de la referencia; hacer pública una suscripción antigua no provoca NUKE. La consulta obtiene los50suscriptores más recientes y puede omitir altas si supera esa cantidad entre consultas. No se inventan nombres ni se usa el último comentarista como autor de un like.
+Las suscripciones privadas no son observables. Las públicas se deduplican por identidad y fecha de creación y deben tener fecha posterior al inicio de la referencia; hacer pública una suscripción antigua no provoca NUKE. Una resuscripción pública con fecha nueva puede activar otra recompensa; omitir un elemento en una consulta no basta para rearmarlo. Fechas inválidas o futuras no reservan su identidad. La consulta obtiene los50suscriptores más recientes y puede omitir altas si supera esa cantidad entre consultas. No se inventan nombres ni se usa el último comentarista como autor de un like.
 
 Fuentes oficiales: [likeCount](https://developers.google.com/youtube/data/reference/rest/v3/videos#statistics.likeCount), [myRecentSubscribers](https://developers.google.com/youtube/data/reference/rest/v3/subscriptions/list), [privacidad](https://support.google.com/youtube/answer/7280190?hl=es).
 

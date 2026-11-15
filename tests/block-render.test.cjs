@@ -35,3 +35,20 @@ test('endless renderer follows the physical center and rotation without jumping 
   assert.ok(Math.abs(moves.at(-1)[1]-before)<1,'recycling coordinates and changing vote cycle do not move the world on screen');
   s.rowOffset=0;s.body.y=6;s.elapsed=0;r.draw(s,{time:5});assert.equal(r.view.cameraY,0,'explicit reset clears the camera');
 });
+test('endless tool aura follows the global body buffs even when the focused team has no buff',()=>{
+  const colors=[],ctx=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(o[k]=()=>{}),set(o,k,v){if(k==='fillStyle'||k==='strokeStyle')colors.push(v);o[k]=v;return true;}});
+  const renderer=createRenderer({width:720,height:1280,getContext:()=>ctx}),state=world();
+  state.layout='endless';state.body={x:3,y:8,rotation:2,team:'light',radius:.35,buffs:{fast:2,spin:2}};
+  renderer.draw(state,{time:1});assert.ok(colors.includes('#f4d341'),'FAST particles use shared body buff');assert.ok(colors.includes('#cba9ee'),'SPIN aura uses shared body buff');
+});
+test('BIG changes only rendered endless tool scale using the engine body visualScale',()=>{
+  const Textures=require('../games/block-wars/textures.js'),previous=Textures.source,tool={},draws=[];
+  Textures.source=(kind,id)=>kind==='tool'?tool:null;
+  try{
+    const ctx=new Proxy({createLinearGradient:()=>({addColorStop(){}}),drawImage:(image,...args)=>{if(image===tool)draws.push(args);}},{get:(o,k)=>o[k]||(o[k]=()=>{})});
+    const renderer=createRenderer({width:720,height:1280,getContext:()=>ctx}),state=world();state.layout='endless';
+    state.body={x:3,y:8,rotation:2,team:'light',radius:.35,buffs:{},visualScale:1};renderer.draw(state,{time:1});
+    state.body.visualScale=2.4;renderer.draw(state,{time:2});
+    assert.equal(draws.length,2);assert.ok(Math.abs(draws[1][6]/draws[0][6]-2.4)<1e-9);assert.equal(state.body.radius,.35);
+  }finally{Textures.source=previous;}
+});

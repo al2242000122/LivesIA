@@ -100,7 +100,7 @@
       const active=state.teams[view.activeTeam]||state.teams.dark,target=shaft?focus:active.target;
       if(target){
         const x=offset+(target.x+(endless?0:.5))*cell,y=(target.y+(endless?0:.1)-view.cameraY)*cell;
-        const buffs=active.buffs||{},size=cell*(endless?(state.body.radius||.35)*3.2:buffs.big>0?2.75:buffs.descomunal>0?2.1:1.55);
+        const buffs=(endless?state.body.buffs:null)||active.buffs||{},size=cell*(endless?(state.body.radius||.35)*3.2*(state.body.visualScale||1):buffs.big>0?2.75:buffs.descomunal>0?2.1:1.55);
         const angle=endless?(reduced?-.3:state.body.rotation):reduced||state.paused?-.3:buffs.spin>0?time*9:Math.sin(time*Math.min(14,4+active.effectiveSpeed))*.55-.3;
         effects.toolAura(buffs,x,y,cell,state.elapsed||0,reduced);
         ctx.save();ctx.translate(x,y);ctx.rotate(endless?angle:Math.round(angle*12)/12);
