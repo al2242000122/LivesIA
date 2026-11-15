@@ -1,5 +1,7 @@
 # AGENTS.md — LivesIA / Serpiente Infinita LIVE
 
+**ULTRANUKE y comandos15nov2026:** ver `docs/block-wars/ULTRANUKE_AND_MEME_COMMANDS.md`. Las variantes LIKE/SUB sólo viajan en metadata interna `rewardVariant`, nunca como permiso JSON ni evento real simulado. Los cuerpos libres `ricochet/jump/pickaxe` no usan su viejo targetY para decidir si siguen visibles al reciclar filas; probar ULTRANUKE combinado con MESSI/SIUUU/RAIN a profundidad real.67 usa intervalos configurados y pausa de grupo. Recursos adicionales se importan en carpetas separadas para no invalidar el inventario oficial49. Partículas originales tienen presupuesto compartido de dibujo y no consumen ese presupuesto fuera de pantalla. MESSI no tiene audio propio; clips67/SIUUU no usan TTS. La música activa conserva el respaldo previo como archivo local separado.
+
 **Correcciones del ensayo15nov2026:** consultar `docs/block-wars/LIVE_FEEDBACK_2026-11-15.md` para el comportamiento vigente. Los comandos endless aceptados por encima de la ocupación activa quedan en FIFO; no confundir recepción con inicio/FX. Un automático diferido sólo aumenta eventCount al comenzar; no anunciar lastEvent si pertenece a un espectador. Refrescar lastSeen de miembros también en comandos instantáneos. Likes comparan muestras sucesivas (bajada/subida observada); suscriptores deduplican identidad+fecha nueva. Estas reglas sustituyen las notas históricas de máximo de likes/rechazo por cola. Ninguna prueba offline acredita un SUB real ni identifica a quien da like.
 
 ## Ajuste de experiencia Minecraft — 2026-11-14

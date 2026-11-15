@@ -58,6 +58,7 @@
       if(damage>.4){ctx.moveTo(x+cell*.44,y+cell*.3);ctx.lineTo(x+cell*.1,y+cell*.52);ctx.moveTo(x+cell*.66,y+cell*.55);ctx.lineTo(x+cell*.94,y+cell*.33);}ctx.stroke();
     }
     function draw(state,options={}){
+      effects.beginFrame();
       const time=options.time||0,reduced=Boolean(options.reducedMotion),endless=state.layout==='endless',shaft=endless||state.layout==='shaft';
       const cell=shaft?W/(state.width+1):W/state.width,offset=shaft?cell:0;
       const focus=endless&&state.body?state.body:state.focus||{...state.teams.dark.target,team:'dark'};

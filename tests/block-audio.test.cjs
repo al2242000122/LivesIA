@@ -38,7 +38,7 @@ function harness(options = {}) {
   }
   class Audio {
     constructor() { this.paused = false; this.endTimer=null; }
-    set src(value) { this._src=value;if(value.startsWith('blob:')&&!media.includes(this))media.push(this);else if(value.startsWith('/assets-local/')&&!samples.includes(this))samples.push(this); }
+    set src(value) { this._src=value;if(value.startsWith('blob:')&&!media.includes(this))media.push(this);else if((value.startsWith('/assets-local/')||value.startsWith('/block-wars/audio/'))&&!samples.includes(this))samples.push(this); }
     get src(){return this._src;}
     async play() { this.played = true;if(this.src?.endsWith('.ogg')&&!this.loop)this.endTimer=clock.setTimeout(()=>this.end(),500); }
     pause() { this.paused = true;clock.clearTimeout(this.endTimer); }
@@ -65,6 +65,14 @@ test('audio requires operator enable, accepts only known actions and deduplicate
   assert.equal(h.requests.length, 1);
   assert.equal(h.audio.state.playing, true);
   h.audio.stop();
+});
+test('67 and SIUUU route only to their exact imported clips and MESSI is silent without muting music',async()=>{
+ const h=harness();await h.audio.enable();const music=h.samples.find(sample=>sample.loop);
+ const starting=h.samples.length;
+ for(const kind of ['sixty_seven','siuuu']){assert.equal(h.audio.notify(h.event(kind,kind,{narrate:true})),true);await flush();}
+ assert.deepEqual(h.samples.slice(starting).map(sample=>sample.src),['/block-wars/audio/meme_67.ogg','/block-wars/audio/meme_siuuu.mp3']);
+ const before=h.samples.length;assert.equal(h.audio.notify(h.event('silent','messi',{narrate:true})),true);assert.equal(h.audio.impact('messi'),false);await flush();
+ assert.equal(h.samples.length,before);assert.equal(h.requests.length,0);assert.equal(music.paused,false);assert.equal(h.audio.state.musicStatus,'playing');h.audio.stop();
 });
 
 test('internal narration policy retains action FX and uses only typed, compatible speech overrides', async () => {
@@ -136,7 +144,7 @@ test('real YouTube experience routes fourteen commands and automatic effects to 
   }
   const comment=(id,text)=>({id,type:'comment',source:'simulator',receivedAt:1,actor:{stableHash:'miner',displayName:'Minero demo'},data:{text}});
   for(const kind of Config.SELECTED_EVENTS){
-    const app=scene();assert.equal(app.experience.handleEvent(comment('cmd-'+kind,kind)),true);
+    const app=scene();assert.equal(app.experience.handleEvent(comment('cmd-'+kind,kind==='sixty_seven'?'67':kind)),true);
     await h.clock.advance(1000);
   }
   const app=scene();for(let i=0;i<101;i++)app.experience.update(.05);

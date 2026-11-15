@@ -135,12 +135,16 @@ test('comment activation names the correct author and a rejected command is neve
   assert.equal(app.nodes.get('activation-card').hidden,true);
 });
 
-test('the public menu promotes exactly the selected14 while keeping compatibility effects in the operator panel',()=>{
+test('the public menu promotes all seventeen selected commands while keeping compatibility effects in the operator panel',()=>{
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
   const menu=html.match(/<ol id="command-list">([\s\S]*?)<\/ol>/)[1];
   const ids=[...menu.matchAll(/id="menu-([^"]+)"/g)].map(match=>match[1]);
-  assert.deepEqual(ids,['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big']);
+  assert.deepEqual(ids,['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big','sixty_seven','messi','siuuu']);
   assert.ok(html.indexOf('/block-wars/effects-render.js')<html.indexOf('/block-wars/render.js'));
+});
+test('NOOB = BAN is a decorative joke without a button, command or moderation handler',()=>{
+ const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8'),script=fs.readFileSync(path.join(root,'games/block-wars/app.js'),'utf8');
+ assert.match(html,/<span class="bw-joke"[^>]*>NOOB = BAN<\/span>/);assert.doesNotMatch(html,/<button[^>]*>NOOB/);assert.doesNotMatch(script,/bw-joke|NOOB|\bban\b/i);
 });
 
 test('the server and shared event adapter retain the fictitious comment author displayed in the game',()=>{
@@ -167,7 +171,7 @@ test('YouTube reward callout reflects reader state and public subscriber privacy
   assert.equal(app.nodes.get('youtube-rewards').hidden,false);
   assert.match(app.nodes.get('reward-status').textContent,/PENDIENTE/);
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
-  assert.match(html,/LIKE <em>=<\/em> <b>NUKE ×3/);assert.match(html,/SUB <em>=<\/em> <b>NUKE ×10/);
+  assert.match(html,/LIKE <em>=<\/em> <b>ULTRANUKE ×3/);assert.match(html,/SUB <em>=<\/em> <b>ULTRANUKE ×10/);
   assert.match(html,/Solo suscripciones públicas.*demora/);
   app.transport.onYouTubeState({state:'connected',rewards:{state:'active'}});app.tick(200);
   assert.match(app.nodes.get('reward-status').textContent,/ACTIVAS/);
@@ -217,7 +221,7 @@ test('Minecraft public subscriber alert uses moderated text and a stable six-sec
   app.transport.onEvent(reward);app.tick(200);
   assert.equal(app.nodes.get('subscriber-alert').hidden,false);assert.equal(app.nodes.get('subscriber-name').textContent,'Ana López');
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'games/block-wars/style.css'),'utf8');
-  assert.match(html,/NUEVO SUSCRIPTOR/);assert.match(html,/NUKE ×10/);assert.match(html,/data-icon="nuke"/);
+  assert.match(html,/NUEVO SUSCRIPTOR/);assert.match(html,/ULTRANUKE ×10/);assert.match(html,/data-reward-icon="nuke_subscriber"/);
   assert.match(css,/@keyframes bw-subscriber/);assert.match(css,/@media\(prefers-reduced-motion:reduce\)[\s\S]*bw-subscriber/);
   const demo=harness('youtube');demo.transport.onEvent({...reward,source:'simulator',type:'follow',id:'demo-sub'});demo.tick(200);
   assert.equal(demo.nodes.get('subscriber-alert').hidden,true,'simulated follow cannot display a real subscriber alert');

@@ -73,8 +73,9 @@ test('YouTube commands and automatic actions keep FX but cannot request narratio
   const {SELECTED_EVENTS}=require('../games/block-wars/config.js');
   for(const kind of SELECTED_EVENTS){
     const app=harness({platform:'youtube'});
-    assert.equal(app.experience.handleEvent(comment('command',kind)),true,kind);
-    assert.equal(app.heard[0].kind,kind);assert.equal(app.heard[0].narrate,false,kind);
+    assert.equal(app.experience.handleEvent(comment('command',kind==='sixty_seven'?'67':kind)),true,kind);
+    if(kind==='messi')assert.equal(app.heard.length,0,'MESSI stays silent');
+    else{assert.equal(app.heard[0].kind,kind);assert.equal(app.heard[0].narrate,false,kind);}
   }
   const app=harness({platform:'youtube'});
   for(let i=0;i<101;i++)app.experience.update(.05);

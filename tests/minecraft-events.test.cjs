@@ -10,8 +10,8 @@ function world(){
 }
 function advance(e,seconds){for(let i=0;i<Math.ceil(seconds/.05);i++){e.state.body.x=3.5;e.state.body.y=1;e.state.body.vx=0;e.state.body.vy=0;e.update(.05);}}
 const context={actor:'Ana',source:'simulator',actionId:'event-ana'};
-test('fourteen selected commands retain every original effect and add storm and creeper',()=>{
-  assert.equal(SELECTED_EVENTS.length,14);assert.equal(new Set(SELECTED_EVENTS).size,14);
+test('seventeen selected commands retain every original effect and add storm and creeper',()=>{
+  assert.equal(SELECTED_EVENTS.length,17);assert.equal(new Set(SELECTED_EVENTS).size,17);
   for(const id of SELECTED_EVENTS)assert.ok(EVENTS[id],id);
   assert.ok(EVENTS.rainbow&&EVENTS.butterfly&&EVENTS.black_hole&&EVENTS.jackpot&&EVENTS.demon&&EVENTS.tnt_rain);
 });
@@ -172,14 +172,14 @@ test('physical impact effects and their damage footprint share the projectile ce
     if(row>=10&&!e.state.blocks[row*7+col])assert.ok((col+.5-entity.x)**2+(row+.5-entity.y)**2<=EVENTS.tnt.radius**2,'damage is centered where the TNT exploded');
   }
 });
-test('endless periodic events use the fourteen selected effects while the legacy shaft retains its complete pool',()=>{
+test('endless periodic events use the seventeen selected effects while the legacy shaft retains its complete pool',()=>{
   const endless=createEngine({seed:39,layout:'endless',eventInterval:5});
   const seen=new Set();let sequence=0;
   for(let i=0;i<5000;i++){
     endless.update(.05);
     if(endless.state.eventCount>sequence){
       const kind=endless.state.lastEvent.kind;
-      assert.ok(SELECTED_EVENTS.includes(kind),'every automatic endless action belongs to the selected fourteen');
+      assert.ok(SELECTED_EVENTS.includes(kind),'every automatic endless action belongs to the selected seventeen');
       seen.add(kind);sequence=endless.state.eventCount;
     }
   }

@@ -86,7 +86,7 @@
     element('activation-card').hidden=!activation;
     if(activation){
       const source=element('activation-source');source.textContent=originLabel(activation.source);source.hidden=!source.textContent;
-      element('activation-title').textContent=youtube&&activation.kind==='follow'?'SUSCRIPTOR DE PRUEBA':BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
+      element('activation-title').textContent=activation.rewardVariant?'ULTRANUKE':youtube&&activation.kind==='follow'?'SUSCRIPTOR DE PRUEBA':BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
       element('activation-actor').textContent=activation.source==='automatic'?'LA MINA':activation.actorName||'LA COMUNIDAD';
     }
     const showFeedback=feedback&&(!feedback.accepted||feedback.reason==='queued');
@@ -114,7 +114,7 @@
     element('reward-status').textContent=state.paused?'RECOMPENSAS EN PAUSA':rewardActive?'RECOMPENSAS ACTIVAS':
       ['error','quota_exhausted','stopped'].includes(rewardStatus)?'RECOMPENSAS NO DISPONIBLES':'RECOMPENSAS PENDIENTES';
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
-    const label=descriptor?.label||active?.kind||'';
+    const label=active?.rewardVariant?'ULTRANUKE':descriptor?.label||active?.kind||'';
     element('timer-caption').textContent=active?'EVENT ACTIVE':'NEXT EVENT';
     const remainingLabel=active?(active.remaining>0?active.remaining.toFixed(1)+'s':'EN CURSO'):state.nextEventIn.toFixed(1)+'s';
     element('next-event').textContent=state.paused?'PAUSA':remainingLabel;
@@ -130,6 +130,12 @@
     presentInteraction();
   }
   function paintIcons(){
+    for(const icon of document.querySelectorAll?.('canvas[data-reward-icon]')||[]){
+      const painter=icon.getContext('2d'),original=globalThis.BlockWarsTextures?.source('sprite',icon.dataset.rewardIcon);
+      painter.imageSmoothingEnabled=false;painter.clearRect(0,0,16,16);
+      if(original)painter.drawImage(original,0,0,16,16,0,0,16,16);
+      else{painter.fillStyle=icon.dataset.rewardIcon==='nuke_like'?'#e6c034':'#42714b';painter.fillRect(2,2,12,12);painter.fillStyle='#152019';painter.font='bold 11px monospace';painter.fillText('?',5,12);icon.title='Textura de respaldo';}
+    }
     for(const icon of document.querySelectorAll?.('canvas[data-icon]')||[]){
       const textures=globalThis.BlockWarsTextures;if(!textures)continue;
       const painter=icon.getContext('2d'),original=textures.source('tnt',icon.dataset.icon);
@@ -140,6 +146,13 @@
     const commandArt={tnt:'tnt',rain:'diamond_pickaxe',thunder:'diamond',storm:'rain',creeper:'creeper',meteor:'magma',fire:'fire',tsunami:'water',
       spin:'diamond_pickaxe',fast:'gold_pickaxe',mega:'tnt',nuke:'tnt',arrow:'arrow',big:'netherite_pickaxe'};
     for(const icon of document.querySelectorAll?.('canvas[data-command-icon]')||[]){
+      if(['sixty_seven','messi','siuuu'].includes(icon.dataset.commandIcon)){
+        const painter=icon.getContext('2d');painter.clearRect(0,0,16,16);painter.imageSmoothingEnabled=false;
+        if(icon.dataset.commandIcon==='sixty_seven'){painter.fillStyle='#ffe248';painter.font='bold 12px monospace';painter.fillText('67',0,13);}
+        else if(icon.dataset.commandIcon==='messi'){for(let row=0;row<8;row++)for(let col=0;col<8;col++){if((row===0||row===7)&&(col<2||col>5))continue;painter.fillStyle=(row+col)%5===0?'#1a2920':'#eef2e8';painter.fillRect(col*2,row*2,2,2);}}
+        else{painter.fillStyle='#e1bb88';painter.fillRect(6,1,4,4);painter.fillStyle='#f2f4e7';painter.fillRect(4,5,8,7);painter.fillRect(0,4,16,3);painter.fillStyle='#315a67';painter.fillRect(3,12,4,4);painter.fillRect(9,12,4,4);}
+        continue;
+      }
       const name=commandArt[icon.dataset.commandIcon],image=globalThis.BlockWarsTextures?.source('sprite',name);
       if(!image)continue;
       const painter=icon.getContext('2d');painter.imageSmoothingEnabled=false;painter.clearRect(0,0,16,16);

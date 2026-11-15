@@ -77,7 +77,7 @@ test('YouTube rehearsal templates keep likes anonymous and distinguish free subs
 
 test('all existing events, rewarded mine and follow have bounded templates and honest attribution', async () => {
   const { speech, calls, advance } = fixture();
-  const kinds = [...Object.keys(EVENTS), 'mine', 'follow', 'turbo', 'descomunal'];
+  const kinds = [...Object.keys(EVENTS).filter(kind=>!['sixty_seven','messi','siuuu'].includes(kind)), 'mine', 'follow', 'turbo', 'descomunal'];
   for (let i = 0; i < kinds.length; i++) {
     assert.equal((await speech.synthesize(payload(i + 1, { kind: kinds[i] }))).statusCode, 200);
     const body = JSON.parse(calls[i][1].body);
@@ -263,8 +263,12 @@ test('SDK transport rejects redirects without following a foreign endpoint', asy
 test('typed real YouTube reward templates thank one like and name a public subscriber with ten NUKE charges',async()=>{
  const {speech,calls,advance}=fixture();
  assert.equal((await speech.synthesize(payload(500,{kind:'like_milestone',source:'youtube',actorName:''}))).statusCode,200);
- assert.match(JSON.parse(calls[0][1].body).text,/Nuevo like.*[Tt]res.*NUKE/);advance();
+ assert.match(JSON.parse(calls[0][1].body).text,/Nuevo like.*[Tt]res.*ULTRANUKE/);advance();
  assert.equal((await speech.synthesize(payload(501,{kind:'youtube_subscriber',source:'youtube'}))).statusCode,200);
- assert.match(JSON.parse(calls[1][1].body).text,/Ana Mar\u00eda.*[Dd]iez.*NUKE/);
+ assert.match(JSON.parse(calls[1][1].body).text,/Ana Mar\u00eda.*[Dd]iez.*ULTRANUKE/);
  assert.equal((await speech.synthesize(payload(502,{kind:'tnt',source:'youtube'}))).statusCode,400);
+});
+test('meme commands never send speech to the provider, especially silent MESSI',async()=>{
+ const {speech,calls}=fixture();for(const kind of ['sixty_seven','messi','siuuu'])assert.equal((await speech.synthesize(payload(900,{kind}))).statusCode,400);
+ assert.equal(calls.length,0);
 });

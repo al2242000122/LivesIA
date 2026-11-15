@@ -44,6 +44,8 @@ test('one official like makes three anonymous NUKE charges and a public subscrib
   assert.deepEqual(f.sounds[0],{id:reward().id,kind:'nuke',team:'neutral',actorName:'',source:'youtube',narrate:true,speechKind:'like_milestone'});
   assert.equal(f.send(2,'subscriber'),true);assert.equal(f.sounds.length,1);f.advance(250);
   const entities=f.engine.state.entities.filter(e=>e.actionId===reward(2).id&&e.kind==='nuke');assert.equal(entities.length,10);
+  assert.ok(entities.every(e=>e.rewardVariant==='subscriber'));
+  assert.ok(f.engine.state.entities.filter(e=>e.actionId===reward().id).every(e=>e.rewardVariant==='like'));
   assert.ok(entities.every(e=>e.actor==='Ana 🌻 López'&&e.source==='youtube'&&e.actionId===reward(2).id));
   assert.equal(f.sounds[1].id,reward(2).id);assert.equal(f.sounds[1].speechKind,'youtube_subscriber');assert.equal(f.sounds[1].narrate,true);
   assert.equal(f.sounds[1].actorName,'Ana 🌻 López');assert.equal(f.experience.handleEvent(reward(2,'subscriber')),false);

@@ -33,10 +33,10 @@
       const source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
       const name=source==='automatic'?'':origin?.actorName||'';
       const subscriberDemo=youtube&&kind==='follow'&&source==='simulator';
-      const label=config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:subscriberDemo?'SUSCRIPTOR DE PRUEBA':'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
+      const label=origin?.reward?'ULTRANUKE':config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:subscriberDemo?'SUSCRIPTOR DE PRUEBA':'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
       const by=name?name:source==='automatic'?'La mina':'La comunidad';
       const activation={id,kind,team:team||'neutral',actorName:name,source,at:state.elapsed,until:state.elapsed+FEEDBACK_TTL};
-      if(origin?.reward)activation.speechKind=origin.speechKind;
+      if(origin?.reward){activation.speechKind=origin.speechKind;activation.rewardVariant=origin.speechKind==='like_milestone'?'like':'subscriber';}
       if(source==='youtube'&&origin?.reward&&origin.speechKind==='youtube_subscriber'){
         const moderated=name.slice(0,80).normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);
         const at=now()/1000;
@@ -47,19 +47,22 @@
       const message=[sourceLabel(source),by].filter(Boolean).join(' · ')+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
       publish({...activation,accepted:true,reason:'activated',retryAfterMs:0},message);
       const sound={id,kind,team:team||'neutral',actorName:name,source};
+      if(['sixty_seven','messi','siuuu'].includes(kind))sound.narrate=false;
       if(youtube||source==='youtube'){
         // Comments retain FX; only dedicated rewards and explicit demos request speech.
         const speechKind=origin?.reward?origin.speechKind:subscriberDemo?'youtube_subscriber':source==='simulator'&&kind==='tnt'&&origin?.trigger==='like'?'like_milestone':null;
         sound.narrate=Boolean(speechKind);
         if(speechKind)sound.speechKind=speechKind;
       }
-      try{audio.notify(sound);}catch{/* Accepted actions continue when audio is unavailable. */}
+      if(kind!=='messi')try{audio.notify(sound);}catch{/* Accepted actions continue when audio is unavailable. */}
     }
     engine.action=function(action,metadata){
       // Deferred community credits retain their source without borrowing a spectator's name.
       const origin=metadata?.community&&['simulator','tikfinity','youtube'].includes(metadata.source)?{source:metadata.source,actorName:metadata.source==='youtube'?context?.actorName||'':'',trigger:metadata.trigger}:context;
       const id=origin?.reward?origin.id:nextId(),source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
-      const accepted=perform(action,{actor:source==='automatic'?'':origin?.actorName||'',source,actionId:id});
+      const actionMetadata={actor:source==='automatic'?'':origin?.actorName||'',source,actionId:id};
+      if(origin?.reward)actionMetadata.rewardVariant=origin.speechKind==='like_milestone'?'like':'subscriber';
+      const accepted=perform(action,actionMetadata);
       if(accepted){
         const kind=context?.follow?'follow':action.type;
         if(engine.state.lastAdmission?.actionId===id&&engine.state.lastAdmission.queued){

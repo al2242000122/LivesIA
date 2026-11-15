@@ -14,6 +14,7 @@
     elytra:'item/elytra/elytra_loop',riptide:'item/trident/riptide1',creeper:'mob/creeper/say1',break:'random/break'
   });
   const CUES=Object.freeze({
+    sixty_seven:['meme_67'],siuuu:['meme_siuuu'],
     mine:['mine'],follow:['levelup'],tnt:['fuse'],nuke:['dragon','fuse'],mega:['anvil','fuse'],
     arrow:['bow'],rainbow:['orb'],butterfly:['elytra'],tnt_rain:['fuse','bow'],
     thunder:['thunder'],fire:['fire'],rain:['rain','elytra'],storm:['rain','thunder'],
@@ -26,5 +27,6 @@
     nuke:['explode3','thunder'],creeper:['explode'],thunder:['thunder'],storm:['mine3'],
     meteor:['explode3'],fire:['fire'],arrow:['bowhit'],tsunami:['splash']
   });
-  return Object.freeze({SOUNDS,CUES,IMPACTS,MUSIC_URL:'/assets-local/audio/background-loop.wav'});
+  const LOCAL_CLIPS=Object.freeze({meme_67:'/block-wars/audio/meme_67.ogg',meme_siuuu:'/block-wars/audio/meme_siuuu.mp3'});
+  return Object.freeze({SOUNDS,CUES,IMPACTS,LOCAL_CLIPS,MUSIC_URL:'/assets-local/audio/background-loop.wav'});
 });

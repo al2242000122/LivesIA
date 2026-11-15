@@ -29,7 +29,7 @@ test('RAIN renders real mixed pickaxe sprites and NUKE variants have visibly dif
 async function originals(){
   class ImageStub{set src(url){this.url=url;[this.width,this.height]=url.endsWith('/creeper.png')?[64,32]:url.endsWith('/rain.png')?[64,256]:[16,512];queueMicrotask(()=>this.onload());}}
   // Fixed-layout sprites require their original exact dimensions.
-  class Exact extends ImageStub{set src(url){this.url=url;[this.width,this.height]=Textures.EFFECT_NAMES[url.split('/').at(-1).slice(0,-4)]||[16,16];if(!this.height)this.height=512;queueMicrotask(()=>this.onload());}}
+  class Exact extends ImageStub{set src(url){this.url=url;const name=url.split('/').at(-1).slice(0,-4);[this.width,this.height]=Textures.EFFECT_NAMES[name]||Textures.PARTICLE_NAMES[name]||[16,16];if(!this.height)this.height=512;queueMicrotask(()=>this.onload());}}
   assert.equal((await Textures.loadOriginals({ImageClass:Exact})).complete,true);
 }
 test('physical TNT uses its collision center, delays remain invisible, and attribution never becomes HTML',()=>{

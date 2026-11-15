@@ -90,13 +90,14 @@ test('deferred callbacks are isolated and unsubscribe stops notifications while 
 
 test('periodic automatic events count actual starts rather than queued receipts or the prior viewer action',()=>{
   const e=createEngine({seed:2,layout:'endless',eventInterval:180}),started=[];fill(e);e.subscribeDeferredActions(v=>started.push(v));
+  e.action({type:'tnt',team:'dark'},origin('before-automatic'));
   const prior=e.state.lastEvent;e.state.nextEventIn=0;e.update(1/60);
-  assert.equal(e.state.pendingActionCount,1);assert.equal(e.state.lastEvent,prior);
+  assert.equal(e.state.pendingActionCount,2);assert.equal(e.state.lastEvent,prior);
   assert.equal(e.state.eventCount,0,'admitting a pending timer event is not an activation');
   e.state.entities.length=0;e.update(1/60);
   assert.equal(e.state.pendingActionCount,0);assert.equal(e.state.eventCount,1);
-  assert.equal(started.length,1);assert.equal(started[0].source,'automatic');
-  assert.equal(e.state.lastEvent.actionId,started[0].actionId);
+  assert.equal(started.length,2);assert.equal(started[1].source,'automatic');
+  assert.equal(e.state.lastEvent.actionId,started[1].actionId);
   e.update(1/60);assert.equal(e.state.eventCount,1);
   e.action({type:'spin'});assert.equal(e.state.eventCount,1,'manual local calls are not scheduled events');
 });
