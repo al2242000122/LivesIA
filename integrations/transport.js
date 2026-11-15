@@ -9,9 +9,17 @@
     const adapter=options.adapter||LiveEvents.createAdapter();
     const youtubeEnabled=options.youtubeEnabled===true&&target==='block-wars';
     const youtubeStates=new Set(['unconfigured','idle','waiting_live','synchronizing','connected','reconnecting','ended','error','quota_exhausted','stopped']);
+    const rewardStates=new Set(['active','synchronizing','error','quota_exhausted','stopped']);
+    const rewardErrors=new Set(['youtube_quota','youtube_auth_required','youtube_ended','youtube_channel_mismatch','youtube_reward_snapshot','youtube_rewards_unavailable']);
     function youtubeState(input){
       if(!input||!youtubeStates.has(input.state))return;
       const safe={state:input.state,received:Number.isSafeInteger(input.received)&&input.received>=0?input.received:0};
+      const rewards=input.rewards;
+      if(rewards&&rewardStates.has(rewards.state))safe.rewards={state:rewards.state,
+        likesObserved:Number.isSafeInteger(rewards.likesObserved)&&rewards.likesObserved>=0?rewards.likesObserved:null,
+        likesTriggered:Number.isSafeInteger(rewards.likesTriggered)&&rewards.likesTriggered>=0?rewards.likesTriggered:0,
+        subscribersTriggered:Number.isSafeInteger(rewards.subscribersTriggered)&&rewards.subscribersTriggered>=0?rewards.subscribersTriggered:0,
+        error:rewardErrors.has(rewards.error)?rewards.error:null};
       try{options.onYouTubeState?.(safe);}catch{state.callbackErrors=(state.callbackErrors||0)+1;}
     }
     const state={relay:options.relayEnabled===false||youtubeEnabled?'disabled':'connecting',controls:'connecting',source:'none',verified:false,metrics:adapter.metrics};
@@ -50,6 +58,7 @@
       catch{state.controls='offline';if(youtubeEnabled)youtubeState({state:'reconnecting'});emitStatus();retry('sse');return;}
       if(youtubeEnabled){
         stream.addEventListener('youtube_comment',packet=>{if(!stopped&&sse===stream)deliver(adapter.normalizeYouTube(packet.data));});
+        stream.addEventListener('youtube_reward',packet=>{if(!stopped&&sse===stream)deliver(adapter.normalizeYouTubeReward(packet.data));});
         stream.addEventListener('youtube_state',packet=>{if(stopped||sse!==stream||typeof packet.data!=='string'||packet.data.length>4096)return;try{youtubeState(JSON.parse(packet.data));}catch{}});
       }
       stream.onopen=()=>{if(stopped||sse!==stream)return;sseAttempt=0;state.controls='connected';emitStatus();};

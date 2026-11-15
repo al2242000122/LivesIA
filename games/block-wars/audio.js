@@ -18,14 +18,16 @@
     if (input.actorName !== undefined && typeof input.actorName !== 'string') return null;
     if (input.team !== undefined && !['dark','light','neutral'].includes(input.team)) return null;
     if (input.narrate !== undefined && typeof input.narrate !== 'boolean') return null;
-    if (input.speechKind !== undefined && (input.source !== 'simulator' ||
+    const rewardSpeech=input.source==='youtube'&&/^ytr:[a-f0-9]{32}$/.test(input.id)&&
+      (input.speechKind==='like_milestone'&&input.kind==='tnt'||input.speechKind==='youtube_subscriber'&&input.kind==='nuke');
+    if (input.speechKind !== undefined && !rewardSpeech && (input.source !== 'simulator' ||
       !Object.hasOwn(SPEECH_REWARDS,input.speechKind) || SPEECH_REWARDS[input.speechKind] !== input.kind)) return null;
     // Names are data, never narration instructions. The server repeats moderation.
     const actorName = input.source === 'automatic' || input.speechKind === 'like_milestone' ? '' : (input.actorName || '').slice(0,80).normalize('NFKC')
       .replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);
     const priority = input.kind === 'nuke' ? 3 : ['mega','jackpot','meteor','black_hole'].includes(input.kind) ? 2 : input.kind === 'follow' ? 1 : 0;
     return {id:input.id,kind:input.kind,actorName,team:input.team || 'neutral',source:input.source,at,priority,
-      narrate:input.source !== 'youtube' && input.narrate !== false,speechKind:input.speechKind || input.kind};
+      narrate:(input.source !== 'youtube'||rewardSpeech) && input.narrate !== false,speechKind:input.speechKind || input.kind};
   }
 
   function createAudio(options = {}) {
@@ -116,6 +118,15 @@
       clearPump(); state.dropped += queue.length; queue.length = 0;
       if (active) { const run = active; active = null; cleanupRun(run); state.dropped++; }
       state.phase = stopped ? 'stopped' : 'idle';
+    }
+    function cancelYouTubeRewards() {
+      const reward=event=>event.source==='youtube'&&Object.hasOwn(SPEECH_REWARDS,event.speechKind);
+      clearPump();
+      for(let i=queue.length-1;i>=0;i--)if(reward(queue[i])){queue.splice(i,1);state.dropped++;}
+      if(active&&reward(active.event)){
+        const run=active;active=null;cleanupRun(run);state.dropped++;state.phase=stopped?'stopped':'idle';
+      }
+      status('youtube_rewards_cancelled');pump();
     }
     function complete(run, errorCode) {
       if (active !== run) return;
@@ -239,7 +250,7 @@
       if (context) { try { const closed = context.close(); if (closed && closed.catch) closed.catch(() => {}); } catch (_) { /* Context already closed. */ } }
       status('stopped');
     }
-    return {enable,mute,pause,notify,impact,setVolume,setMix,setNarration,stop,state};
+    return {enable,mute,pause,notify,impact,setVolume,setMix,setNarration,cancelYouTubeRewards,stop,state};
   }
   return Object.freeze({createAudio});
 }));

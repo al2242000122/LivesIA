@@ -63,3 +63,11 @@ test('only Block Wars SSE receives the initial safe YouTube state, without comme
   const initial=new TextDecoder().decode((await snakeReader.read()).value);
   assert.equal(initial,': connected\n\n');await snakeReader.cancel();
 });
+
+test('YouTube voice requests need a current server-detected one-time reward grant',async t=>{
+ const s=await start(t,{YOUTUBE_AUTH_FILE:''});
+ for(const kind of ['like_milestone','youtube_subscriber']){
+  const result=await s.request('/api/block-wars/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionId:'ytr:'+'a'.repeat(32),kind,actorName:'',team:'neutral',source:'youtube'})});
+  assert.equal(result.status,403);assert.doesNotMatch(result.text,/token|Bearer|client_secret/);
+ }
+});
