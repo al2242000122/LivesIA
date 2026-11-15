@@ -31,3 +31,5 @@ Reversión: volver a ad80299 (PR18), reiniciar el servidor propio y recargar la 
 ## Evidencia de esta entrega
 
 Suite334/334 con concurrencia2 y sintaxis69archivos aprobadas. Revisiones independientes de seguridad, lógica y calidad aprobadas tras corregir cancelaciones de fuente/grants y nombrar políticas. La prueba autenticada de sólo lectura confirmó acceso al contador y a myRecentSubscribers; la lista pública estaba vacía, por lo que no se acredita un alta real ni una locución nueva. Captura de diseño local ignorada: artifacts/minecraft-energy/rewards-preview-crop.png. La evidencia de OBS y el estado real posterior se guardan por separado para no convertir pruebas offline en verificaciones de emisión.
+
+Despliegue local confirmado: lector activo sin errores, nuevo bloque visible y audio habilitado en OBS a60FPS/0fotogramas perdidos observados. Sala existente no listada/live dejada en marcha. Cero recompensas nuevas y cero solicitudesTTS desde el nuevo arranque: falta comprobar un evento real nuevo y escuchar su aviso. No se generó interacción artificial para sustituir esa comprobación.
