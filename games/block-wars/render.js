@@ -86,7 +86,16 @@
       for(let i=0;i<weather.length;i++)if(weather[i]!==strongest)effects.label(weather[i],W/2,112+i*28);
       effects.hazards(state.hazards,cell,offset,view.cameraY);
       for(const effect of state.effects||[])effects.explosion(effect,cell,offset,view.cameraY,reduced);
-      for(const entity of state.entities||[])effects.projectile(entity,cell,offset,view.cameraY,reduced);
+      const edgeGroups=new Map();
+      for(const entity of state.entities||[]){
+        if(entity.delay>0)continue;
+        if(['mega','nuke'].includes(entity.kind)&&(entity.y-view.cameraY)*cell+entity.size*cell/2<44){
+          const key=entity.actionId||entity.kind;
+          if(!edgeGroups.has(key))edgeGroups.set(key,[]);edgeGroups.get(key).push(entity);
+        }else effects.projectile(entity,cell,offset,view.cameraY,reduced);
+      }
+      // Four action summaries at once; full physical salvos continue offscreen.
+      let edgeSlot=0;for(const group of [...edgeGroups.values()].slice(-4))effects.chargeGroup(group,edgeSlot++);
       if(!reduced)for(const p of state.particles||[]){ctx.globalAlpha=bounded(p.life*2,0,1);ctx.fillStyle=p.color;ctx.fillRect(offset+p.x*cell,(p.y-view.cameraY)*cell,cell/14,cell/14);}ctx.globalAlpha=1;
       const active=state.teams[view.activeTeam]||state.teams.dark,target=shaft?focus:active.target;
       if(target){

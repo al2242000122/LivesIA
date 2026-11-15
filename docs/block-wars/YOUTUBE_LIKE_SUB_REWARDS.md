@@ -1,3 +1,5 @@
+> Actualización del propietario: LIKE→3cargas NUKE y SUBpúblico→10cargas NUKE, con alerta animada. El texto histórico de abajo describe el incremento anterior; véase [frenesí vigente](FRENZY_REFERENCE_2026-11-14.md).
+
 # LIKE y SUB: recompensas individuales en YouTube
 
 ## Comportamiento autorizado

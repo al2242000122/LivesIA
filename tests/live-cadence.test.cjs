@@ -5,9 +5,9 @@ const {createEngine,LIMITS}=require('../games/block-wars/engine.js');
 const {createRules}=require('../games/block-wars/rules.js');
 const {createExperience}=require('../games/block-wars/experience.js');
 
-test('consecutive real-shape YouTube comments activate at500ms across viewers and1s per viewer',()=>{
+test('optional configured cooldowns retain500ms across viewers and1s per viewer',()=>{
   const engine=createEngine({layout:'endless',seed:21,eventInterval:180});
-  const rules=createRules(engine),notices=[];
+  const rules=createRules(engine,{effectCooldownMs:500,actorEffectCooldownMs:1000}),notices=[];
   const experience=createExperience(engine,rules,{notify:e=>notices.push(e),impact(){}},()=>{},{platform:'youtube'});
   const send=(actor,at,id)=>experience.handleEvent({type:'comment',source:'youtube',id,receivedAt:at,
     actor:{stableHash:actor,displayName:actor},data:{text:'TNT'}});

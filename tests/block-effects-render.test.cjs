@@ -91,3 +91,20 @@ test('YouTube canvas preserves all44 printable author characters including angle
  painter.projectile(entry,90,90,0,false);painter.explosion(entry,90,90,0,false);
  assert.equal(calls.filter(call=>call[0]==='fillText'&&call[1]==='CHAT YOUTUBE · '+actor).length,2);
 });
+
+test('NUKE impact has three pixel shock fronts with stronger density and reduced motion stays restrained',()=>{
+ const full=recorder(),reduced=recorder(),effect={kind:'nuke',stage:'impact',x:3,y:6,age:1,duration:2.5,blastRadius:5.5};
+ full.painter.explosion(effect,90,90,0,false);reduced.painter.explosion(effect,90,90,0,true);
+ const fragments=full.calls.filter(c=>c[0]==='fillRect');
+ assert.equal(fragments.length,84,'three28pixel fronts');
+ const radii=[0,28,56].map(index=>{const [,left,top,size]=fragments[index];return Math.hypot(left+size/2-405,top+size/2-585);});
+ assert.ok(radii[0]>radii[1]+1&&radii[1]>radii[2]+1,'each front occupies a different radius, without overpainting');
+ assert.ok(reduced.calls.filter(c=>c[0]==='fillRect').length<=28,'reduced motion does not add extra shock fronts');
+});
+test('ten offscreen charges share a bounded preview card with ten miniatures and one author',()=>{
+ const {calls,painter}=recorder();const entries=Array.from({length:10},(_,i)=>({kind:'nuke',variantIndex:i%3,size:3.6,actor:'Ana',source:'youtube',fuse:1.2,landed:true}));
+ painter.chargeGroup(entries,0);
+ assert.equal(calls.filter(c=>c[0]==='paint'&&c[1]==='tnt').length,10);
+ assert.ok(calls.some(c=>c[0]==='fillText'&&c[1].includes('NUKE ×10')));
+ assert.equal(calls.filter(c=>c[0]==='fillText'&&c[1].includes('Ana')).length,1);
+});

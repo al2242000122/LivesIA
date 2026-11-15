@@ -12,7 +12,7 @@ function fixture(options={}) {
   return {engine,rules,actions,event};
 }
 
-test('endless chat allows a second miner after500ms and the same miner after1s without waiting for active blasts',()=>{
+test('endless chat allows other and repeated miners immediately without waiting for active blasts',()=>{
   const f=fixture();f.engine.state.layout='endless';
   // Construct after layout selection, as the real app does.
   const rules=createRules(f.engine);
@@ -20,12 +20,10 @@ test('endless chat allows a second miner after500ms and the same miner after1s w
   assert.equal(command('ana',0,'a'),true);
   f.engine.state.entities=[{kind:'rain'}];
   f.engine.state.eventCooldowns={rain:{dark:7,light:7}};
-  assert.equal(command('beto',499,'b'),false);
-  assert.equal(command('beto',500,'c'),true);
-  assert.equal(command('ana',999,'d'),false);
-  assert.equal(command('ana',1000,'e'),true);
+  assert.equal(command('beto',0,'b'),true);
+  assert.equal(command('ana',0,'c'),true);
   assert.equal(f.actions.length,3);
-  assert.equal(command('ana',1000,'e'),false,'dedupe still enforced');
+  assert.equal(command('ana',0,'c'),false,'dedupe still enforced');
 });
 test('25 likes dispatch one TNT, sources and remainder are isolated',()=>{
   const f=fixture();f.event('like',{delta:24});f.event('like',{delta:1},'alice',0,'tikfinity');assert.equal(f.actions.length,0);

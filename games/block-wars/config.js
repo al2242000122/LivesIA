@@ -71,37 +71,39 @@
     fast:event('fast','FAST','#81d4ec','buff',18,5,1,0,1,'tool'),
     big:event('big','BIG','#e6c484','buff',23,9,1,0,1,'tool')
   });
-  const LIMITS = Object.freeze({maxQueue:24,maxParticles:160,maxEffects:24,
+  const LIMITS = Object.freeze({maxQueue:96,maxParticles:320,maxEffects:64,
     maxBlockOps:40,maxExplosionOps:32,maxProgress:64,maxDelta:0.25,
-    maxCells:1600,maxEntities:24,maxWeather:8,maxSpeed:240,nukeCooldown:45,summaryDuration:4,maxScore:1000000000});
+    maxCells:1600,maxEntities:96,maxWeather:16,maxSpeed:240,nukeCooldown:45,summaryDuration:4,maxScore:1000000000});
+  const LEGACY_LIMITS=Object.freeze({...LIMITS,maxQueue:24,maxParticles:160,maxEffects:24,maxEntities:24,maxWeather:8});
+  const LEGACY_EFFECTS=Object.freeze({big:Object.freeze({contactBlastRadius:1.1})});
   const SELECTED_EVENTS=Object.freeze(['tnt','rain','thunder','storm','creeper','meteor','fire','tsunami','spin','fast','mega','nuke','arrow','big']);
   const COMMAND_RANKS=Object.freeze({tnt:1,arrow:1,spin:1,fast:1,big:2,rain:2,creeper:2,thunder:2,fire:3,storm:3,meteor:3,tsunami:3,mega:3,nuke:4});
   // Local gameplay tuning: seconds, cells, cells/second and HP. Not platform limits.
   const MINECRAFT_EFFECTS=Object.freeze({
     mining:Object.freeze({contactWorkMultiplier:3}),
     tiers:Object.freeze({
-      tnt:Object.freeze({size:1,radius:2,count:1}),
-      mega:Object.freeze({size:2.8,radius:4,count:1}),
+      tnt:Object.freeze({size:1,radius:2,count:3}),
+      mega:Object.freeze({size:2.8,radius:4,count:3}),
       nuke:Object.freeze({size:3.6,radius:5.5,count:3})
     }),
     projectile:Object.freeze({spawnHeight:5,spawnInterval:.1,lifetime:6,driftSpeed:1.2,fuse:.4,
       gravity:28,maxFallSpeed:20,maxFallStep:.025,bounceRetention:.5,minBounceSpeed:1,maxBounces:3,rotationRate:2.2,
       flightSeconds:.65,flightLifetime:2.5,flightRadius:.2,maxFlightStep:.2,outsideGraceSeconds:.5}),
-    rain:Object.freeze({spawnInterval:.16,lifetime:10,contactMultiplier:3,radius:.32}),
+    rain:Object.freeze({count:24,spawnInterval:.06,lifetime:10,contactMultiplier:3,radius:.32}),
     tnt:Object.freeze({fuse:.85}),
     mega:Object.freeze({lifetime:7,fuse:1.1}),
-    nuke:Object.freeze({lifetime:9,fuse:1.6,spawnInterval:.45}),
-    creeper:Object.freeze({fuse:.8}),
-    arrow:Object.freeze({spawnInterval:.1,volleyCount:4,flightSeconds:.45,originHeight:3,damage:2.4}),
-    meteor:Object.freeze({flightSeconds:.8,flightLifetime:3,flightRadius:.6,pathRadius:.95,pathDamage:4,penetrationSeconds:.45}),
-    fire:Object.freeze({maxHazards:8,burnOffsetY:.8,burnRadius:1.5,burnSeconds:3,burnDamage:.9,pulseSeconds:.18}),
-    tsunami:Object.freeze({crossingSeconds:1.5,lifetime:2,radius:2,damage:1.2,pulseSeconds:.12,
+    nuke:Object.freeze({lifetime:9,fuse:1.6,spawnInterval:.12,maxCount:10}),
+    creeper:Object.freeze({count:3,fuse:.8}),
+    arrow:Object.freeze({spawnInterval:.06,volleyCount:12,flightSeconds:.45,originHeight:3,damage:2.4}),
+    meteor:Object.freeze({count:3,flightSeconds:.8,flightLifetime:3,flightRadius:.6,pathRadius:.95,pathDamage:4,penetrationSeconds:.45}),
+    fire:Object.freeze({count:12,maxHazards:24,burnOffsetY:.8,burnRadius:1.5,burnSeconds:6,burnDamage:1.8,pulseSeconds:.18}),
+    tsunami:Object.freeze({count:3,spawnInterval:.3,crossingSeconds:1.5,lifetime:2,radius:2,damage:1.2,pulseSeconds:.12,
       pushRangeX:1.7,pushRangeY:3,pushAcceleration:12,maxPushSpeed:15}),
-    thunder:Object.freeze({pulseSeconds:.65}),
-    storm:Object.freeze({pulseSeconds:.18,windFrequency:2,windAcceleration:8}),
-    fast:Object.freeze({physicsSpeedScale:1.6}),
-    big:Object.freeze({bodyRadius:.5,contactBlastRadius:1.1}),
-    spin:Object.freeze({rotationRate:9})
+    thunder:Object.freeze({duration:12,pulseSeconds:.22}),
+    storm:Object.freeze({duration:12,pulseSeconds:.06,windFrequency:2,windAcceleration:8}),
+    fast:Object.freeze({duration:15,multiplier:6,physicsSpeedScale:1.6}),
+    big:Object.freeze({duration:27,multiplier:2,bodyRadius:.75,contactBlastRadius:1.8}),
+    spin:Object.freeze({duration:24,multiplier:3,rotationRate:18})
   });
-  return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS,SELECTED_EVENTS,COMMAND_RANKS,MINECRAFT_EFFECTS});
+  return Object.freeze({PICKAXES,MATERIALS,EFFICIENCY,BUFFS,EVENTS,LIMITS,LEGACY_LIMITS,LEGACY_EFFECTS,SELECTED_EVENTS,COMMAND_RANKS,MINECRAFT_EFFECTS});
 }));

@@ -72,6 +72,16 @@
   function originLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'CHAT YOUTUBE':'EVENTO DE LA MINA';}
   function presentInteraction(){
     const activation=experience.state.lastActivation,feedback=experience.state.lastFeedback;
+    const subscriber=experience.state.subscriberAlert,alert=element('subscriber-alert');
+    if(subscriber&&alert.dataset.actionId!==subscriber.id){
+      alert.dataset.actionId=subscriber.id;
+      element('subscriber-name').textContent=subscriber.actorName;
+      const sprite=alert.querySelector?.('.bw-subscriber-sprite');
+      // Restart only for a genuinely new accepted subscription, never a HUD tick.
+      sprite?.getAnimations?.().forEach(animation=>{animation.cancel();animation.play();});
+    }
+    alert.hidden=!subscriber;
+    alert.dataset.reducedMotion=String(reducedMotion);
     element('activation-card').hidden=!activation;
     if(activation){
       element('activation-source').textContent=activation.speechKind?'RECOMPENSA YOUTUBE':originLabel(activation.source);
@@ -103,7 +113,7 @@
       ['error','quota_exhausted','stopped'].includes(rewardStatus)?'RECOMPENSAS NO DISPONIBLES':'RECOMPENSAS PENDIENTES';
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
     const label=descriptor?.label||active?.kind||'';
-    element('timer-caption').textContent=active?'EVENTO: '+label:'SIGUIENTE EVENTO';
+    element('timer-caption').textContent=active?'EVENT ACTIVE':'NEXT EVENT';
     const remainingLabel=active?(active.remaining>0?active.remaining.toFixed(1)+'s':'EN CURSO'):state.nextEventIn.toFixed(1)+'s';
     element('next-event').textContent=state.paused?'PAUSA':remainingLabel;
     element('timer-card').classList.toggle('is-active',Boolean(active));

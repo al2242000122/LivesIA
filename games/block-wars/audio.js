@@ -10,7 +10,7 @@
   const EVENT_TTL = 8000, DEDUPE_TTL = 120000, MAX_SEEN = 256, ERROR_BACKOFF = 30000;
   const SOURCES = new Set(['simulator','tikfinity','youtube','automatic']);
   const KINDS = new Set([...Object.keys(Config.EVENTS), ...Object.keys(Config.BUFFS), 'mine', 'follow']);
-  const SPEECH_REWARDS = Object.freeze({like_milestone:'tnt',youtube_subscriber:'follow'});
+  const SPEECH_REWARDS = Object.freeze({like_milestone:['tnt','nuke'],youtube_subscriber:['follow','nuke']});
 
   function normalize(input, at) {
     if (!input || typeof input !== 'object' || typeof input.id !== 'string' ||
@@ -18,10 +18,10 @@
     if (input.actorName !== undefined && typeof input.actorName !== 'string') return null;
     if (input.team !== undefined && !['dark','light','neutral'].includes(input.team)) return null;
     if (input.narrate !== undefined && typeof input.narrate !== 'boolean') return null;
-    const rewardSpeech=input.source==='youtube'&&/^ytr:[a-f0-9]{32}$/.test(input.id)&&
-      (input.speechKind==='like_milestone'&&input.kind==='tnt'||input.speechKind==='youtube_subscriber'&&input.kind==='nuke');
+    const rewardSpeech=input.source==='youtube'&&/^ytr:[a-f0-9]{32}$/.test(input.id)&&input.kind==='nuke'&&
+      Object.hasOwn(SPEECH_REWARDS,input.speechKind);
     if (input.speechKind !== undefined && !rewardSpeech && (input.source !== 'simulator' ||
-      !Object.hasOwn(SPEECH_REWARDS,input.speechKind) || SPEECH_REWARDS[input.speechKind] !== input.kind)) return null;
+      !Object.hasOwn(SPEECH_REWARDS,input.speechKind) || !SPEECH_REWARDS[input.speechKind].includes(input.kind))) return null;
     // Names are data, never narration instructions. The server repeats moderation.
     const actorName = input.source === 'automatic' || input.speechKind === 'like_milestone' ? '' : (input.actorName || '').slice(0,80).normalize('NFKC')
       .replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);

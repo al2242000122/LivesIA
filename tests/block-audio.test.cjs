@@ -95,8 +95,8 @@ test('official reward adapter through engine to voice preserves grant IDs and mo
   h.media[0].end();await flush();
   experience.handleEvent(adapter.normalizeYouTubeReward(wire(2,'subscriber')));experience.update(.25);await flush();
   assert.deepEqual(h.requests[1].event,{id:wire(2).id,kind:'youtube_subscriber',actorName:'Ana López',team:'neutral',source:'youtube'});
-  assert.equal(engine.state.entities.filter(e=>e.kind==='nuke'&&e.actionId===wire(2).id).length,3);
-  for(const patch of [{id:'yt:'+'c'.repeat(32)},{kind:'follow'},{speechKind:'like_milestone'},{source:'tikfinity'}]){
+  assert.equal(engine.state.entities.filter(e=>e.kind==='nuke'&&e.actionId===wire(2).id).length,10);
+  for(const patch of [{id:'yt:'+'c'.repeat(32)},{kind:'follow'},{speechKind:'arbitrary'},{source:'tikfinity'}]){
     assert.equal(h.audio.notify({id:wire(3).id,kind:'nuke',speechKind:'youtube_subscriber',actorName:'Ana',source:'youtube',narrate:true,...patch}),false);
   }
   h.media[1].end();await flush();
@@ -106,7 +106,7 @@ test('official reward adapter through engine to voice preserves grant IDs and mo
 
 test('canceling YouTube rewards releases their active and pending voices while preserving music, FX and simulator voice',async()=>{
   const h=harness();await h.audio.enable();
-  const yt=n=>({id:'ytr:'+n.toString(16).padStart(32,'0'),kind:'tnt',source:'youtube',speechKind:'like_milestone',narrate:true});
+  const yt=n=>({id:'ytr:'+n.toString(16).padStart(32,'0'),kind:'nuke',source:'youtube',speechKind:'like_milestone',narrate:true});
   h.audio.notify(yt(1));await flush();h.audio.notify(yt(2));h.audio.notify(h.event('preserved'));
   const music=h.samples.find(sample=>sample.loop),fx=h.samples.filter(sample=>!sample.loop),voice=h.media[0];
   h.audio.cancelYouTubeRewards();await flush();

@@ -260,11 +260,11 @@ test('SDK transport rejects redirects without following a foreign endpoint', asy
   assert.ok(!JSON.stringify(result).includes('foreign.invalid'));
 });
 
-test('typed real YouTube reward templates thank one like and name a public subscriber with triple NUKE',async()=>{
+test('typed real YouTube reward templates thank one like and name a public subscriber with ten NUKE charges',async()=>{
  const {speech,calls,advance}=fixture();
  assert.equal((await speech.synthesize(payload(500,{kind:'like_milestone',source:'youtube',actorName:''}))).statusCode,200);
- assert.match(JSON.parse(calls[0][1].body).text,/Nuevo like.*TNT/);advance();
+ assert.match(JSON.parse(calls[0][1].body).text,/Nuevo like.*[Tt]res.*NUKE/);advance();
  assert.equal((await speech.synthesize(payload(501,{kind:'youtube_subscriber',source:'youtube'}))).statusCode,200);
- assert.match(JSON.parse(calls[1][1].body).text,/Ana Mar\u00eda.*Triple NUKE/);
+ assert.match(JSON.parse(calls[1][1].body).text,/Ana Mar\u00eda.*[Dd]iez.*NUKE/);
  assert.equal((await speech.synthesize(payload(502,{kind:'tnt',source:'youtube'}))).statusCode,400);
 });
