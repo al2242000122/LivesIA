@@ -29,3 +29,7 @@ Title and thumbnail are the primary discovery work. Tags remain focused on the a
 Baseline391/391 tests and78 syntax checks passed. English alias tests and updated copy assertions are included. Adversarial review found untranslated server errors and a startup test helper tied to Spanish console text; these were corrected. Final verification: 394/394 tests passed; 78 files passed syntax checks. Adversarial security/logic review passed. These checks used fixtures and made no real TTS calls.
 
 Rollback: revert the feature commit, restart only the owned local server and refresh the browser source when appropriate. Restoring YouTube branding is a separate Studio action using the retained originals; a Git revert does not change YouTube. Never stop/start a LIVE as part of routine rollback.
+
+## Final local check
+
+Six virtual hours completed (432000ticks), with identical reduced-motion replay and bounded active work. The deployed browser at720×1280CSS pixels displayed English HUD/alerts and accepted overlapping RAIN/TNT/FAST simulations marked TEST; browser error log was empty. Source audio was enabled locally, with zero real TTS characters used. The preview was closed afterward. The owned local server remains ready on4173 with YouTube reader idle/errornull; OBS remains stopped and no broadcast was started. Public channel screenshot and asset prompts remain in ignored artifacts/branding/english.
