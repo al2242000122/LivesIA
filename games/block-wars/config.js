@@ -59,7 +59,7 @@
     tnt_rain:event('tnt_rain','TNT RAIN','#f69e69','blast',16,5,0.9,1.7,6,'circle'),
     thunder:event('thunder','THUNDER','#ffdd79','blast',9,4,1,0.55,1,'column'),
     fire:event('fire','FIRE STORM','#ff9a48','blast',14,6,0.65,1.3,4,'circle'),
-    rain:event('rain','LLUVIA DE PICOS','#79d9cf','blast',8,10,1.1,1.7,8,'circle'),
+    rain:event('rain','PICKAXE RAIN','#79d9cf','blast',8,10,1.1,1.7,8,'circle'),
     storm:event('storm','STORM','#9bcde8','blast',24,6,0.65,0.8,1,'circle'),
     creeper:event('creeper','CREEPER','#70bd53','blast',12,6,1,2.5,1,'circle'),
     tsunami:event('tsunami','TSUNAMI','#48b4c9','blast',20,5,3,2,1,'band'),

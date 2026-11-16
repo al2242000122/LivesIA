@@ -76,7 +76,7 @@ test('Block Wars app identifies simulator/relay separately and never claims veri
   app.transport.onEvent({type:'like',source:'tikfinity',id:'t1',receivedAt:2,data:{delta:10}});
   app.transport.onStatus({relay:'connected',verified:false});app.tick(6000);
   assert.match(app.nodes.get('source').textContent,/DEMO \+ RELAY/);
-  assert.match(app.nodes.get('relay').textContent,/NO VERIFICADO/);
+  assert.match(app.nodes.get('relay').textContent,/UNVERIFIED/);
   const telemetry=JSON.parse(app.requests.find(request=>request.url==='/api/block-wars/telemetry').options.body);
   assert.equal(telemetry.source,'mixed');assert.equal(telemetry.fps>=0,true);assert.equal(telemetry.mode,'endless');
   assert.deepEqual(Object.keys(telemetry).sort(),['fps','frameMs','particles','paused','queue','reducedMotion','remaining','round','source','mode','depth','elapsed'].sort());
@@ -105,8 +105,8 @@ test('YouTube scene blocks TikFinity while preserving simulator rewards and trut
   assert.equal(app.engine.state.entities.length,0);
   app.transport.onEvent({type:'like',source:'simulator',id:'yt-simulator',receivedAt:2,data:{delta:25}});
   assert.ok(app.engine.state.entities.length>0);app.tick(6000);
-  assert.match(app.nodes.get('source').textContent,/YOUTUBE.*ESPERANDO COMENTARIOS/);
-  assert.match(app.nodes.get('relay').textContent,/SINCRONIZANDO CHAT/);
+  assert.match(app.nodes.get('source').textContent,/YOUTUBE.*WAITING FOR COMMENTS/);
+  assert.match(app.nodes.get('relay').textContent,/SYNCING CHAT/);
   assert.equal(app.nodes.has('like-progress'),false,'removed slogan has no hidden test-only node');
   assert.equal(app.sounds[0].speechKind,'like_milestone');
   const command=harness('youtube');
@@ -116,20 +116,20 @@ test('YouTube scene blocks TikFinity while preserving simulator rewards and trut
   subscriber.transport.onEvent({type:'follow',source:'simulator',id:'yt-sub',receivedAt:4,actor:{stableHash:'sub',displayName:'Sub demo'},data:{}});
   subscriber.tick(200);
   assert.equal(subscriber.sounds[0].speechKind,'youtube_subscriber');
-  assert.equal(subscriber.nodes.get('activation-title').textContent,'SUSCRIPTOR DE PRUEBA');
+  assert.equal(subscriber.nodes.get('activation-title').textContent,'TEST SUBSCRIBER');
 });
 
 test('comment activation names the correct author and a rejected command is never labelled activated',()=>{
   const app=harness();
   const event={type:'comment',source:'simulator',id:'rain-ana',receivedAt:100,actor:{stableHash:'ana',displayName:'Ana'},data:{text:'!rain'}};
   app.transport.onEvent(event);app.tick(10);app.tick(200);
-  assert.match(app.nodes.get('activation-title').textContent,/RAIN|LLUVIA/);
+  assert.match(app.nodes.get('activation-title').textContent,/PICKAXE RAIN/);
   assert.match(app.nodes.get('activation-actor').textContent,/Ana/);
-  assert.match(app.nodes.get('activation-source').textContent,/PRUEBA/);
+  assert.match(app.nodes.get('activation-source').textContent,/TEST/);
   app.transport.onControl({type:'bw_pause',target:'block-wars',paused:true});
   app.transport.onEvent({...event,id:'rain-beto',receivedAt:101,actor:{stableHash:'beto',displayName:'Beto'}});
   app.tick(400);
-  assert.match(app.nodes.get('command-feedback').textContent,/pausada/i);
+  assert.match(app.nodes.get('command-feedback').textContent,/paused/i);
   assert.doesNotMatch(app.nodes.get('activation-actor').textContent,/Beto/);
   app.transport.onControl({type:'bw_emergency',target:'block-wars'});app.tick(600);
   assert.equal(app.nodes.get('activation-card').hidden,true);
@@ -159,24 +159,24 @@ test('the server and shared event adapter retain the fictitious comment author d
 test('YouTube activation UI preserves author/source and clears connected status on reconnect',()=>{
   const app=harness('youtube');assert.equal(app.transport.youtubeEnabled,true);
   app.transport.onYouTubeState({state:'connected'});app.tick(200);
-  assert.match(app.nodes.get('relay').textContent,/TRANSPORTE DE CHAT CONECTADO/);
+  assert.match(app.nodes.get('relay').textContent,/CHAT TRANSPORT CONNECTED/);
   app.transport.onEvent({type:'comment',source:'youtube',id:'yt:'+'a'.repeat(32),receivedAt:1,actor:{stableHash:'b'.repeat(32),displayName:'Ana'},data:{text:'THUNDER'}});app.tick(400);
   assert.equal(app.nodes.get('activation-source').textContent,'');assert.equal(app.nodes.get('activation-source').hidden,true);assert.equal(app.nodes.get('activation-actor').textContent,'Ana');assert.equal(app.sounds[0].narrate,false);
-  assert.doesNotMatch(app.nodes.get('event-banner').textContent,/CHAT YOUTUBE|RECOMPENSA YOUTUBE/);assert.match(app.nodes.get('event-banner').textContent,/Ana/);
-  app.transport.onYouTubeState({state:'reconnecting'});app.tick(600);assert.match(app.nodes.get('relay').textContent,/DESCONECTADO/);
+  assert.doesNotMatch(app.nodes.get('event-banner').textContent,/YOUTUBE CHAT|YOUTUBE REWARD/);assert.match(app.nodes.get('event-banner').textContent,/Ana/);
+  app.transport.onYouTubeState({state:'reconnecting'});app.tick(600);assert.match(app.nodes.get('relay').textContent,/DISCONNECTED/);
 });
 
 test('YouTube reward callout reflects reader state and public subscriber privacy without changing local mode',()=>{
   const app=harness('youtube');
   assert.equal(app.nodes.get('youtube-rewards').hidden,false);
-  assert.match(app.nodes.get('reward-status').textContent,/PENDIENTE/);
+  assert.match(app.nodes.get('reward-status').textContent,/PENDING/);
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8');
   assert.match(html,/LIKE <em>=<\/em> <b>ULTRANUKE ×3/);assert.match(html,/SUB <em>=<\/em> <b>ULTRANUKE ×10/);
-  assert.match(html,/Solo suscripciones públicas.*demora/);
+  assert.match(html,/Public subscriptions only.*Delays possible/);
   app.transport.onYouTubeState({state:'connected',rewards:{state:'active'}});app.tick(200);
-  assert.match(app.nodes.get('reward-status').textContent,/ACTIVAS/);
+  assert.match(app.nodes.get('reward-status').textContent,/ACTIVE/);
   app.transport.onYouTubeState({state:'reconnecting'});app.tick(400);
-  assert.match(app.nodes.get('reward-status').textContent,/PENDIENTE/);
+  assert.match(app.nodes.get('reward-status').textContent,/PENDING/);
   assert.equal(harness().nodes.get('youtube-rewards').hidden,true);
 });
 
@@ -184,14 +184,14 @@ test('app routes public subscriber reward attribution and pause cancels reward b
   const app=harness('youtube'),reward=(n,type='like')=>({type,source:'youtube',id:'ytr:'+n.toString(16).padStart(32,'0'),receivedAt:Date.now(),actor:{displayName:type==='subscriber'?'Ana':'',stableHash:'a'.repeat(32)},data:type==='like'?{delta:1}:{}});
   app.transport.onEvent(reward(1,'subscriber'));app.tick(200);
   assert.equal(app.sounds[0].kind,'nuke');assert.equal(app.nodes.get('activation-source').textContent,'');
-  assert.equal(app.nodes.get('activation-actor').textContent,'Ana');assert.match(app.nodes.get('source').textContent,/EVENTOS RECIBIDOS/);
+  assert.equal(app.nodes.get('activation-actor').textContent,'Ana');assert.match(app.nodes.get('source').textContent,/EVENTS RECEIVED/);
   app.transport.onEvent(reward(2));app.transport.onControl({type:'bw_pause',target:'block-wars',paused:true});
   app.transport.onControl({type:'bw_pause',target:'block-wars',paused:false});app.tick(400);app.tick(650);
   assert.equal(app.sounds.length,1);
 });
 test('OBS view removes the title and boxed diagnostics but keeps actual control IDs and truthful reward actions',()=>{
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'games/block-wars/style.css'),'utf8');
-  assert.doesNotMatch(html,/<h1>MINA INFINITA|Escribe un comando del menú|Wait For|30 Seconds/i);
+  assert.doesNotMatch(html,/<h1>INFINITE MINE|Type a command from the menu|Wait For|30 Seconds/i);
   const callout=html.match(/<aside id="youtube-rewards"[\s\S]*?<\/aside>/)[0];
   assert.match(callout,/LIKE/);assert.match(callout,/NUKE ×3/);assert.match(callout,/SUB/);assert.match(callout,/NUKE ×10/);
   assert.match(callout,/id="reward-status"[^>]*class="bw-sr-only"/);
@@ -221,7 +221,7 @@ test('Minecraft public subscriber alert uses moderated text and a stable six-sec
   app.transport.onEvent(reward);app.tick(200);
   assert.equal(app.nodes.get('subscriber-alert').hidden,false);assert.equal(app.nodes.get('subscriber-name').textContent,'Ana López');
   const html=fs.readFileSync(path.join(root,'games/block-wars/index.html'),'utf8'),css=fs.readFileSync(path.join(root,'games/block-wars/style.css'),'utf8');
-  assert.match(html,/NUEVO SUSCRIPTOR/);assert.match(html,/ULTRANUKE ×10/);assert.match(html,/data-reward-icon="nuke_subscriber"/);
+  assert.match(html,/NEW SUBSCRIBER/);assert.match(html,/ULTRANUKE ×10/);assert.match(html,/data-reward-icon="nuke_subscriber"/);
   assert.match(css,/@keyframes bw-subscriber/);assert.match(css,/@media\(prefers-reduced-motion:reduce\)[\s\S]*bw-subscriber/);
   const demo=harness('youtube');demo.transport.onEvent({...reward,source:'simulator',type:'follow',id:'demo-sub'});demo.tick(200);
   assert.equal(demo.nodes.get('subscriber-alert').hidden,true,'simulated follow cannot display a real subscriber alert');
@@ -245,6 +245,6 @@ test('queued commands show a receipt without a fake activation or sound',()=>{
   app.transport.onEvent({type:'comment',source:'youtube',id:'queue-visible',receivedAt:1,actor:{displayName:'Ana',stableHash:'ana'},data:{text:'NUKE'}});
   app.tick(200);
   assert.equal(app.nodes.get('command-feedback').hidden,false);
-  assert.match(app.nodes.get('command-feedback').textContent,/Ana.*en cola/);
+  assert.match(app.nodes.get('command-feedback').textContent,/Ana.*queued/);
   assert.equal(app.nodes.get('activation-card').hidden,true);assert.equal(app.sounds.length,0);
 });

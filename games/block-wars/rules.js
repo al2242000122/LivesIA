@@ -19,7 +19,8 @@
   }
   const SOURCES=['simulator','tikfinity','youtube'];
   const CREDIT_SOURCES=['simulator','tikfinity'];
-  const PICKS={ '!madera':'wood','!piedra':'stone','!oro':'gold','!diamante':'diamond','!netherita':'netherite' };
+  const PICKS={ '!wood':'wood','!stone':'stone','!gold':'gold','!diamond':'diamond','!netherite':'netherite',
+    '!madera':'wood','!piedra':'stone','!oro':'gold','!diamante':'diamond','!netherita':'netherite' };
   const DEFAULTS={likeThreshold:25,teamCooldownMs:60000,mineCooldownMs:15000,boomCooldownMs:30000,followCooldownMs:60000,effectCooldownMs:10000,actorEffectCooldownMs:15000,
     rainThreshold:5,boomThreshold:3,pickVoteThreshold:3,pickWindowMs:30000,maxEffectsPerFlush:8,maxActors:2000,maxDedupe:4000,
     actorTtlMs:1800000,dedupeTtlMs:300000,maxLikeDelta:1000000,maxNotifications:6};
@@ -102,7 +103,7 @@
         const source=CREDIT_SOURCES[(drainFirst+i)%CREDIT_SOURCES.length],bucket=buckets[source],count=Math.min(budget,bucket.pending);
         if(count&&act({type:'tnt',team:'neutral',count},{source,community:true,trigger:'like'})){
           bucket.pending-=count;budget-=count;accepted+=count;metrics.bySource[source].tnt=add(metrics.bySource[source].tnt,count);
-          notify('tnt','TNT comunitaria activada');
+          notify('tnt','Community TNT activated');
         }
       }
       drainFirst=(drainFirst+1)%CREDIT_SOURCES.length;refresh();return accepted;
@@ -155,7 +156,7 @@
       if(event.type==='comment'){
         m.comments=add(m.comments,1);
         if(typeof event.data.text!=='string'||event.data.text.length>500)return reject(source);
-        const command=event.data.text.trim().toLowerCase().replace(/\s+/g,' '),effect=effectType(command);
+        const input=event.data.text.trim().toLowerCase().replace(/\s+/g,' '),command=input==='!pick'?'!pico':input,effect=effectType(command);
         if(!effect&&!['!dark','!light','!mine','!boom','!voterain','!pico',...Object.keys(PICKS)].includes(command))return outcome(false,'unknown');
         outcome(false,'pending',0,effect||command.slice(1));
         if(effect&&unavailable())return reject(source,unavailable());
@@ -176,7 +177,7 @@
       const user=record(key);if(!user)return reject(source,'capacity');
       if(clock-user.followAt<settings.followCooldownMs)return reject(source,'actor_cooldown',settings.followCooldownMs-(clock-user.followAt));
       if(!act({type:'repair',team:user.team||'neutral'}))return reject(source,unavailable()||'engine_busy');
-      user.followAt=clock;m.follows=add(m.follows,1);notify('follow','Nuevo follow: refuerzo gratuito',user.team);refresh();return outcome(true,'rewarded');
+      user.followAt=clock;m.follows=add(m.follows,1);notify('follow','New follower: free boost',user.team);refresh();return outcome(true,'rewarded');
     }
     function comment(command,user,key,identified,effect){
       if(effect){
@@ -184,12 +185,12 @@
         const wait=rapid?0:effectWait(effect,user.team);if(wait>0)return outcome(false,'engine_cooldown',wait);
         if(!rapid&&busy(effect))return outcome(false,'engine_busy');
         if(!act({type:effect,team:user.team||'neutral'}))return outcome(false,unavailable()||'engine_busy');
-        lastEffectAt=clock;user.effectAt=clock;notify('effect','Evento gratuito: '+EVENTS[effect].label,user.team);return true;
+        lastEffectAt=clock;user.effectAt=clock;notify('effect','Free event: '+EVENTS[effect].label,user.team);return true;
       }
       if(command==='!pico'){
         const team=user.team,tool=team&&engine.state.teams[team].pickaxe;
-        const names={wood:'madera',stone:'piedra',gold:'oro',diamond:'diamante',netherite:'netherita'};
-        notify('info',team?'Pico de equipo: '+(names[tool]||'disponible'):'Elige equipo con !dark o !light',team);return true;
+        const names={wood:'wood',stone:'stone',gold:'gold',diamond:'diamond',netherite:'netherite'};
+        notify('info',team?'Team pickaxe: '+(names[tool]||'available'):'Choose a team with !dark or !light',team);return true;
       }
       if(!identified)return outcome(false,'identity_required');
       if(command==='!dark'||command==='!light'){
@@ -197,14 +198,14 @@
         if(user.team===team)return outcome(false,'already_selected');
         if(clock-user.changedAt<settings.teamCooldownMs)return outcome(false,'actor_cooldown',settings.teamCooldownMs-(clock-user.changedAt));
         if(user.team)state.membershipCounts[user.team]--;user.team=team;user.changedAt=clock;state.membershipCounts[team]++;
-        notify('team','Equipo '+team.toUpperCase()+' seleccionado',team);return true;
+        notify('team','Team '+team.toUpperCase()+' selected',team);return true;
       }
       if(command==='!voterain'){
         if(rainTriggered||rainVoters.has(key))return outcome(false,'already_voted');
         if(rainVoters.size>=settings.maxActors)return outcome(false,'capacity');
         rainVoters.set(key,true);state.rainVotes++;
         if(state.rainVotes>=settings.rainThreshold){
-          if(act({type:'rain',team:'neutral'},{source:key.split(':')[0],community:true})){rainTriggered=true;notify('rain','Lluvia comunitaria activada');}
+          if(act({type:'rain',team:'neutral'},{source:key.split(':')[0],community:true})){rainTriggered=true;notify('rain','Community rain activated');}
           else{rainVoters.delete(key);state.rainVotes--;return outcome(false,unavailable()||'engine_busy');}
         }
         return true;
@@ -217,7 +218,7 @@
       }
       if(command==='!boom'){
         if(clock-user.boomAt<settings.boomCooldownMs)return outcome(false,'actor_cooldown',settings.boomCooldownMs-(clock-user.boomAt));
-        if(state.boomCharge+1>=settings.boomThreshold){if(!act({type:'tnt',team:user.team},{source:key.split(':')[0],community:true}))return outcome(false,unavailable()||'engine_busy');state.boomCharge=0;notify('tnt','Carga comunitaria activada',user.team);}
+        if(state.boomCharge+1>=settings.boomThreshold){if(!act({type:'tnt',team:user.team},{source:key.split(':')[0],community:true}))return outcome(false,unavailable()||'engine_busy');state.boomCharge=0;notify('tnt','Community charge activated',user.team);}
         else state.boomCharge++;
         user.boomAt=clock;return true;
       }
@@ -228,7 +229,7 @@
       const ballot=state.teams[user.team],votes=ballot.votes;
       if(!ballot.pickWinner&&votes[pick]+1>=settings.pickVoteThreshold){
         if(!act({type:'pickaxe',team:user.team,pickaxe:pick}))return outcome(false,unavailable()||'engine_busy');
-        ballot.pickWinner=pick;notify('pickaxe','Pico elegido por votación',user.team);
+        ballot.pickWinner=pick;notify('pickaxe','Pickaxe selected by vote',user.team);
       }
       votes[pick]++;user.pickWindow=pickWindow;
       return true;

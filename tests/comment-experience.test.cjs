@@ -30,8 +30,8 @@ test('activation provenance uses the exact same local ID for engine, voice and f
   assert.equal(metadata.actionId,f.heard[0].id);
   assert.equal(metadata.actionId,f.experience.state.lastActivation.id);
   assert.equal(f.experience.state.lastActivation.actorName,'Ana');
-  assert.match(f.notices.at(-1).text,/PRUEBA.*Ana.*TNT/);
-  assert.doesNotMatch(f.notices.at(-1).text,/próximo contacto/);
+  assert.match(f.notices.at(-1).text,/TEST.*Ana.*TNT/);
+  assert.doesNotMatch(f.notices.at(-1).text,/next contact/);
 });
 
 test('cooldown rejections explain exact remaining time and never announce an activation',()=>{
@@ -65,8 +65,8 @@ test('legacy rain voting is retained explicitly as !voterain without claiming an
 
 test('normalization cannot introduce markup and transient UI can be cleared on emergency',()=>{
   const f=fixture();f.send('TNT',0,'＜script＞');
-  assert.equal(f.heard[0].actorName,'un minero');
-  assert.equal(f.actions[0].metadata.actor,'un minero');
+  assert.equal(f.heard[0].actorName,'a miner');
+  assert.equal(f.actions[0].metadata.actor,'a miner');
   assert.ok(f.experience.state.lastActivation);
   f.experience.clear();assert.equal(f.experience.state.lastActivation,null);assert.equal(f.experience.state.lastFeedback,null);
   f.send('RAIN',20000,'Ana');f.experience.update(8.1);
@@ -95,7 +95,7 @@ test('busy or paused rejections preserve the existing effect author and have no 
   assert.equal(f.engine.state.weather.actor,'Ana');
   f.engine.state.paused=true;assert.equal(f.send('RAIN',20000,'Bea'),false);
   assert.equal(f.rules.state.lastOutcome.reason,'paused');assert.equal(f.heard.length,0);
-  assert.match(f.notices.at(-1).text,/pausada/);
+  assert.match(f.notices.at(-1).text,/paused/);
 });
 
 test('impact cues play once per actual impact and do not create additional narration',()=>{

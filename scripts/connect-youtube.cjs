@@ -18,14 +18,14 @@ async function main(args = process.argv.slice(2)) {
   const flow = await startYouTubeAuthorization({
     clientFile: args[0], authFile: args[1], overwrite: args[2] === '--overwrite'
   });
-  console.log(`Abre esta página local en tu navegador: ${flow.localUrl}`);
+  console.log(`Open this local page in your browser: ${flow.localUrl}`);
   await flow.done;
-  console.log('Autorización privada guardada.');
+  console.log('Private authorization saved.');
 }
 
 if (require.main === module) {
   main().catch(error => {
-    console.error(`No se completó la configuración OAuth (${diagnosticCode(error)}). Verifica rutas, cliente Desktop y autorización.`);
+    console.error(`OAuth setup did not complete (${diagnosticCode(error)}). Check paths, Desktop client and authorization.`);
     process.exitCode = 1;
   });
 }

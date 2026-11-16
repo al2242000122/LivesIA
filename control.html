@@ -1,35 +1,35 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Panel de control — Serpiente Infinita</title><link rel="stylesheet" href="/styles.css">
+<title>Control panel — Infinite Snake</title><link rel="stylesheet" href="/styles.css">
 </head>
 <body class="dashboard">
 <main class="control-shell">
-  <nav><a href="/block-wars">Abrir Block Wars</a> · <a href="/block-wars/control">Panel de Block Wars</a></nav>
-  <div class="control-top"><div><div class="eyebrow">PANEL DEL CREADOR</div><h1>Serpiente Infinita</h1><p>Simula los eventos antes de transmitir. Los botones NO envían regalos reales a TikTok.</p></div><div class="preview-link"><a href="/" target="_blank">Abrir juego ↗</a></div></div>
-  <div class="status-card"><span class="pulse"></span><strong id="views">Verificando ventanas...</strong><span id="feedback"> </span></div>
-  <section class="control-section"><h2>Simular regalos</h2><div class="button-grid">
-    <button data-type="gift" data-gift="Rosa"><span>🌹</span> Rosa <small>+2 manzanas</small></button>
-    <button data-type="gift" data-gift="Corazón"><span>❤️</span> Corazón <small>+1 escudo</small></button>
-    <button data-type="gift" data-gift="Dona"><span>🍩</span> Dona <small>Turbo temporal</small></button>
-    <button data-type="gift" data-gift="Galaxy"><span>🌌</span> Galaxia <small>+8 manzanas</small></button>
-    <button data-type="gift" data-gift="Regalo desconocido"><span>🎁</span> Otro regalo <small>+1 manzana</small></button>
+  <nav><a href="/block-wars">Open Infinite Mine</a> · <a href="/block-wars/control">Infinite Mine controls</a></nav>
+  <div class="control-top"><div><div class="eyebrow">CREATOR PANEL</div><h1>Infinite Snake</h1><p>Simulate events before streaming. These buttons do NOT send real TikTok gifts.</p></div><div class="preview-link"><a href="/" target="_blank">Open game ↗</a></div></div>
+  <div class="status-card"><span class="pulse"></span><strong id="views">Checking game windows...</strong><span id="feedback"> </span></div>
+  <section class="control-section"><h2>Simulate gifts</h2><div class="button-grid">
+    <button data-type="gift" data-gift="Rosa"><span>🌹</span> Rose <small>+2 apples</small></button>
+    <button data-type="gift" data-gift="Corazón"><span>❤️</span> Heart <small>+1 shield</small></button>
+    <button data-type="gift" data-gift="Dona"><span>🍩</span> Donut <small>Temporary turbo</small></button>
+    <button data-type="gift" data-gift="Galaxy"><span>🌌</span> Galaxy <small>+8 apples</small></button>
+    <button data-type="gift" data-gift="Unknown gift"><span>🎁</span> Other gift <small>+1 apple</small></button>
   </div></section>
-  <section class="control-section"><h2>Interacciones gratuitas</h2><div class="button-grid">
-    <button data-type="like"><span>👍</span> 100 likes <small>+1 manzana</small></button>
-    <button data-type="follow"><span>⭐</span> Follow <small>+1 manzana</small></button>
-    <button data-type="chat"><span>💬</span> !manzana <small>+1 manzana</small></button>
+  <section class="control-section"><h2>Free interactions</h2><div class="button-grid">
+    <button data-type="like"><span>👍</span> 100 likes <small>+1 apple</small></button>
+    <button data-type="follow"><span>⭐</span> Follow <small>+1 apple</small></button>
+    <button data-type="chat"><span>💬</span> !apple <small>+1 apple</small></button>
   </div></section>
-  <section class="control-section"><h2>Suscripción de prueba (puede ser pagada)</h2><div class="button-grid">
-    <button data-type="subscribe"><span>💎</span> Suscripción <small>Prueba local: +5 manzanas</small></button>
+  <section class="control-section"><h2>Test subscription (may be paid)</h2><div class="button-grid">
+    <button data-type="subscribe"><span>💎</span> Subscription <small>Local test: +5 apples</small></button>
   </div></section>
-  <section class="control-section"><h2>Control de la partida</h2><div class="button-grid">
-    <button data-type="pause"><span>⏯</span> Pausar / continuar</button>
-    <button data-type="reset"><span>↻</span> Nueva partida</button>
-    <button data-type="frenzy"><span>✨</span> Evento especial</button>
+  <section class="control-section"><h2>Game controls</h2><div class="button-grid">
+    <button data-type="pause"><span>⏯</span> Pause / resume</button>
+    <button data-type="reset"><span>↻</span> New game</button>
+    <button data-type="frenzy"><span>✨</span> Special event</button>
   </div></section>
-  <section class="control-section tips"><h2>Cómo conectar TikTok</h2><p>El juego intenta conectarse a <code>ws://127.0.0.1:21213/</code>, la API de eventos de <a href="https://tikfinity.com/" target="_blank" rel="noopener">TikFinity Desktop</a>. «RELAY CONECTADO» sólo confirma ese enlace local. Verifica por separado los eventos del LIVE y la elegibilidad de la cuenta. Los botones de este panel siempre son pruebas.</p><p>Para OBS añade una <b>fuente de navegador</b> con URL <code>http://127.0.0.1:4173/</code> y resolución <b>720 × 1280</b>. No compartas este panel durante la transmisión.</p></section>
+  <section class="control-section tips"><h2>Connecting TikTok</h2><p>The game attempts to connect to <code>ws://127.0.0.1:21213/</code>, the event API for <a href="https://tikfinity.com/" target="_blank" rel="noopener">TikFinity Desktop</a>. “RELAY CONNECTED” only confirms the local connection. Verify LIVE events and account eligibility separately. All buttons on this panel are simulations.</p><p>In OBS, add a <b>browser source</b> with URL <code>http://127.0.0.1:4173/</code> and resolution <b>720 × 1280</b>. Keep this panel out of your broadcast.</p></section>
 </main>
 <script src="/control.js"></script>
 </body></html>

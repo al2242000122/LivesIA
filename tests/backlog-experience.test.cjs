@@ -12,7 +12,7 @@ function setup(){
 test('overflow chat commands are accepted, then sound and attribution start exactly once when dispatched',()=>{
  const f=setup();for(let n=0;n<40;n++)assert.equal(f.send(n),true);
  assert.ok(f.engine.state.pendingActionCount>0);assert.ok(f.heard.length<40);
- assert.match(f.notices.at(-1).message,/en cola/i);
+ assert.match(f.notices.at(-1).message,/queued/i);
  for(let frame=0;frame<1200&&f.heard.length<40;frame++)f.app.update(1/60);
  assert.equal(f.engine.state.pendingActionCount,0);assert.equal(f.heard.length,40);
  assert.equal(new Set(f.heard.map(e=>e.id)).size,40);

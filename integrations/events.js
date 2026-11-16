@@ -56,7 +56,7 @@
       if(!type)return reject();
       const user=record(d.user)?d.user:{};
       const identity=[d.userId,user.id,d.uniqueId,user.uniqueId,user.displayId,d.username,d.actor,d.name,d.nickname,user.nickname].map(identifier).find(Boolean)||'anonymous';
-      const actor={displayName:clean(d.nickname??user.nickname??d.name??d.uniqueId??user.displayId)||'Espectador',stableHash:pseudonym(`${source}:${identity}`,salt)};
+      const actor={displayName:clean(d.nickname??user.nickname??d.name??d.uniqueId??user.displayId)||'Viewer',stableHash:pseudonym(`${source}:${identity}`,salt)};
       const common=record(d.common)?d.common:{};
       const suppliedId=simulated?raw.id:(d.msgId??common.msgId);
       let id=identifier(suppliedId);
@@ -75,7 +75,7 @@
         if(giftType!==undefined&&integer(giftType,0,100,null)===null)return reject();
         if(Number(giftType)===1&&d.repeatEnd!==true&&d.repeatEnd!==1){metrics.pending++;return null;}
         data.count=integer(simulated?d.count:d.repeatCount,1,20,1);if(data.count===null)return reject();
-        const name=d.giftName??gift.name??'Regalo';if(typeof name!=='string')return reject();
+        const name=d.giftName??gift.name??'Gift';if(typeof name!=='string')return reject();
         data.giftName=clean(name,80);data.giftId=identifier(d.giftId??gift.id);
         const group=identifier(d.groupId);
         if(group&&group!=='0')id=`group:${group}:${actor.stableHash}:${data.giftId||data.giftName}`;

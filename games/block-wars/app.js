@@ -3,9 +3,9 @@
   const element = id => document.getElementById(id);
   const youtube=typeof location==='object'&&new URLSearchParams(location.search).get('platform')==='youtube';
   if(youtube){
-    element('command-heading').textContent='COMANDOS GRATIS';
-    element('command-instruction').textContent='NIVEL 1–4 · RAIN: PICOS 10s';
-    element('notice').textContent='YouTube · Esperando estado del chat';
+    element('command-heading').textContent='FREE COMMANDS';
+    element('command-instruction').textContent='LEVEL 1–4 · RAIN: 12 PICKS / 10s';
+    element('notice').textContent='YouTube · Waiting for chat status';
   }
   const engine=BlockWarsEngine.createEngine({seed:20261110,layout:'endless',width:7,height:40,duration:180,eventInterval:60,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   const rules=BlockWarsRules.createRules(engine,{likeThreshold:25});
@@ -14,11 +14,11 @@
   const audio=BlockWarsAudio.createAudio({narrationEnabled:false,onStatus(status){
     element('audio-enable').hidden=Boolean(status.enabled);
     element('audio-gate').hidden=Boolean(status.enabled);
-    const music=status.musicStatus==='playing'?' · MÚSICA EN BUCLE':status.musicStatus==='unavailable'?' · MÚSICA NO DISPONIBLE':'';
-    element('audio-status').textContent=(status.muted||status.volume===0?'AUDIO SILENCIADO':!status.enabled?'AUDIO: ACTIVAR EN OBS → INTERACTUAR':
-      status.fxAssetStatus==='unavailable'?'FALTAN SONIDOS LOCALES DE MINECRAFT':
-      status.paused?'AUDIO EN PAUSA':status.lastStatus==='voice_error'||status.lastStatus==='voice_timeout'?'SONIDOS ACTIVOS · VOZ NO DISPONIBLE':
-      voiceAvailable&&narrationRequested?(youtube?'MINECRAFT + VOZ LIKES/SUBS':'MINECRAFT + VOZ CONFIGURADA · ENSAYAR'):'SONIDOS MINECRAFT')+music;
+    const music=status.musicStatus==='playing'?' · MUSIC LOOPING':status.musicStatus==='unavailable'?' · MUSIC UNAVAILABLE':'';
+    element('audio-status').textContent=(status.muted||status.volume===0?'AUDIO MUTED':!status.enabled?'AUDIO: ENABLE IN OBS → INTERACT':
+      status.fxAssetStatus==='unavailable'?'LOCAL MINECRAFT SOUNDS MISSING':
+      status.paused?'AUDIO PAUSED':status.lastStatus==='voice_error'||status.lastStatus==='voice_timeout'?'SOUNDS ACTIVE · VOICE UNAVAILABLE':
+      voiceAvailable&&narrationRequested?(youtube?'MINECRAFT + LIKE/SUB VOICE':'MINECRAFT + VOICE CONFIGURED · TEST FIRST'):'MINECRAFT SOUNDS')+music;
   }});
   const experience=BlockWarsExperience.createExperience(engine,rules,audio,text=>{element('notice').textContent=text;},{platform:youtube?'youtube':'local'});
   element('audio-enable').addEventListener('click',()=>audio.enable());
@@ -36,16 +36,16 @@
   let youtubeStatus='synchronizing';
   let rewardStatus='synchronizing',youtubeEvents=0;
   element('youtube-rewards').hidden=!youtube;
-  const youtubeLabels={unconfigured:'CHAT SIN CONFIGURAR',idle:'CHAT SIN SELECCIÓN',waiting_live:'ESPERANDO TRANSMISIÓN',synchronizing:'SINCRONIZANDO CHAT',connected:'TRANSPORTE DE CHAT CONECTADO',reconnecting:'CHAT DESCONECTADO · RECONECTANDO',ended:'TRANSMISIÓN TERMINADA',error:'CHAT NO DISPONIBLE',quota_exhausted:'CUOTA AGOTADA',stopped:'CHAT DETENIDO'};
-  const toolNames={wood:'MADERA',stone:'PIEDRA',gold:'ORO',diamond:'DIAMANTE',netherite:'NETHERITA'};
+  const youtubeLabels={unconfigured:'CHAT NOT CONFIGURED',idle:'NO CHAT SELECTED',waiting_live:'WAITING FOR STREAM',synchronizing:'SYNCING CHAT',connected:'CHAT TRANSPORT CONNECTED',reconnecting:'CHAT DISCONNECTED · RECONNECTING',ended:'STREAM ENDED',error:'CHAT UNAVAILABLE',quota_exhausted:'QUOTA EXHAUSTED',stopped:'CHAT STOPPED'};
+  const toolNames={wood:'WOOD',stone:'STONE',gold:'GOLD',diamond:'DIAMOND',netherite:'NETHERITE'};
   function control(command){
     if(!command||command.target!=='block-wars')return;
     sources.add('simulator');
-    element('notice').textContent='PRUEBA DE OPERADOR · '+command.type+' · Verifica el resultado y los enfriamientos.';
+    element('notice').textContent='OPERATOR TEST · '+command.type+' · Check the result.';
     switch(command.type){
       case 'bw_action':
         {const action={type:command.action,team:command.team};for(const key of ['count','pickaxe','efficiency','unbreaking','fortune'])if(Object.prototype.hasOwnProperty.call(command,key))action[key]=command[key];
-          if(!experience.action(action))element('notice').textContent='PRUEBA · Acción rechazada: pausa, resumen, cola o enfriamiento activo.';}break;
+          if(!experience.action(action))element('notice').textContent='TEST · Action rejected: mine paused, unavailable or at capacity.';}break;
       case 'bw_audio':
         if(typeof command.settings?.muted==='boolean')audio.mute(command.settings.muted);
         if(typeof command.settings?.volume==='number')audio.setVolume(command.settings.volume);
@@ -60,7 +60,7 @@
         break;
       case 'bw_pause': engine.pause(typeof command.paused==='boolean'?command.paused:!engine.state.paused);experience.pause(engine.state.paused);audio.pause(engine.state.paused);break;
       case 'bw_reset':maximumDepth=0;audio.pause(true);engine.reset(command.seed);rules.reset();experience.reset();presentInteraction();audio.pause(false);break;
-      case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();experience.clear();presentInteraction();engine.pause(true);element('notice').textContent='EMERGENCIA · Mina pausada, audio, efectos y cargas pendientes cancelados.';break;
+      case 'bw_emergency':audio.pause(true);engine.clearEffects();rules.clearPending();experience.clear();presentInteraction();engine.pause(true);element('notice').textContent='EMERGENCY · Mine paused; audio, effects and pending charges cancelled.';break;
     }
   }
   const transport=LiveTransport.connect({target:'block-wars',relayEnabled:!youtube,youtubeEnabled:youtube,onYouTubeState(status){
@@ -70,7 +70,7 @@
     if(youtube&&!['simulator','youtube'].includes(event.source))return;
     if(event.source in totals){totals[event.source]++;sources.add(event.source);}if(event.source==='youtube')youtubeEvents++;experience.handleEvent(event);
   },onControl:control,onStatus(status){relay=status.relay||'offline';}});
-  function originLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':'';}
+  function originLabel(source){return source==='simulator'?'TEST':source==='tikfinity'?'UNVERIFIED RELAY':'';}
   function presentInteraction(){
     const activation=experience.state.lastActivation,feedback=experience.state.lastFeedback;
     const subscriber=experience.state.subscriberAlert,alert=element('subscriber-alert');
@@ -86,8 +86,8 @@
     element('activation-card').hidden=!activation;
     if(activation){
       const source=element('activation-source');source.textContent=originLabel(activation.source);source.hidden=!source.textContent;
-      element('activation-title').textContent=activation.rewardVariant?'ULTRANUKE':youtube&&activation.kind==='follow'?'SUSCRIPTOR DE PRUEBA':BlockWarsConfig.EVENTS[activation.kind]?.label||'REFUERZO';
-      element('activation-actor').textContent=activation.source==='automatic'?'LA MINA':activation.actorName||'LA COMUNIDAD';
+      element('activation-title').textContent=activation.rewardVariant?'ULTRANUKE':youtube&&activation.kind==='follow'?'TEST SUBSCRIBER':BlockWarsConfig.EVENTS[activation.kind]?.label||'BOOST';
+      element('activation-actor').textContent=activation.source==='automatic'?'THE MINE':activation.actorName||'THE COMMUNITY';
     }
     const showFeedback=feedback&&(!feedback.accepted||feedback.reason==='queued');
     element('command-feedback').hidden=!showFeedback;
@@ -101,28 +101,28 @@
     const minerals=state.materialCounts||{};
     for(const material of ['coal','iron','copper','gold','redstone','lapis','diamond','emerald']){
       const count=(minerals[material]||0)+(material==='diamond'?(minerals.crystal||0):0);
-      element('mineral-'+material).textContent=count.toLocaleString('es-MX');
+      element('mineral-'+material).textContent=count.toLocaleString('en-US');
     }
     const elapsed=Math.floor(state.elapsed||0);
     element('clock').textContent=String(Math.floor(elapsed/60)).padStart(2,'0')+':'+String(elapsed%60).padStart(2,'0');
     const team=state.teams[state.focus?.team||'dark'];
-    element('tool-readout').textContent='PICO '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · FUERZA '+team.effectiveSpeed.toFixed(1);
-    element('source').textContent=youtube?(youtubeEvents?'YOUTUBE · EVENTOS RECIBIDOS':'YOUTUBE · ESPERANDO COMENTARIOS'):sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · SIN VERIFICAR'):'DEMO · AUTÓNOMO';
-    element('relay').textContent=youtube?youtubeLabels[youtubeStatus]:relay==='connected'?'RELAY ABIERTO · NO VERIFICADO':relay==='connecting'?'CONECTANDO RELAY · LIVE SIN VERIFICAR':'RELAY DESCONECTADO · LIVE SIN VERIFICAR';
+    element('tool-readout').textContent='PICKAXE '+toolNames[team.pickaxe]+(team.efficiency?' · E'+team.efficiency:'')+' · POWER '+team.effectiveSpeed.toFixed(1);
+    element('source').textContent=youtube?(youtubeEvents?'YOUTUBE · EVENTS RECEIVED':'YOUTUBE · WAITING FOR COMMENTS'):sources.has('tikfinity')?(sources.has('simulator')?'DEMO + RELAY':'RELAY · UNVERIFIED'):'DEMO · AUTONOMOUS';
+    element('relay').textContent=youtube?youtubeLabels[youtubeStatus]:relay==='connected'?'RELAY OPEN · UNVERIFIED':relay==='connecting'?'CONNECTING RELAY · LIVE UNVERIFIED':'RELAY DISCONNECTED · LIVE UNVERIFIED';
     const rewardActive=['connected','reconnecting'].includes(youtubeStatus)&&rewardStatus==='active'&&!state.paused;
     element('youtube-rewards').dataset.active=String(rewardActive);
-    element('reward-status').textContent=state.paused?'RECOMPENSAS EN PAUSA':rewardActive?'RECOMPENSAS ACTIVAS':
-      ['error','quota_exhausted','stopped'].includes(rewardStatus)?'RECOMPENSAS NO DISPONIBLES':'RECOMPENSAS PENDIENTES';
+    element('reward-status').textContent=state.paused?'REWARDS PAUSED':rewardActive?'REWARDS ACTIVE':
+      ['error','quota_exhausted','stopped'].includes(rewardStatus)?'REWARDS UNAVAILABLE':'REWARDS PENDING';
     const descriptor=active&&BlockWarsConfig.EVENTS[active.kind];
-    const label=active?.rewardVariant?'ULTRANUKE':descriptor?.label||active?.kind||'';
+    const label=active?.rewardVariant?'ULTRANUKE':descriptor?.label||({descomunal:'COLOSSAL'})[active?.kind]||active?.kind||'';
     element('timer-caption').textContent=active?'EVENT ACTIVE':'NEXT EVENT';
-    const remainingLabel=active?(active.remaining>0?active.remaining.toFixed(1)+'s':'EN CURSO'):state.nextEventIn.toFixed(1)+'s';
-    element('next-event').textContent=state.paused?'PAUSA':remainingLabel;
+    const remainingLabel=active?(active.remaining>0?active.remaining.toFixed(1)+'s':'IN PROGRESS'):state.nextEventIn.toFixed(1)+'s';
+    element('next-event').textContent=state.paused?'PAUSED':remainingLabel;
     element('timer-card').classList.toggle('is-active',Boolean(active));
     element('time-fill').style.width=Math.max(0,Math.min(100,100*(active?active.remaining/active.duration:state.nextEventIn/state.config.eventInterval)))+'%';
     const banner=element('event-banner');banner.hidden=!active;
     if(active){
-      const actor=active.source==='automatic'?'LA MINA':active.actor||'LA COMUNIDAD';
+      const actor=active.source==='automatic'?'THE MINE':active.actor||'THE COMMUNITY';
       banner.textContent=[originLabel(active.source),label,actor,remainingLabel].filter(Boolean).join(' · ');banner.style.borderColor=descriptor?.color||'#ff4444';
     }
     for(const kind of BlockWarsConfig.SELECTED_EVENTS)element('menu-'+kind).classList.toggle('is-active',active?.kind===kind||(kind==='rain'&&active?.kind==='tnt_rain'));
@@ -134,7 +134,7 @@
       const painter=icon.getContext('2d'),original=globalThis.BlockWarsTextures?.source('sprite',icon.dataset.rewardIcon);
       painter.imageSmoothingEnabled=false;painter.clearRect(0,0,16,16);
       if(original)painter.drawImage(original,0,0,16,16,0,0,16,16);
-      else{painter.fillStyle=icon.dataset.rewardIcon==='nuke_like'?'#e6c034':'#42714b';painter.fillRect(2,2,12,12);painter.fillStyle='#152019';painter.font='bold 11px monospace';painter.fillText('?',5,12);icon.title='Textura de respaldo';}
+      else{painter.fillStyle=icon.dataset.rewardIcon==='nuke_like'?'#e6c034':'#42714b';painter.fillRect(2,2,12,12);painter.fillStyle='#152019';painter.font='bold 11px monospace';painter.fillText('?',5,12);icon.title='Fallback texture';}
     }
     for(const icon of document.querySelectorAll?.('canvas[data-icon]')||[]){
       const textures=globalThis.BlockWarsTextures;if(!textures)continue;
@@ -169,12 +169,12 @@
   }
   paintIcons();paintMinerals();
   globalThis.BlockWarsTextures?.loadOriginals().then(result=>{
-    element('asset-status').textContent=result.ok?(result.complete?'TEXTURAS MINECRAFT · '+result.version:'TEXTURAS MINECRAFT BASE · FALTAN RECURSOS DE EFECTOS O MINERALES'):'TEXTURAS DE RESPALDO · IMPORTAR RECURSOS LOCALES';
+    element('asset-status').textContent=result.ok?(result.complete?'MINECRAFT TEXTURES · '+result.version:'BASE MINECRAFT TEXTURES · EFFECT OR ORE ASSETS MISSING'):'FALLBACK TEXTURES · IMPORT LOCAL ASSETS';
     paintIcons();paintMinerals();
   });
   function telemetry(){
     const state=engine.state;
-    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion,mode:state.layout,depth:Math.min(1000000000,Math.floor((state.rowOffset||0)+(state.body?.y||0))),elapsed:state.elapsed||0})}).then(response=>{if(!response.ok)element('notice').textContent='Señal local no disponible · El juego continúa.';}).catch(()=>{element('notice').textContent='Señal local desconectada · El juego continúa.';});
+    fetch('/api/block-wars/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fps,frameMs:Math.round(frameMs*100)/100,round:state.round,remaining:Math.max(0,state.remaining),queue:state.queue.length,particles:state.particles.length,source:sources.size>1?'mixed':sources.values().next().value||'none',paused:state.paused,reducedMotion,mode:state.layout,depth:Math.min(1000000000,Math.floor((state.rowOffset||0)+(state.body?.y||0))),elapsed:state.elapsed||0})}).then(response=>{if(!response.ok)element('notice').textContent='Local telemetry unavailable · Game continues.';}).catch(()=>{element('notice').textContent='Local telemetry disconnected · Game continues.';});
   }
   function frame(now){
     if(stopped)return;

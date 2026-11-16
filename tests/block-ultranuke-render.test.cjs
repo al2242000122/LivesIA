@@ -11,7 +11,7 @@ test('official ULTRANUKE variants use different imported nuclear cube and warhea
 });
 test('missing mod assets use an explicitly labelled fallback and ULTRANUKE clouds remain restrained under reduced motion',()=>{
  const old=Textures.source;Textures.source=()=>null;
- try{const f=recorder();f.painter.projectile({kind:'nuke',rewardVariant:'subscriber',size:5.2,x:3,y:6,stage:'fall'},90,90,0,true);assert.ok(f.calls.some(c=>c[0]==='fillText'&&c[1]==='RESPALDO'));
+ try{const f=recorder();f.painter.projectile({kind:'nuke',rewardVariant:'subscriber',size:5.2,x:3,y:6,stage:'fall'},90,90,0,true);assert.ok(f.calls.some(c=>c[0]==='fillText'&&c[1]==='FALLBACK'));
  }finally{Textures.source=old;}
  const effect={kind:'nuke',rewardVariant:'subscriber',shockwaveIndex:0,x:3,y:8,age:3,duration:9,blastRadius:11},full=recorder(),reduced=recorder();
  full.painter.explosion(effect,90,90,0,false);reduced.painter.explosion(effect,90,90,0,true);

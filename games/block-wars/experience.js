@@ -8,11 +8,11 @@
   const SUBSCRIBER_ALERT_SECONDS=6;
   const REWARD_LIMIT=64,REWARD_GAP=.25,REWARD_TTL=30000,REWARD_DEDUPE_TTL=120000,REWARD_DEDUPE_LIMIT=256;
   function actorName(value){
-    if(typeof value!=='string'||value.length>64)return 'un minero';
+    if(typeof value!=='string'||value.length>64)return 'a miner';
     const name=value.normalize('NFKC').replace(/\s+/g,' ').trim();
-    return name&&/^[\p{L}\p{N}\p{M} _-]+$/u.test(name)?name.slice(0,32):'un minero';
+    return name&&/^[\p{L}\p{N}\p{M} _-]+$/u.test(name)?name.slice(0,32):'a miner';
   }
-  function sourceLabel(source){return source==='simulator'?'PRUEBA':source==='tikfinity'?'RELAY SIN VERIFICAR':source==='youtube'?'':'LA MINA';}
+  function sourceLabel(source){return source==='simulator'?'TEST':source==='tikfinity'?'UNVERIFIED RELAY':source==='youtube'?'':'THE MINE';}
   function createExperience(engine,rules,audio,onNotice=()=>{},options={}){
     const youtube=options.platform==='youtube';
     const now=options.now||Date.now,rewards=[],rewardSeen=new Map(),deferredOrigins=new Map();
@@ -33,18 +33,18 @@
       const source=['simulator','tikfinity','youtube'].includes(origin?.source)?origin.source:'automatic';
       const name=source==='automatic'?'':origin?.actorName||'';
       const subscriberDemo=youtube&&kind==='follow'&&source==='simulator';
-      const label=origin?.reward?'ULTRANUKE':config.EVENTS[kind]?.label||({mine:'MINERÍA',follow:subscriberDemo?'SUSCRIPTOR DE PRUEBA':'NUEVO FOLLOW',turbo:'TURBO',descomunal:'DESCOMUNAL'})[kind];
-      const by=name?name:source==='automatic'?'La mina':'La comunidad';
+      const label=origin?.reward?'ULTRANUKE':config.EVENTS[kind]?.label||({mine:'MINING',follow:subscriberDemo?'TEST SUBSCRIBER':'NEW FOLLOWER',turbo:'TURBO',descomunal:'COLOSSAL'})[kind];
+      const by=name?name:source==='automatic'?'The mine':'The community';
       const activation={id,kind,team:team||'neutral',actorName:name,source,at:state.elapsed,until:state.elapsed+FEEDBACK_TTL};
       if(origin?.reward){activation.speechKind=origin.speechKind;activation.rewardVariant=origin.speechKind==='like_milestone'?'like':'subscriber';}
       if(source==='youtube'&&origin?.reward&&origin.speechKind==='youtube_subscriber'){
         const moderated=name.slice(0,80).normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} _-]/gu,'').replace(/\s+/g,' ').trim().slice(0,24);
         const at=now()/1000;
-        state.subscriberAlert={id,actorName:moderated||'NUEVO MINERO',at,until:at+SUBSCRIBER_ALERT_SECONDS};
+        state.subscriberAlert={id,actorName:moderated||'NEW MINER',at,until:at+SUBSCRIBER_ALERT_SECONDS};
       }
       if(source==='automatic')activation.engineActionId=origin?.engineActionId||'';
       state.lastActivation=activation;
-      const message=[sourceLabel(source),by].filter(Boolean).join(' · ')+(subscriberDemo?' simula un nuevo suscriptor gratuito del canal':kind==='follow'?' recibe un refuerzo de bienvenida':kind==='mine'?' refuerza la minería para el próximo contacto':' activó '+label);
+      const message=[sourceLabel(source),by].filter(Boolean).join(' · ')+(subscriberDemo?' simulates a new free channel subscriber':kind==='follow'?' receives a welcome boost':kind==='mine'?' boosts mining for the next contact':' activated '+label);
       publish({...activation,accepted:true,reason:'activated',retryAfterMs:0},message);
       const sound={id,kind,team:team||'neutral',actorName:name,source};
       if(['sixty_seven','messi','siuuu'].includes(kind))sound.narrate=false;
@@ -68,7 +68,7 @@
         if(engine.state.lastAdmission?.actionId===id&&engine.state.lastAdmission.queued){
           deferredOrigins.set(id,{kind,origin});
           publish({id,kind,source,actorName:origin?.actorName||'',accepted:true,reason:'queued',retryAfterMs:0},
-            [sourceLabel(source),origin?.actorName,config.EVENTS[action.type]?.label||kind,'recibido · en cola'].filter(Boolean).join(' · '));
+            [sourceLabel(source),origin?.actorName,config.EVENTS[action.type]?.label||({descomunal:'COLOSSAL'})[kind]||kind,'received · queued'].filter(Boolean).join(' · '));
         }else announce(kind,action.team,origin,id);
       }
       return accepted;
@@ -90,24 +90,24 @@
     }
     function feedback(outcome,origin){
       if(!outcome||['unknown','duplicate','ignored','invalid','idle'].includes(outcome.reason))return;
-      const seconds=Math.ceil(outcome.retryAfterMs/1000),label=config.EVENTS[outcome.kind]?.label||outcome.kind||'Acción';
+      const seconds=Math.ceil(outcome.retryAfterMs/1000),label=config.EVENTS[outcome.kind]?.label||({descomunal:'COLOSSAL'})[outcome.kind]||outcome.kind||'Action';
       const reasons={
-        global_cooldown:'Enfriamiento de comandos: disponible en '+seconds+' s.',
-        actor_cooldown:'Tu siguiente acción estará disponible en '+seconds+' s.',
-        engine_cooldown:label+' disponible en '+seconds+' s de juego.',
-        engine_busy:label+' no se activó: hay otro efecto en curso o el motor está ocupado.',
-        paused:label+' no se activó: la mina está pausada.',
-        unavailable:label+' no se activó: el motor no está disponible.',
-        no_team:'Elige equipo con !dark o !light antes de minar.',
-        identity_required:'Esta acción necesita una identidad de chat válida.',
-        capacity:'No se activó: se alcanzó el límite local de participantes.',
-        already_selected:'Ya perteneces a ese equipo.',
-        already_voted:'Tu voto ya fue contado en este ciclo.',
-        locked_pick:'Ese pico todavía no está desbloqueado.',
-        vote:'Voto registrado. El efecto se activará al completar la votación.',
-        accepted:outcome.kind==='dark'||outcome.kind==='light'?'Equipo '+outcome.kind.toUpperCase()+' seleccionado.':rules.state.lastMessage||'Comando aceptado.'
+        global_cooldown:'Command cooldown: available in '+seconds+' s.',
+        actor_cooldown:'Your next action is available in '+seconds+' s.',
+        engine_cooldown:label+' available in '+seconds+' seconds of game time.',
+        engine_busy:label+' did not activate: another effect is active or the engine is busy.',
+        paused:label+' did not activate: the mine is paused.',
+        unavailable:label+' did not activate: the engine is unavailable.',
+        no_team:'Choose a team with !dark or !light before mining.',
+        identity_required:'This action requires a valid chat identity.',
+        capacity:'Not activated: the local participant limit was reached.',
+        already_selected:'You already belong to that team.',
+        already_voted:'Your vote has already been counted this cycle.',
+        locked_pick:'That pickaxe is not unlocked yet.',
+        vote:'Vote recorded. The effect will activate when voting is complete.',
+        accepted:outcome.kind==='dark'||outcome.kind==='light'?'Team '+outcome.kind.toUpperCase()+' selected.':rules.state.lastMessage||'Command accepted.'
       };
-      const message=reasons[outcome.reason]||(outcome.accepted?'Participación aceptada.':'La acción no se activó.');
+      const message=reasons[outcome.reason]||(outcome.accepted?'Participation accepted.':'The action did not activate.');
       publish({id:nextId(),...outcome,source:origin.source,actorName:origin.actorName},[sourceLabel(origin.source),message].filter(Boolean).join(' · '));
     }
     function handleEvent(event){

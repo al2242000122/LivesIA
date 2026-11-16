@@ -75,24 +75,24 @@ function broadcast(message) {
 }
 function receiveJson(req, res, validator, accept, reply=result=>send(res,200,result)) {
   if ((req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() !== 'application/json') {
-    req.resume(); return send(res, 415, {error: 'Se requiere application/json'});
+    req.resume(); return send(res, 415, {error: 'application/json required'});
   }
   const now = performance.now();
   if (now - commandWindow >= 1000) { commandWindow = now; commandCount = 0; }
   if (++commandCount > COMMANDS_PER_SECOND) {
-    req.resume(); res.setHeader('Retry-After', '1'); return send(res, 429, {error: 'Demasiados comandos; espera un segundo'});
+    req.resume(); res.setHeader('Retry-After', '1'); return send(res, 429, {error: 'Too many commands; wait one second'});
   }
   let bytes = 0, finished = false;
   const chunks = [];
   req.setTimeout(5000, () => {
-    if (!finished) { finished = true; send(res, 408, {error: 'Tiempo de envío agotado'}); req.destroy(); }
+    if (!finished) { finished = true; send(res, 408, {error: 'Request timed out'}); req.destroy(); }
   });
   req.on('data', chunk => {
     if (finished) return;
     bytes += chunk.length;
     if (bytes > MAX_BODY_BYTES) {
       finished = true; chunks.length = 0;
-      send(res, 413, {error: 'Mensaje demasiado grande (máximo 4096 bytes)'}); return;
+      send(res, 413, {error: 'Message too large (maximum 4096 bytes)'}); return;
     }
     chunks.push(chunk);
   });
@@ -103,18 +103,18 @@ function receiveJson(req, res, validator, accept, reply=result=>send(res,200,res
     finished = true;
     let event;
     try { event = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
-    catch { return send(res, 400, {error: 'JSON inválido'}); }
+    catch { return send(res, 400, {error: 'Invalid JSON'}); }
     const valid = validator(event);
-    if (!valid) return send(res, 400, {error: 'Comando inválido: revisa type, textos y count entero positivo'});
+    if (!valid) return send(res, 400, {error: 'Invalid command: check type, text fields and positive integer count'});
     Promise.resolve().then(()=>accept(valid)).then(result=>{
       if(!res.destroyed&&!res.writableEnded)reply(result);
-    }).catch(()=>send(res,500,{error:'Operación local no disponible'}));
+    }).catch(()=>send(res,500,{error:'Local operation unavailable'}));
   });
 }
 const server = http.createServer((req, res) => {
   let route,location;
   try { location = new URL(req.url, `http://${HOST}:${PORT}`);route=location.pathname; }
-  catch { return send(res, 400, {error: 'URL inválida'}); }
+  catch { return send(res, 400, {error: 'Invalid URL'}); }
   const allowedHosts = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`]);
   const origin = req.headers.origin;
   const pageNavigation = req.method === 'GET' && Object.hasOwn(files, route) &&
@@ -122,15 +122,15 @@ const server = http.createServer((req, res) => {
   if (!allowedHosts.has(req.headers.host) ||
       (origin && ![...allowedHosts].some(host => origin === `http://${host}`)) ||
       (req.headers['sec-fetch-site'] === 'cross-site' && !pageNavigation)) {
-    req.resume(); return send(res, 403, {error: 'Acceso sólo desde el origen local'});
+    req.resume(); return send(res, 403, {error: 'Local origin access only'});
   }
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Content-Security-Policy', "default-src 'self'; connect-src 'self' ws://127.0.0.1:21213; media-src 'self' blob:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
   if (req.method === 'GET' && route === '/api/stream') {
     const target=location.searchParams.get('target')||'snake';
-    if(!['snake','block-wars'].includes(target))return send(res,400,{error:'Destino inválido'});
-    if (clients.size >= MAX_CLIENTS) return send(res, 503, {error: 'Demasiadas ventanas del juego'});
+    if(!['snake','block-wars'].includes(target))return send(res,400,{error:'Invalid target'});
+    if (clients.size >= MAX_CLIENTS) return send(res, 503, {error: 'Too many game windows'});
     res.writeHead(200, {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no'
@@ -146,15 +146,15 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && route === '/api/command') return receiveJson(req,res,validateCommand,event=>({ok:true,receivers:broadcast(event)}));
   if(req.method==='GET'&&route==='/api/youtube/status')return send(res,200,youtubeStatus());
   if(req.method==='GET'&&route==='/api/youtube/broadcasts'){
-    if(!youtubeAuth.status().configured)return send(res,503,{error:'YouTube requiere autorización local'});
-    youtube.broadcasts().then(broadcasts=>send(res,200,{broadcasts})).catch(()=>send(res,502,{error:'No se pudo consultar YouTube'}));
+    if(!youtubeAuth.status().configured)return send(res,503,{error:'YouTube requires local authorization'});
+    youtube.broadcasts().then(broadcasts=>send(res,200,{broadcasts})).catch(()=>send(res,502,{error:'Could not query YouTube'}));
     return;
   }
   if(req.method==='POST'&&route==='/api/youtube/select'){
     return receiveJson(req,res,validateYouTubeSelection,selection=>{
       if(!youtubeAuth.status().configured)return {unconfigured:true};
       return youtube.select(selection.videoId).then(ok=>({ok,state:youtubeStatus()}));
-    },result=>send(res,result.unconfigured?503:200,result.unconfigured?{error:'YouTube requiere autorización local'}:result));
+    },result=>send(res,result.unconfigured?503:200,result.unconfigured?{error:'YouTube requires local authorization'}:result));
   }
   if(req.method==='POST'&&route==='/api/youtube/stop'){
     return receiveJson(req,res,validateYouTubeStop,()=>{youtube.stop();return {ok:true,state:youtubeStatus()};});
@@ -163,7 +163,7 @@ const server = http.createServer((req, res) => {
   if(req.method==='POST'&&route==='/api/block-wars/speech'){
     const controller=new AbortController();res.once('close',()=>controller.abort());
     return receiveJson(req,res,validatePayload,payload=>{
-      if(payload.source==='youtube'&&!youtube.claimRewardSpeech(payload))return {statusCode:403,error:{error:'Recompensa de voz no verificada.'}};
+      if(payload.source==='youtube'&&!youtube.claimRewardSpeech(payload))return {statusCode:403,error:{error:'Unverified voice reward.'}};
       return speech.synthesize(payload,{signal:controller.signal});
     },result=>{
       if(result.audio){res.writeHead(result.statusCode,{'Content-Type':result.contentType,'Cache-Control':'no-store'});res.end(result.audio);}
@@ -179,14 +179,14 @@ const server = http.createServer((req, res) => {
     fs.readFile(path.join(__dirname, filename), (error, content) => {
       if (res.destroyed) return;
       if (error) {
-        if(mime==='image/png'||mime.startsWith('audio/'))return send(res,404,{error:'Recurso local no instalado'});
-        console.error('No se pudo leer un archivo de la interfaz:', filename);return send(res,500,{error:'Interfaz no disponible'});
+        if(mime==='image/png'||mime.startsWith('audio/'))return send(res,404,{error:'Local resource not installed'});
+        console.error('Could not read an interface file:', filename);return send(res,500,{error:'Interface unavailable'});
       }
       res.writeHead(200, {'Content-Type': mime, 'Cache-Control': 'no-cache'}); res.end(content);
     });
     return;
   }
-  send(res, 404, {error: 'No encontrado'});
+  send(res, 404, {error: 'Not found'});
 });
 server.headersTimeout = 10000;
 server.requestTimeout = 15000;
@@ -195,7 +195,7 @@ const heartbeat = setInterval(() => {
   for (const client of clients) writeEvent(client, ': heartbeat\n\n');
 }, 25000);
 server.on('close', () => {clearInterval(heartbeat);youtube.stop();});
-server.on('error', error => { clearInterval(heartbeat);youtube.stop();console.error(`No se pudo iniciar el servidor (${error.code}).`); process.exitCode = 1; });
+server.on('error', error => { clearInterval(heartbeat);youtube.stop();console.error(`Could not start server (${error.code}).`); process.exitCode = 1; });
 server.listen(PORT, HOST, () => {
-  console.log(`\nLivesIA · Ensayo local\nJuego:   http://${HOST}:${PORT}/\nControl: http://${HOST}:${PORT}/control\nBlock Wars: http://${HOST}:${PORT}/block-wars\nPanel Block Wars: http://${HOST}:${PORT}/block-wars/control\nDetener: Ctrl+C\n`);
+  console.log(`\nLivesIA · Local rehearsal\nGame:   http://${HOST}:${PORT}/\nControl: http://${HOST}:${PORT}/control\nBlock Wars: http://${HOST}:${PORT}/block-wars\nBlock Wars controls: http://${HOST}:${PORT}/block-wars/control\nStop: Ctrl+C\n`);
 });
