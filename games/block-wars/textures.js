@@ -24,7 +24,7 @@
     const results=await Promise.allSettled(names.map(name=>new Promise((resolve,reject)=>{
       const image=new ImageClass();
       const timer=setTimeout(()=>finish(false),Math.max(1,Math.min(10000,timeoutMs)));
-      function finish(ok){clearTimeout(timer);image.onload=null;image.onerror=null;ok?resolve([name,image]):reject(new Error('Textura local no disponible: '+name));}
+      function finish(ok){clearTimeout(timer);image.onload=null;image.onerror=null;ok?resolve([name,image]):reject(new Error('Local texture unavailable: '+name));}
       image.onload=()=>{
         const dimensions=EFFECT_NAMES[name]||ITEM_NAMES[name]||NUKE_NAMES[name]||PARTICLE_NAMES[name];
         finish(dimensions&&dimensions[1]?image.width===dimensions[0]&&image.height===dimensions[1]:image.width===16&&image.height>=16&&image.height<=1024&&image.height%16===0);

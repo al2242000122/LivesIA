@@ -1,5 +1,5 @@
 'use strict';
-/* Serpiente Infinita LIVE — original maze + autoplay. No external dependencies. */
+/* Infinite Snake LIVE — original maze + autoplay. No external dependencies. */
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
@@ -18,7 +18,7 @@
   const key = (x,y) => y * WIDTH + x;
   const isWall = (x,y) => x<0 || y<0 || x>=WIDTH || y>=HEIGHT || s.walls[key(x,y)] === 1;
   const rand = n => Math.floor(Math.random() * n);
-  const safeName = value => String(value || 'Espectador').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').slice(0,24);
+  const safeName = value => String(value || 'Viewer').replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,'').slice(0,24);
   const norm = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   const formatTime = value => `${String(Math.floor(value/60)).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`;
   function notify(text, big=false, ms=1800) {
@@ -68,13 +68,13 @@
     s.seconds=DURATION;s.paused=false;s.turboUntil=0;s.partyUntil=0;s.gameOverUntil=0;
     previousSec=0;lastMove=0;lastFrame=performance.now();s.particles=[];
     makeMaze();s.snake=[{x:1,y:1}];s.apples=[];spawnApples(6);
-    notify(fullReset?'Nueva partida: ¡la serpiente está en marcha!':'¡Nuevo laberinto, nuevo desafío!',true);
+    notify(fullReset?'New game: the snake is on the move!':'New maze, new challenge!',true);
     syncHUD();
   }
   function levelUp() {
     s.level++;s.nextLevelAt+=12;
     makeMaze();s.snake=[{x:1,y:1}];s.apples=[];spawnApples(7);
-    notify(`✨ ¡NIVEL ${s.level}! Nuevo laberinto`,true,2400);
+    notify(`✨ LEVEL ${s.level}! New maze`,true,2400);
   }
   function findStep() {
     const head=s.snake[0], start=key(head.x,head.y);
@@ -114,10 +114,10 @@
     if(s.shields>0){
       s.shields--;s.snake=[{x:1,y:1}];
       s.apples=s.apples.filter(p=>p.x!==1||p.y!==1);
-      notify('🛡️ ¡El escudo salvó a la serpiente!',true);return;
+      notify('🛡️ The shield saved the snake!',true);return;
     }
     s.gameOverUntil=Date.now()+1750;
-    notify(`💥 Fin de la partida · ${s.score} manzanas`,true,1500);
+    notify(`💥 Game over · ${s.score} apples`,true,1500);
   }
   function step() {
     if(s.paused||s.gameOverUntil) return;
@@ -145,25 +145,25 @@
     }
     if(s.particles.length>260)s.particles.splice(0,s.particles.length-260);
   }
-  function gift(name,count=1,by='Espectador') {
+  function gift(name,count=1,by='Viewer') {
     const n=norm(name), qty=Math.max(1,Math.min(20,Math.round(Number(count)||1)));
     let label;
-    if(n.includes('rose')||n.includes('rosa')){spawnApples(2*qty);label=`🌹 ${by} agregó manzanas`;}
+    if(n.includes('rose')||n.includes('rosa')){spawnApples(2*qty);label=`🌹 ${by} added apples`;}
     else if(n.includes('finger heart')||n.includes('corazon')||n==='heart'||n.includes('heart me')){
-      s.shields=Math.min(5,s.shields+qty);label=`❤️ ${by} activó un escudo`;}
+      s.shields=Math.min(5,s.shields+qty);label=`❤️ ${by} activated a shield`;}
     else if(n.includes('doughnut')||n.includes('donut')||n.includes('dona')){
-      s.turboUntil=Date.now()+Math.min(35000,8000*qty); label=`🍩 ¡TURBO de ${by}!`;}
+      s.turboUntil=Date.now()+Math.min(35000,8000*qty); label=`🍩 TURBO from ${by}!`;}
     else if(n.includes('galaxy')||n.includes('galaxia')){
-      spawnApples(8*qty);s.partyUntil=Date.now()+10000;label=`🌌 ¡LLUVIA FRUTAL de ${by}!`;}
-    else {spawnApples(qty);label=`🎁 ${by} envió ${String(name).slice(0,24)}`;}
+      spawnApples(8*qty);s.partyUntil=Date.now()+10000;label=`🌌 APPLE RAIN from ${by}!`;}
+    else {spawnApples(qty);label=`🎁 ${by} sent ${String(name).slice(0,24)}`;}
     notify(label,true);syncHUD();
   }
-  function freeEvent(type,by='Espectador',text=''){
-    if(type==='like') {spawnApples(1);notify(`👍 ${by}: ¡100 likes! +1 manzana`);}
-    else if(type==='follow'){spawnApples(1);notify(`⭐ ¡Gracias por seguir, ${by}!`);}
-    else if(type==='subscribe'){spawnApples(5);notify(`💎 ${by} se suscribió: +5 manzanas`,true);}
+  function freeEvent(type,by='Viewer',text=''){
+    if(type==='like') {spawnApples(1);notify(`👍 ${by}: 100 likes! +1 apple`);}
+    else if(type==='follow'){spawnApples(1);notify(`⭐ Thanks for following, ${by}!`);}
+    else if(type==='subscribe'){spawnApples(5);notify(`💎 ${by} subscribed: +5 apples`,true);}
     else if(type==='chat'){
-      if(norm(text).includes('!manzana')){spawnApples(1);notify(`💬 ${by} ayudó con una manzana`);}
+      if((norm(text).includes('!manzana')||norm(text).includes('!apple'))){spawnApples(1);notify(`💬 ${by} helped with an apple`);}
     }
     syncHUD();
   }
@@ -172,16 +172,16 @@
     ui.level.textContent=String(s.level).padStart(2,'0');
     ui.timer.textContent=formatTime(s.seconds);
     ui.shields.textContent=String(s.shields).padStart(2,'0');
-    ui.speed.textContent=Date.now()<s.turboUntil?'⚡ TURBO ACTIVADO':'VELOCIDAD NORMAL';
+    ui.speed.textContent=Date.now()<s.turboUntil?'⚡ TURBO ACTIVE':'NORMAL SPEED';
   }
   function command(data) {
     if(!data||typeof data!=='object'||Array.isArray(data))return;
-    const by=`PRUEBA · ${safeName(data.name)}`;
+    const by=`TEST · ${safeName(data.name)}`;
     if(data.type==='gift')gift(data.giftName, data.count, by);
     if(['like','follow','subscribe','chat'].includes(data.type))freeEvent(data.type,by,data.text);
-    if(data.type==='pause'){s.paused=!s.paused;lastFrame=performance.now();notify(s.paused?'⏸ Partida pausada':'▶ Partida reanudada',true);}
+    if(data.type==='pause'){s.paused=!s.paused;lastFrame=performance.now();notify(s.paused?'⏸ Game paused':'▶ Game resumed',true);}
     if(data.type==='reset')newRound(true);
-    if(data.type==='frenzy'){s.partyUntil=Date.now()+14000;spawnApples(20);notify('PRUEBA · ✨ ¡FIESTA DE MANZANAS!',true);}
+    if(data.type==='frenzy'){s.partyUntil=Date.now()+14000;spawnApples(20);notify('TEST · ✨ APPLE PARTY!',true);}
   }
   // Bounded expiry maps fail closed under overload, keeping active cooldowns.
   // Viewer identifiers stay in memory only and are never logged.
@@ -205,10 +205,10 @@
     }else if(event.type==='like'){
       s.likes+=data.delta;
       const batches=Math.floor(s.likes/100);s.likes%=100;
-      if(batches){spawnApples(batches);notify(`👍 ¡La comunidad acumuló ${batches*100} likes!`);}
+      if(batches){spawnApples(batches);notify(`👍 The community reached ${batches*100} likes!`);}
     }else if(event.type==='comment'){
       const message=norm(data.text);
-      if(message.includes('!manzana')&&now-lastChatAt>=2500&&claimEvent(freeCooldown,`chat:${userKey}`,15000,now)){
+      if((message.includes('!manzana')||message.includes('!apple'))&&now-lastChatAt>=2500&&claimEvent(freeCooldown,`chat:${userKey}`,15000,now)){
         lastChatAt=now;freeEvent('chat',by,message);
       }
     }
@@ -218,8 +218,8 @@
     const connection=LiveTransport.connect({target:'snake',onEvent:receiveEvent,onControl:command,onStatus:state=>{
       const connected=state.relay==='connected';
       if(connected)ui.signal.classList.add('on');else ui.signal.classList.remove('on');
-      ui.connection.textContent=connected?'RELAY CONECTADO':'MODO DEMO';
-      if(connected&&previousRelay!=='connected')notify('TikFinity conectado · LIVE sin verificar');
+      ui.connection.textContent=connected?'RELAY CONNECTED':'DEMO MODE';
+      if(connected&&previousRelay!=='connected')notify('TikFinity connected · LIVE unverified');
       previousRelay=state.relay;
     }});
     globalThis.addEventListener?.('pagehide',()=>connection.stop(),{once:true});
@@ -280,9 +280,9 @@
     if(s.paused||s.gameOverUntil){
       ctx.fillStyle='#060b18c9';ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 40px system-ui';
-      ctx.fillText(s.paused?'PAUSA':'FIN DE PARTIDA',canvas.width/2,canvas.height/2-10);
+      ctx.fillText(s.paused?'PAUSED':'GAME OVER',canvas.width/2,canvas.height/2-10);
       ctx.font='bold 17px system-ui';ctx.fillStyle='#a1f7d7';
-      ctx.fillText(s.paused?'Control del creador':'¡Nueva ronda enseguida!',canvas.width/2,canvas.height/2+27);
+      ctx.fillText(s.paused?'Creator controls':'Next round starting soon!',canvas.width/2,canvas.height/2+27);
     }
   }
   function loop(now){
@@ -292,7 +292,7 @@
     if(!s.paused&&!s.gameOverUntil){
       previousSec+=elapsed;
       if(previousSec>=1){const whole=Math.floor(previousSec);previousSec-=whole;s.seconds=Math.max(0,s.seconds-whole);
-        if(s.seconds===0){notify('⏱️ ¡Tiempo! Nueva ronda',true);newRound(false);}syncHUD();}
+        if(s.seconds===0){notify('⏱️ Time up! New round',true);newRound(false);}syncHUD();}
       lastMove+=delta*1000;
       const speed=(Date.now()<s.turboUntil)?75:Math.max(95,180-s.level*8);
       if(lastMove>=speed){lastMove=0;step();syncHUD();}

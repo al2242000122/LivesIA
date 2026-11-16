@@ -44,6 +44,18 @@ test('panel likes do not contaminate the live like remainder', () => {
   assert.equal(g.s.likes, 0);
 });
 
+test('English apple chat works and shares the existing cooldown with the Spanish alias', () => {
+  const g = loadGame();
+  g.live('chat', {uniqueId: 'alias-user', comment: '!apple'});
+  assert.equal(g.s.apples.length, 7);
+  g.expire(3000);
+  g.live('chat', {uniqueId: 'alias-user', comment: '!manzana'});
+  assert.equal(g.s.apples.length, 7);
+  g.expire(15001);
+  g.live('chat', {uniqueId: 'alias-user', comment: '!manzana'});
+  assert.equal(g.s.apples.length, 8);
+});
+
 test('1000 live likes produce ten apples without losing batches', () => {
   const g = loadGame(); g.live('like', {likeCount: 1000});
   assert.equal(g.s.apples.length, 16); assert.equal(g.s.likes, 0);
@@ -145,7 +157,7 @@ test('transport connection is labelled as relay, never as verified LIVE', () => 
   const g = loadGame(); g.sockets[0].onopen();
   assert.match(g.elements.get('connection').textContent, /RELAY/);
   g.command({type: 'gift', giftName: 'Rose'});
-  assert.match(g.elements.get('last-event').textContent, /PRUEBA/);
+  assert.match(g.elements.get('last-event').textContent, /TEST/);
 });
 
 test('controls recreate a terminal SSE connection and can receive commands again', () => {

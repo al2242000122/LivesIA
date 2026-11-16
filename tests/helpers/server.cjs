@@ -13,7 +13,7 @@ async function start(t,env={}) {
   await new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('Server startup timeout')), 5000);
     child.once('exit', code => { clearTimeout(timer); reject(new Error(`Server exited: ${code}`)); });
-    child.stdout.on('data', data => { if (String(data).includes('Juego:')) { clearTimeout(timer); resolve(); } });
+    child.stdout.on('data', data => { if (String(data).includes('Game:')) { clearTimeout(timer); resolve(); } });
   });
   const base = `http://127.0.0.1:${port}`;
   function request(route, {method = 'GET', headers = {}, body} = {}) {

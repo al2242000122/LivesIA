@@ -37,7 +37,7 @@ test('physical TNT uses its collision center, delays remain invisible, and attri
   painter.projectile(entity,90,90,1,false);
   assert.deepEqual(calls.find(call=>call[0]==='translate'),['translate',270,270]);
   assert.ok(calls.some(call=>call[0]==='paint'&&call[1]==='tnt'&&call[2]==='tnt'));
-  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='PRUEBA · Ana'));
+  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='TEST · Ana'));
   calls.length=0;painter.projectile({...entity,delay:.4},90,90,1,false);assert.equal(calls.length,0);
 });
 test('creeper uses four front-facing UV sections from the authentic skin, not a stretched full skin',async()=>{
@@ -53,7 +53,7 @@ test('storm reads complete64x64 rain frames, uses bounded tiled draws and automa
   const draws=calls.filter(call=>call[0]==='drawImage');
   assert.ok(draws.length>0&&draws.length<100);
   assert.ok(draws.every(call=>call[1].url.endsWith('/rain.png')&&call[3]===128&&call[4]===64&&call[5]===64));
-  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='LA MINA'));
+  assert.ok(calls.some(call=>call[0]==='fillText'&&call[1]==='THE MINE'));
   assert.equal(JSON.stringify(weather),before);
 });
 test('all approved projectiles have pixel textures and reduced motion cannot mutate gameplay',()=>{
@@ -71,8 +71,8 @@ test('giant charges above the viewport retain a visible TNT preview, owner and r
   for(const kind of ['mega','nuke']){
     const {calls,painter}=recorder();
     painter.projectile({kind,stage:'fuse',x:3.5,y:-1.901,size:3.8,age:.5,fuse:2.4,actor:'Ana',source:'simulator'},90,90,0,false);
-    assert.ok(calls.some(call=>call[0]==='fillText'&&/MECHA 2.4s/.test(call[1])),kind);
-    assert.ok(calls.some(call=>call[0]==='fillText'&&/PRUEBA · Ana/.test(call[1])),kind);
+    assert.ok(calls.some(call=>call[0]==='fillText'&&/FUSE 2.4s/.test(call[1])),kind);
+    assert.ok(calls.some(call=>call[0]==='fillText'&&/TEST · Ana/.test(call[1])),kind);
     const preview=calls.find(call=>call[0]==='paint'&&call[1]==='tnt');
     const origin=calls.find(call=>call[0]==='translate');assert.ok(preview&&origin&&origin[1]>0&&origin[2]>0&&origin[2]+preview[5]<1280,'transformed preview stays inside canvas');
   }

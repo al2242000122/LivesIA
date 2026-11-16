@@ -6,21 +6,21 @@ async function status() {
     const response = await fetch('/api/status');
     if (!response.ok) throw new Error('HTTP');
     const data = await response.json();
-    views.textContent = data.gameWindows ? `${data.gameWindows} ventana(s) del juego conectada(s)` : 'Abre el juego para activar las pruebas';
+    views.textContent = data.gameWindows ? `${data.gameWindows} game window(s) connected` : 'Open the game to enable tests';
   } catch {
-    views.textContent = 'Servidor desconectado';
+    views.textContent = 'Server disconnected';
   }
 }
 async function send(type, giftName) {
   try {
     const response = await fetch('/api/command', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({type, giftName, name: 'Prueba local', text: '!manzana'})
+      body: JSON.stringify({type, giftName, name: 'Local test', text: '!apple'})
     });
     const data = await response.json();
-    feedback.textContent = data.ok ? `✓ Simulado en ${data.receivers} ventana(s)` : (data.error || 'Error');
+    feedback.textContent = data.ok ? `✓ Simulated in ${data.receivers} window(s)` : (data.error || 'Error');
   } catch {
-    feedback.textContent = 'No se pudo enviar el evento';
+    feedback.textContent = 'Could not send the event';
   }
   status();
 }

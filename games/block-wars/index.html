@@ -1,33 +1,33 @@
 <!doctype html>
-<html lang="es-MX">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Block Wars · Minería interactiva</title><link rel="stylesheet" href="/block-wars/style.css"></head>
-<body class="bw-game"><main class="bw-stage" aria-label="Excavación vertical interactiva de Block Wars">
-  <canvas id="mine" width="720" height="1280" aria-label="Mina infinita con pico que rebota, colisiones y bloques que se rompen por contacto"></canvas>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Infinite Mine LIVE · Interactive Mining</title><link rel="stylesheet" href="/block-wars/style.css"></head>
+<body class="bw-game"><main class="bw-stage" aria-label="Infinite Mine LIVE interactive vertical mining">
+  <canvas id="mine" width="720" height="1280" aria-label="Endless mine with a bouncing pickaxe, collisions and blocks that break on contact"></canvas>
   <div id="event-banner" class="bw-event-banner" hidden aria-live="polite"></div>
-  <aside class="bw-minerals" aria-label="Bloques de mineral extraídos en esta sesión"><dl>
-    <div><dt><canvas data-mineral-icon="item_coal" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Carbón</span></dt><dd id="mineral-coal">0</dd></div>
-    <div><dt><canvas data-mineral-icon="item_iron_ingot" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Hierro</span></dt><dd id="mineral-iron">0</dd></div>
-    <div><dt><canvas data-mineral-icon="item_copper_ingot" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Cobre</span></dt><dd id="mineral-copper">0</dd></div>
-    <div><dt><canvas data-mineral-icon="item_gold_ingot" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Oro</span></dt><dd id="mineral-gold">0</dd></div>
+  <aside class="bw-minerals" aria-label="Ore blocks mined this session"><dl>
+    <div><dt><canvas data-mineral-icon="item_coal" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Coal</span></dt><dd id="mineral-coal">0</dd></div>
+    <div><dt><canvas data-mineral-icon="item_iron_ingot" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Iron</span></dt><dd id="mineral-iron">0</dd></div>
+    <div><dt><canvas data-mineral-icon="item_copper_ingot" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Copper</span></dt><dd id="mineral-copper">0</dd></div>
+    <div><dt><canvas data-mineral-icon="item_gold_ingot" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Gold</span></dt><dd id="mineral-gold">0</dd></div>
     <div><dt><canvas data-mineral-icon="item_redstone" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Redstone</span></dt><dd id="mineral-redstone">0</dd></div>
-    <div><dt><canvas data-mineral-icon="item_lapis_lazuli" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Lapislázuli</span></dt><dd id="mineral-lapis">0</dd></div>
-    <div><dt><canvas data-mineral-icon="item_diamond" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Diamante</span></dt><dd id="mineral-diamond">0</dd></div>
-    <div><dt><canvas data-mineral-icon="item_emerald" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Esmeralda</span></dt><dd id="mineral-emerald">0</dd></div>
-  </dl><div class="bw-depth"><strong>PROFUNDIDAD</strong><b id="depth-value">0 m</b><small>MÁXIMA ALCANZADA</small></div></aside>
-  <aside id="youtube-rewards" class="bw-rewards" hidden aria-label="Recompensas gratuitas de YouTube">
+    <div><dt><canvas data-mineral-icon="item_lapis_lazuli" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Lapis lazuli</span></dt><dd id="mineral-lapis">0</dd></div>
+    <div><dt><canvas data-mineral-icon="item_diamond" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Diamond</span></dt><dd id="mineral-diamond">0</dd></div>
+    <div><dt><canvas data-mineral-icon="item_emerald" width="16" height="16" aria-hidden="true"></canvas><span class="bw-sr-only">Emerald</span></dt><dd id="mineral-emerald">0</dd></div>
+  </dl><div class="bw-depth"><strong>DEPTH</strong><b id="depth-value">0 m</b><small>DEEPEST REACHED</small></div></aside>
+  <aside id="youtube-rewards" class="bw-rewards" hidden aria-label="Free YouTube rewards">
     <div><canvas data-reward-icon="nuke_like" width="16" height="16" aria-hidden="true"></canvas><strong>LIKE <em>=</em> <b>ULTRANUKE ×3</b></strong></div>
     <div><canvas data-reward-icon="nuke_subscriber" width="16" height="16" aria-hidden="true"></canvas><strong>SUB <em>=</em> <b>ULTRANUKE ×10</b></strong></div>
-    <span class="bw-joke" title="Broma visual, sin acciones de moderación" aria-label="Broma visual: NOOB igual a BAN">NOOB = BAN</span>
-    <b id="reward-status" class="bw-sr-only" role="status">RECOMPENSAS PENDIENTES</b>
-    <small class="bw-sr-only">Likes netos detectados · Solo suscripciones públicas · Puede haber demora</small>
+    <span class="bw-joke" title="Visual joke, no moderation action" aria-label="Visual joke: NOOB equals BAN">NOOB = BAN</span>
+    <b id="reward-status" class="bw-sr-only" role="status">REWARDS PENDING</b>
+    <small class="bw-sr-only">Detected net like increases · Public subscriptions only · Delays possible</small>
   </aside>
-  <section id="activation-card" class="bw-activation" hidden aria-live="polite" aria-label="Última acción activada"><small id="activation-source"></small><strong id="activation-title"></strong><span id="activation-actor"></span></section>
+  <section id="activation-card" class="bw-activation" hidden aria-live="polite" aria-label="Latest activated action"><small id="activation-source"></small><strong id="activation-title"></strong><span id="activation-actor"></span></section>
   <p id="command-feedback" class="bw-command-feedback" hidden role="status"></p>
-  <section id="subscriber-alert" class="bw-subscriber-alert" hidden aria-live="polite" aria-label="Nuevo suscriptor público">
+  <section id="subscriber-alert" class="bw-subscriber-alert" hidden aria-live="polite" aria-label="New public subscriber">
     <div class="bw-subscriber-sprite" aria-hidden="true"><i></i><canvas data-reward-icon="nuke_subscriber" width="16" height="16"></canvas><i></i></div>
-    <small>NUEVO SUSCRIPTOR</small><strong id="subscriber-name"></strong><b>ULTRANUKE ×10</b><span>¡BIENVENIDO A LA MINA!</span>
+    <small>NEW SUBSCRIBER</small><strong id="subscriber-name"></strong><b>ULTRANUKE ×10</b><span>WELCOME TO THE MINE!</span>
   </section>
-  <aside class="bw-command-menu" aria-label="Comandos gratuitos seleccionados"><h2 id="command-heading">COMANDOS</h2><ol id="command-list">
+  <aside class="bw-command-menu" aria-label="Selected free commands"><h2 id="command-heading">COMMANDS</h2><ol id="command-list">
       <li id="menu-tnt" class="event-tnt"><canvas data-command-icon="tnt" width="16" height="16" aria-hidden="true"></canvas><b>TNT</b></li>
       <li id="menu-rain" class="event-rain"><canvas data-command-icon="rain" width="16" height="16" aria-hidden="true"></canvas><b>RAIN</b></li>
       <li id="menu-thunder" class="event-thunder"><canvas data-command-icon="thunder" width="16" height="16" aria-hidden="true"></canvas><b>THUNDER</b></li>
@@ -45,9 +45,9 @@
       <li id="menu-sixty_seven" class="event-sixty_seven"><canvas data-command-icon="sixty_seven" width="16" height="16" aria-hidden="true"></canvas><b>67</b></li>
       <li id="menu-messi" class="event-messi"><canvas data-command-icon="messi" width="16" height="16" aria-hidden="true"></canvas><b>MESSI</b></li>
       <li id="menu-siuuu" class="event-siuuu"><canvas data-command-icon="siuuu" width="16" height="16" aria-hidden="true"></canvas><b>SIUUU</b></li>
-    </ol><small id="command-instruction">NIVEL 1→4 · RAIN: PICOS 10 s</small></aside>
-  <section id="timer-card" class="bw-timer" aria-label="Cuenta regresiva de eventos"><strong id="timer-caption">NEXT EVENT</strong><b id="next-event">60.0s</b><div class="bw-time-track"><i id="time-fill"></i></div></section>
-  <div class="bw-tool-readout" id="tool-readout" hidden>PICO MADERA · 0.6 b/s</div>
-  <section id="audio-gate" class="bw-audio-gate" aria-label="Activar audio"><button id="audio-enable" type="button">ACTIVAR SONIDO</button><small id="audio-status" class="bw-sr-only" role="status">AUDIO: ACTIVAR EN OBS → INTERACTUAR</small></section>
-  <footer class="bw-footer" hidden><span id="source">DEMO · AUTÓNOMO</span><span>SESIÓN <b id="clock">00:00</b></span><small id="relay">RELAY DESCONECTADO · LIVE SIN VERIFICAR</small><small id="asset-status">CARGANDO TEXTURAS LOCALES</small><p id="notice" aria-live="polite">Escribe TNT, RAIN o NUKE · Participación gratis</p><small class="bw-attribution">PROYECTO NO OFICIAL · NO APROBADO NI ASOCIADO CON MOJANG O MICROSOFT</small></footer>
+    </ol><small id="command-instruction">LEVEL 1→4 · RAIN: 12 PICKS / 10s</small></aside>
+  <section id="timer-card" class="bw-timer" aria-label="Event countdown"><strong id="timer-caption">NEXT EVENT</strong><b id="next-event">60.0s</b><div class="bw-time-track"><i id="time-fill"></i></div></section>
+  <div class="bw-tool-readout" id="tool-readout" hidden>WOOD PICKAXE · 0.6 b/s</div>
+  <section id="audio-gate" class="bw-audio-gate" aria-label="Enable audio"><button id="audio-enable" type="button">ENABLE SOUND</button><small id="audio-status" class="bw-sr-only" role="status">AUDIO: ENABLE IN OBS → INTERACT</small></section>
+  <footer class="bw-footer" hidden><span id="source">DEMO · AUTONOMOUS</span><span>SESSION <b id="clock">00:00</b></span><small id="relay">RELAY DISCONNECTED · LIVE UNVERIFIED</small><small id="asset-status">LOADING LOCAL TEXTURES</small><p id="notice" aria-live="polite">Type TNT, RAIN or NUKE · Free participation</p><small class="bw-attribution">UNOFFICIAL PROJECT · NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT</small></footer>
 </main><script src="/integrations/events.js"></script><script src="/integrations/transport.js"></script><script src="/block-wars/config.js"></script><script src="/block-wars/physics.js"></script><script src="/block-wars/engine.js"></script><script src="/block-wars/rules.js"></script><script src="/block-wars/textures.js"></script><script src="/block-wars/effects-render.js"></script><script src="/block-wars/render.js"></script><script src="/block-wars/audio-assets.js"></script><script src="/block-wars/audio.js"></script><script src="/block-wars/experience.js"></script><script src="/block-wars/app.js"></script></body></html>

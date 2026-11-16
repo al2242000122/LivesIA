@@ -18,7 +18,7 @@ test('accepted instant commands announce their actors while duplicates and pause
   app.experience.handleEvent(comment('a','NUKE'));app.experience.handleEvent(comment('b','NUKE',2));
   assert.equal(app.heard.length,2,'another instant NUKE can activate without cooldown');
   app.engine.pause(true);app.experience.handleEvent(comment('c','NUKE',3));
-  assert.equal(app.heard.length,2);assert.match(app.notices.at(-1),/pausada/i);
+  assert.equal(app.heard.length,2);assert.match(app.notices.at(-1),/paused/i);
 });
 test('rewarded mine and follow have their own announcement, team choice and ignored paid event have none',()=>{
   const app=harness();app.experience.handleEvent(comment('team','!dark'));
@@ -112,7 +112,7 @@ test('YouTube subscriber demo is explicit, while relay follows cannot masquerade
   const app=harness({platform:'youtube'});
   app.experience.handleEvent({...comment('demo','',1),type:'follow'});
   assert.equal(app.heard[0].speechKind,'youtube_subscriber');assert.equal(app.heard[0].narrate,true);
-  assert.match(app.notices.at(-1),/PRUEBA.*suscriptor.*canal/i);
+  assert.match(app.notices.at(-1),/TEST.*channel subscriber/i);
   app.experience.handleEvent({...comment('relay','',2),type:'follow',source:'tikfinity'});
   assert.equal(app.heard[1].narrate,false);assert.equal(app.heard[1].speechKind,undefined);
 });

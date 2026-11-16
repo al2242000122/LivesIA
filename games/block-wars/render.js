@@ -6,7 +6,7 @@
   'use strict';
   const bounded=(n,min,max)=>Math.max(min,Math.min(max,n));
   function createRenderer(canvas){
-    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas 2D no disponible');
+    const ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas 2D unavailable');
     const W=canvas.width,H=canvas.height,cache=new Map();
     const view={cameraY:0,cellSize:90,visibleRows:0,focusDepth:0,activeTeam:'dark'};
     let lastTime=0,lastRound=0,lastOffset=0,lastElapsed=0;
@@ -113,8 +113,8 @@
       }
       if(state.paused||state.phase==='summary'){
         ctx.fillStyle='#101116d9';ctx.fillRect(0,H*.43,W,H*.16);ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 44px Impact,sans-serif';
-        ctx.fillText(state.paused?'EN PAUSA':state.result==='tie'?'EMPATE':`${(state.result||'').toUpperCase()} GANA`,W/2,H*.51);
-        ctx.font='17px Consolas,monospace';ctx.fillText(state.paused?'Control del creador':'Nueva excavaciÃ³n enseguida',W/2,H*.55);ctx.textAlign='left';
+        ctx.fillText(state.paused?'PAUSED':state.result==='tie'?'TIE':`${(state.result||'').toUpperCase()} WINS`,W/2,H*.51);
+        ctx.font='17px Consolas,monospace';ctx.fillText(state.paused?'Creator controls':'New excavation starting soon',W/2,H*.55);ctx.textAlign='left';
       }
     }
     return {draw,view};

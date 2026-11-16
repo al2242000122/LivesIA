@@ -15,4 +15,4 @@ for(const file of files){
   const result=spawnSync(process.execPath,['--check',file],{stdio:'inherit'});
   if(result.error||result.status!==0)process.exit(1);
 }
-console.log(`Sintaxis correcta: ${files.length} archivos`);
+console.log(`Syntax OK: ${files.length} files`);

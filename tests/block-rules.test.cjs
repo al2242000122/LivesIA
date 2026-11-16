@@ -66,6 +66,38 @@ test('follow gets a team or neutral bonus, fallback cooldown, safe info summarie
   f.event('comment',{text:'!pico'});assert.equal(JSON.stringify(f.rules.state).includes('DO NOT DISPLAY'),false);
   assert.equal(JSON.stringify(f.rules.metrics).includes('alice'),false);assert.equal('viewers' in f.rules.metrics,false);
 });
+test('English and Spanish pickaxe aliases share ballots, unlock checks and one vote per participant',()=>{
+  for(const [english,spanish,pick] of [['!wood','!madera','wood'],['!stone','!piedra','stone'],['!gold','!oro','gold'],['!diamond','!diamante','diamond'],['!netherite','!netherita','netherite']]){
+    const f=fixture({pickVoteThreshold:2});
+    f.engine.state.teams.dark.unlocked=['wood','stone','gold','diamond','netherite'];
+    for(const actor of ['a','b'])assert.equal(f.event('comment',{text:'!dark'},actor),true);
+    assert.equal(f.event('comment',{text:english.toUpperCase()},'a'),true,english);
+    assert.equal(f.rules.state.teams.dark.votes[pick],1);
+    assert.equal(f.event('comment',{text:spanish},'a'),false,'an alias cannot cast a second vote');
+    assert.equal(f.rules.state.lastOutcome.reason,'already_voted');
+    assert.equal(f.event('comment',{text:spanish},'b'),true,spanish);
+    assert.deepEqual(f.actions,[{type:'pickaxe',team:'dark',pickaxe:pick}]);
+    assert.equal(f.rules.state.teams.dark.votes[pick],2);
+  }
+  const locked=fixture();locked.event('comment',{text:'!dark'});
+  for(const text of ['!diamond','!diamante','!netherite','!netherita']){
+    assert.equal(locked.event('comment',{text}),false,text);
+    assert.equal(locked.rules.state.lastOutcome.reason,'locked_pick');
+  }
+  assert.equal(locked.actions.length,0);
+});
+test('English !pick and legacy !pico report the same team tool without casting a vote',()=>{
+  const f=fixture();
+  assert.equal(f.event('comment',{text:'!pick'}),true);
+  assert.equal(f.rules.state.lastMessage,'Choose a team with !dark or !light');
+  f.event('comment',{text:'!dark'});
+  assert.equal(f.event('comment',{text:'!PICK'}),true);
+  const message=f.rules.state.lastMessage;
+  assert.equal(message,'Team pickaxe: wood');
+  assert.equal(f.event('comment',{text:'!pico'}),true);
+  assert.equal(f.rules.state.lastMessage,message);
+  assert.equal(f.actions.length,0);assert.equal(f.rules.state.teams.dark.votes.wood,0);
+});
 test('caps fail closed, TTL expires and reset clears all session state',()=>{
   const f=fixture({maxActors:2,maxDedupe:3,actorTtlMs:60000,dedupeTtlMs:1000});
   f.event('comment',{text:'!dark'},'a');f.event('comment',{text:'!dark'},'b');assert.equal(f.event('comment',{text:'!dark'},'c'),false);

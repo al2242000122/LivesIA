@@ -35,7 +35,7 @@ test('speech accepts only the fixed action contract, with no free text or paid e
   assert.equal(calls.length, 0);
 });
 
-test('speech uses the official fixed endpoint and Spanish template instead of user text', async () => {
+test('speech uses the official fixed endpoint and English template instead of user text', async () => {
   const { speech, calls } = fixture();
   const result = await speech.synthesize(payload());
   assert.equal(result.statusCode, 200);
@@ -50,8 +50,8 @@ test('speech uses the official fixed endpoint and Spanish template instead of us
   assert.equal(request.headers['x-fern-sdk-version'], '2.78.0');
   const body = JSON.parse(request.body);
   assert.equal(body.model_id, 'eleven_flash_v2_5');
-  assert.match(body.text, /NUKE de Ana María/);
-  assert.equal(body.language_code, 'es');
+  assert.match(body.text, /ULTRANUKE from Ana María/);
+  assert.equal(body.language_code, 'en');
   assert.ok(body.text.length <= 160);
   const state = speech.status();
   assert.equal(state.requestsSent, 1);
@@ -65,10 +65,10 @@ test('YouTube rehearsal templates keep likes anonymous and distinguish free subs
   const {speech,calls,advance}=fixture();
   assert.equal((await speech.synthesize(payload(1,{kind:'like_milestone',source:'simulator'}))).statusCode,200);
   const likes=JSON.parse(calls[0][1].body).text;
-  assert.match(likes,/^Prueba\..*likes.*TNT/i);assert.ok(!likes.includes('Ana'));
+  assert.match(likes,/^Test\. Like goal.*TNT/i);assert.ok(!likes.includes('Ana'));
   advance();
   assert.equal((await speech.synthesize(payload(2,{kind:'youtube_subscriber',source:'simulator'}))).statusCode,200);
-  assert.match(JSON.parse(calls[1][1].body).text,/^Prueba\..*Ana María.*suscribirte.*canal/i);
+  assert.match(JSON.parse(calls[1][1].body).text,/^Test\..*Ana María.*subscribing.*channel/i);
   for(const source of ['automatic','tikfinity'])for(const kind of ['like_milestone','youtube_subscriber']){
     assert.equal((await speech.synthesize(payload(3,{kind,source}))).statusCode,400);
   }
@@ -87,25 +87,25 @@ test('all existing events, rewarded mine and follow have bounded templates and h
     advance();
   }
   await speech.synthesize(payload(100, { source: 'simulator', kind: 'follow' }));
-  assert.match(JSON.parse(calls.at(-1)[1].body).text, /^Prueba\./);
+  assert.match(JSON.parse(calls.at(-1)[1].body).text, /^Test\./);
   advance();
   await speech.synthesize(payload(101, { source: 'automatic' }));
   assert.ok(!JSON.parse(calls.at(-1)[1].body).text.includes('Ana'));
   advance();
   await speech.synthesize(payload(102, { actorName: '' }));
-  assert.match(JSON.parse(calls.at(-1)[1].body).text, /comunidad/);
+  assert.match(JSON.parse(calls.at(-1)[1].body).text, /community/);
   advance();
   await speech.synthesize(payload(103, { actorName: 'pendejo', kind: 'mine' }));
   assert.ok(!JSON.parse(calls.at(-1)[1].body).text.includes('pendejo'));
 });
 
-test('the optional multilingual model receives Spanish text without an unsupported language override', async () => {
+test('the optional multilingual model receives English text without an unsupported language override', async () => {
   const { speech, calls } = fixture({ env: { ...configured, ELEVENLABS_MODEL_ID: 'eleven_multilingual_v2' } });
   assert.equal((await speech.synthesize(payload())).statusCode, 200);
   const body = JSON.parse(calls[0][1].body);
   assert.equal(body.model_id, 'eleven_multilingual_v2');
   assert.equal(Object.hasOwn(body, 'language_code'), false);
-  assert.match(body.text, /NUKE de Ana María/);
+  assert.match(body.text, /ULTRANUKE from Ana María/);
 });
 
 test('action identifiers cannot be billed twice, including after a provider failure', async () => {
@@ -263,9 +263,9 @@ test('SDK transport rejects redirects without following a foreign endpoint', asy
 test('typed real YouTube reward templates thank one like and name a public subscriber with ten NUKE charges',async()=>{
  const {speech,calls,advance}=fixture();
  assert.equal((await speech.synthesize(payload(500,{kind:'like_milestone',source:'youtube',actorName:''}))).statusCode,200);
- assert.match(JSON.parse(calls[0][1].body).text,/Nuevo like.*[Tt]res.*ULTRANUKE/);advance();
+ assert.match(JSON.parse(calls[0][1].body).text,/New like.*[Tt]hree.*ULTRANUKE/);advance();
  assert.equal((await speech.synthesize(payload(501,{kind:'youtube_subscriber',source:'youtube'}))).statusCode,200);
- assert.match(JSON.parse(calls[1][1].body).text,/Ana Mar\u00eda.*[Dd]iez.*ULTRANUKE/);
+ assert.match(JSON.parse(calls[1][1].body).text,/Ana Mar\u00eda.*[Tt]en.*ULTRANUKE/);
  assert.equal((await speech.synthesize(payload(502,{kind:'tnt',source:'youtube'}))).statusCode,400);
 });
 test('meme commands never send speech to the provider, especially silent MESSI',async()=>{
